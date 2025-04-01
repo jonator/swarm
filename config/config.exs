@@ -63,6 +63,7 @@ config :phoenix, :json_library, Jason
 
 # config/config.exs
 config :swarm, Oban,
+  notifier: Oban.Notifiers.PG,
   engine: Oban.Engines.Basic,
   queues: [default: 10],
   repo: Swarm.Repo

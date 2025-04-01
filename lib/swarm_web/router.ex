@@ -1,5 +1,6 @@
 defmodule SwarmWeb.Router do
   use SwarmWeb, :router
+  import Oban.Web.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -18,6 +19,7 @@ defmodule SwarmWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    oban_dashboard "/oban"
   end
 
   # Other scopes may use custom stacks.
