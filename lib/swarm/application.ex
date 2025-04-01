@@ -17,7 +17,8 @@ defmodule Swarm.Application do
       # Start a worker by calling: Swarm.Worker.start_link(arg)
       # {Swarm.Worker, arg},
       # Start to serve requests, typically the last entry
-      SwarmWeb.Endpoint
+      SwarmWeb.Endpoint,
+      {Oban, Application.fetch_env!(:swarm, Oban)}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
