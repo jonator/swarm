@@ -59,7 +59,10 @@ defmodule Swarm.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.5"},
       {:oban, "~> 2.19"},
-      {:oban_web, "~> 2.11"}
+      {:oban_web, "~> 2.11"},
+      {:typed_struct, "~> 0.3.0"},
+      {:mutex, "~> 3.0"},
+      {:mock, "~> 0.3.0", only: :test}
     ]
   end
 
