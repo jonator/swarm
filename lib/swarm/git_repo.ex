@@ -50,7 +50,7 @@ defmodule Swarm.GitRepo do
   end
 
   defp switch_branch(path, branch) do
-    case System.cmd("git", ["switch", "-C", branch], cd: path) do
+    case System.cmd("git", ["switch", "-C", branch, "--quiet"], cd: path) do
       {_, 0} -> :ok
       _ -> {:error, "Failed to switch to branch #{branch}"}
     end
