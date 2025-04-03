@@ -4,23 +4,25 @@ defmodule Swarm.GitRepo do
   @base_dir Path.join(System.tmp_dir(), Atom.to_string(__MODULE__))
 
   typedstruct enforce: true do
-    field :origin_url, String.t()
+    field :url, String.t()
     field :branch, String.t()
     field :path, String.t()
-    field :lock, Mutex.Lock.t()
+    field :closed, boolean(), default: false
   end
 
-  def open(url, branch) do
-    path = make_path(url)
+  def open(url, slug, branch) do
+    path = make_path(url, slug)
 
     with :ok <- clone_repo(url, path),
-         :ok <- switch_branch(path, branch),
-         lock <- Mutex.await(Swarm.Mutex, __MODULE__) do
-      {:ok, %__MODULE__{origin_url: url, path: path, branch: branch, lock: lock}}
+         :ok <- switch_branch(path, branch) do
+      {:ok, %__MODULE__{url: url, path: path, branch: branch}}
     end
   end
 
-  def release(%__MODULE__{lock: lock}), do: Mutex.release(Swarm.Mutex, lock)
+  def close(%__MODULE__{url: url, path: path, branch: branch}) do
+    File.rm_rf!(path)
+    {:ok, %__MODULE__{url: url, path: path, branch: branch, closed: true}}
+  end
 
   @doc """
   Lists all file paths in the repository.
@@ -40,7 +42,7 @@ defmodule Swarm.GitRepo do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       :ok
     else
-      case System.cmd("git", ["clone", url, path]) do
+      case System.cmd("git", ["clone", "--quiet", url, path]) do
         {_, 0} -> :ok
         _ -> {:error, "Failed to clone repository: #{url}"}
       end
@@ -48,16 +50,13 @@ defmodule Swarm.GitRepo do
   end
 
   defp switch_branch(path, branch) do
-    IO.inspect(path, label: "SWITCH PATH")
-    IO.inspect(branch, label: "SWITCH BRANCH")
-
     case System.cmd("git", ["switch", "-C", branch], cd: path) do
       {_, 0} -> :ok
       _ -> {:error, "Failed to switch to branch #{branch}"}
     end
   end
 
-  defp make_path(url) do
+  defp make_path(url, slug) do
     path =
       url
       |> String.replace(~r/\.git$/, "")
@@ -65,6 +64,6 @@ defmodule Swarm.GitRepo do
       |> Enum.take(-2)
       |> Enum.join("/")
 
-    Path.join(@base_dir, path)
+    Path.join([@base_dir, slug, path])
   end
 end

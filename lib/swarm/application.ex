@@ -18,8 +18,7 @@ defmodule Swarm.Application do
       # {Swarm.Worker, arg},
       # Start to serve requests, typically the last entry
       SwarmWeb.Endpoint,
-      {Oban, Application.fetch_env!(:swarm, Oban)},
-      {Mutex, name: Swarm.Mutex}
+      {Oban, Application.fetch_env!(:swarm, Oban)}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
