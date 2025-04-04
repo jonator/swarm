@@ -20,8 +20,13 @@ defmodule Swarm.Git.Repo do
   end
 
   def close(%__MODULE__{url: url, path: path, branch: branch}) do
-    File.rm_rf!(path)
-    {:ok, %__MODULE__{url: url, path: path, branch: branch, closed: true}}
+    case File.rm_rf(path) do
+      {:ok, _} ->
+        {:ok, %__MODULE__{url: url, path: path, branch: branch, closed: true}}
+
+      error ->
+        error
+    end
   end
 
   @doc """
@@ -38,6 +43,11 @@ defmodule Swarm.Git.Repo do
         {:error, "Failed to list repository files: #{error}"}
     end
   end
+
+  @doc """
+  Opens a relative file path in the repository.
+  """
+  def open_file(%__MODULE__{path: path}, file), do: File.read(Path.join(path, file))
 
   defp clone_repo(url, path) do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do

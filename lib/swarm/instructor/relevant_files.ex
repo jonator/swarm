@@ -23,7 +23,7 @@ defmodule Swarm.Instructor.RelevantFiles do
         %{
           role: "user",
           content: """
-          You are a helpful assistant that determines which files are relevant to a given prompt.
+          You are a helpful assistant that determines which code repo files are relevant to a given prompt.
 
           The prompt is:
           #{prompt}

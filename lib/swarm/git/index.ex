@@ -5,7 +5,7 @@ defmodule Swarm.Git.Index do
     field :index, Search.Index.t()
   end
 
-  def from_repo(%Swarm.Git.Repo{} = repo) do
+  def from(%Swarm.Git.Repo{} = repo) do
     with {:ok, file_paths} <- Swarm.Git.Repo.list_files(repo) do
       documents =
         Enum.reduce_while(file_paths, [], fn file_path, acc ->
@@ -13,7 +13,7 @@ defmodule Swarm.Git.Index do
 
           case File.read(full_path) do
             {:ok, content} ->
-              document = %{id: full_path, content: content}
+              document = %{id: file_path, content: content}
               {:cont, [document | acc]}
 
             {:error, error} ->
@@ -26,10 +26,15 @@ defmodule Swarm.Git.Index do
           {:error, error}
 
         documents when is_list(documents) ->
-          Search.new(fields: [:content]) |> Search.add(Enum.reverse(documents))
+          {:ok, new_index} =
+            Search.new(fields: [:content]) |> Search.add(Enum.reverse(documents))
+
+          {:ok, %__MODULE__{index: new_index}}
       end
     else
       error -> error
     end
   end
+
+  def search(%__MODULE__{index: index}, query), do: Search.search(index, query)
 end

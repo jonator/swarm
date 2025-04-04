@@ -22,7 +22,7 @@ Module.create(
 
     def i() do
       start_time = System.monotonic_time(:millisecond)
-      {:ok, index} = Swarm.Git.Index.from_repo(tr())
+      {:ok, index} = Swarm.Git.Index.from(tr())
       end_time = System.monotonic_time(:millisecond)
       IO.puts("Index creation took #{end_time - start_time}ms")
       index
