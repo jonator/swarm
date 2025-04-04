@@ -1,4 +1,4 @@
-defmodule Swarm.GitRepo do
+defmodule Swarm.Git.Repo do
   use TypedStruct
 
   @base_dir Path.join(System.tmp_dir(), Atom.to_string(__MODULE__))
@@ -25,12 +25,13 @@ defmodule Swarm.GitRepo do
   end
 
   @doc """
-  Lists all file paths in the repository.
+  Lists all relative file paths in the repository.
   """
   def list_files(%__MODULE__{path: path}) do
     case System.cmd("git", ["ls-files"], cd: path) do
       {output, 0} ->
-        file_list = output |> String.split("\n", trim: true)
+        file_list = String.split(output, "\n", trim: true)
+
         {:ok, file_list}
 
       {error, _} ->

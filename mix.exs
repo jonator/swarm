@@ -61,7 +61,8 @@ defmodule Swarm.MixProject do
       {:oban, "~> 2.19"},
       {:oban_web, "~> 2.11"},
       {:typed_struct, "~> 0.3.0"},
-      {:instructor, "~> 0.1.0"}
+      {:instructor, "~> 0.1.0"},
+      {:search, "~> 0.3"}
     ]
   end
 

@@ -1,20 +1,31 @@
 Module.create(
   H,
   quote do
-    def tj(instructions \\ "I'm looking to improve the changelog formatting") do
+    @repo_url "https://github.com/thmsmlr/instructor_ex.git"
+
+    def tjj(instructions \\ "I'm looking to improve the changelog formatting") do
       %{
-        url: "https://github.com/thmsmlr/instructor_ex.git",
+        url: @repo_url,
         branch: "test",
         instructions: instructions
       }
     end
 
-    def tr(id \\ 1) do
-      Swarm.GitRepo.open("https://github.com/thmsmlr/instructor_ex.git", to_string(id), "test")
+    def tj(instructions \\ "I'm looking to improve the changelog formatting") do
+      tjj(instructions) |> Swarm.Worker.Implement.new() |> Oban.insert()
     end
 
-    def ti(instructions \\ "I'm looking to improve the changelog formatting") do
-      tj(instructions) |> Swarm.Worker.Implement.new() |> Oban.insert()
+    def tr(id \\ 1) do
+      {:ok, repo} = Swarm.Git.Repo.open(@repo_url, to_string(id), "test")
+      repo
+    end
+
+    def i() do
+      start_time = System.monotonic_time(:millisecond)
+      {:ok, index} = Swarm.Git.Index.from_repo(tr())
+      end_time = System.monotonic_time(:millisecond)
+      IO.puts("Index creation took #{end_time - start_time}ms")
+      index
     end
   end,
   Macro.Env.location(__ENV__)

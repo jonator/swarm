@@ -11,8 +11,8 @@ defmodule Swarm.Instructor.RelevantFiles do
     field(:files, {:array, :string})
   end
 
-  def get_relevant_files(%Swarm.GitRepo{} = repo, prompt) do
-    {:ok, files} = repo |> Swarm.GitRepo.list_files()
+  def get_relevant_files(%Swarm.Git.Repo{} = repo, prompt) do
+    {:ok, files} = repo |> Swarm.Git.Repo.list_files()
 
     files = files |> Enum.join("\n")
 
