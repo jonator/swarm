@@ -11,7 +11,8 @@ defmodule Swarm.Tool.GitRepo do
       list_files(),
       open_file(),
       write_file(),
-      status()
+      status(),
+      push_origin()
     ]
   end
 
@@ -58,6 +59,17 @@ defmodule Swarm.Tool.GitRepo do
       ],
       function: fn %{"message" => message} = _arguments, %{"repo" => repo} ->
         Swarm.Git.Repo.commit(repo, message) |> handle_repo_response()
+      end
+    })
+  end
+
+  def push_origin do
+    Function.new!(%{
+      name: "push_origin",
+      description: "Pushes the current branch to origin.",
+      parameters: [],
+      function: fn _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.push_origin(repo) |> handle_repo_response()
       end
     })
   end
