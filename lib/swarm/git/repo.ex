@@ -10,15 +10,24 @@ defmodule Swarm.Git.Repo do
     field :closed, boolean(), default: false
   end
 
+  @doc """
+  Opens a git repository and switches to a branch.
+  """
   def open(url, slug, branch) do
     path = make_path(url, slug)
 
-    with :ok <- clone_repo(url, path),
+    with {:ok, _} <- clone_repo(url, path),
          {:ok, _} <- switch_branch(path, branch) do
       {:ok, %__MODULE__{url: url, path: path, branch: branch}}
+    else
+      {:error, error} ->
+        {:error, "Failed to open repository: #{url} #{error}"}
     end
   end
 
+  @doc """
+  Closes a git repository and deletes the directory.
+  """
   def close(%__MODULE__{url: url, path: path, branch: branch}) do
     case File.rm_rf(path) do
       {:ok, _} ->
@@ -29,6 +38,9 @@ defmodule Swarm.Git.Repo do
     end
   end
 
+  @doc """
+  Gets the status of a git repository.
+  """
   def status(%__MODULE__{path: path}) do
     case System.cmd("git", ["status"], cd: path) do
       {output, 0} -> {:ok, output}
@@ -107,9 +119,9 @@ defmodule Swarm.Git.Repo do
 
   defp clone_repo(url, path) do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
-      :ok
+      {:ok, "Already cloned"}
     else
-      case System.cmd("git", ["clone", "--quiet", url, path]) do
+      case System.cmd("git", ["clone", "--depth", "1", url, path]) do
         {output, 0} -> {:ok, output}
         _ -> {:error, "Failed to clone repository: #{url}"}
       end

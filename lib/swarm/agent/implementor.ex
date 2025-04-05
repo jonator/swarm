@@ -30,7 +30,7 @@ defmodule Swarm.Agent.Implementor do
 
     # Run the LLM chain with tools to implement the changes
     {:ok, updated_chain} =
-      %{llm: chat_model, custom_context: %{"repo" => repo, "repo_index" => index}, verbose: false}
+      %{llm: chat_model, custom_context: %{"repo" => repo, "repo_index" => index}, verbose: true}
       |> LLMChain.new!()
       |> LLMChain.add_messages(messages)
       |> LLMChain.add_tools(tools)

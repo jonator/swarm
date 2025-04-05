@@ -1,22 +1,31 @@
 Module.create(
   H,
   quote do
-    @repo_url "https://github.com/thmsmlr/instructor_ex.git"
+    @repo_url "https://github.com/polaris-portal/polaris"
 
-    def tjj(instructions \\ "I'm looking to improve the changelog formatting") do
+    @instructions """
+    Fix countdown timer color and stroke width issues
+
+    Countdown timer segment is still wrong color — should be hsl(var(--border-1))  or text-border-1.
+
+    The stroke width should also be 1px instead of 2px for the timer, the spinner, the button border and the divider between the two fieldsets.
+
+    See ui/apps/web/src/components/swap-form/switch-button.tsx for the relevant code.
+    """
+
+    def tjj(instructions \\ @instructions) do
       %{
         url: @repo_url,
-        branch: "test",
         instructions: instructions
       }
     end
 
-    def tj(instructions \\ "I'm looking to improve the changelog formatting") do
+    def tj(instructions \\ @instructions) do
       tjj(instructions) |> Swarm.Worker.Implement.new() |> Oban.insert()
     end
 
     def tr(id \\ 1) do
-      {:ok, repo} = Swarm.Git.Repo.open(@repo_url, to_string(id), "test")
+      {:ok, repo} = Swarm.Git.Repo.open!(@repo_url, to_string(id), "test")
       repo
     end
 

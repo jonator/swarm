@@ -47,7 +47,7 @@ defmodule Swarm.Tool.GitRepo do
   def commit do
     Function.new!(%{
       name: "commit",
-      description: "Commits the changes to the git repository.",
+      description: "Commits the changes to the git repository. Keep it short and concise.",
       parameters: [
         FunctionParam.new!(%{
           name: "message",
@@ -76,7 +76,7 @@ defmodule Swarm.Tool.GitRepo do
         FunctionParam.new!(%{
           name: "new_file",
           type: :string,
-          description: "The new relative path for the file.",
+          description: "The new relative path for the file. Keep it short and concise.",
           required: true
         })
       ],

@@ -4,18 +4,15 @@ defmodule Swarm.Worker.Implement do
   @impl Oban.Worker
   def perform(%Oban.Job{
         id: id,
-        args: %{"url" => url, "branch" => branch, "instructions" => instructions}
+        args: %{"url" => url, "instructions" => instructions}
       }) do
-    {:ok, repo} = Swarm.Git.Repo.open(url, to_string(id), branch)
+    {:ok, %{branch_name: branch_name}} =
+      Swarm.Instructor.BranchName.generate_branch_name(instructions)
 
-    get_relevant_file_list(repo, instructions)
+    {:ok, repo} = Swarm.Git.Repo.open(url, to_string(id), branch_name)
 
-    :ok
-  end
+    IO.inspect(repo, label: "REPO")
 
-  # TODO: Generate branch name
-
-  defp get_relevant_file_list(%Swarm.Git.Repo{} = repo, instructions) do
     # Run tasks concurrently
     tasks = [
       Task.async(fn ->
@@ -31,7 +28,7 @@ defmodule Swarm.Worker.Implement do
 
     # Await results
     [{:ok, %{terms: terms, files: search_files}}, {:ok, %{files: relevant_files}}, {:ok, index}] =
-      Task.await_many(tasks, 25_000)
+      Task.await_many(tasks, 600_000)
 
     IO.inspect(search_files, label: "SEARCH FILES")
     IO.inspect(relevant_files, label: "RELEVANT FILES")
@@ -48,7 +45,7 @@ defmodule Swarm.Worker.Implement do
     all_files = Enum.uniq(search_files ++ relevant_files ++ term_results)
 
     # For debugging purposes
-    IO.inspect(all_files, label: "RESULT FILES, LENGTH: #{length(term_results)}")
+    IO.inspect(all_files, label: "RESULT FILES, LENGTH: #{length(all_files)}")
 
     # Return the implementation result
     implementation_result =
