@@ -51,12 +51,14 @@ defmodule Swarm.Worker.Implement do
     IO.inspect(all_files, label: "RESULT FILES, LENGTH: #{length(term_results)}")
 
     # Return the implementation result
-    implementation_result = Swarm.Agent.Implementor.implement(repo, all_files, instructions)
+    implementation_result =
+      Swarm.Agent.Implementor.implement(repo, index, all_files, instructions)
 
     # Process the implementation result
     # This could include committing changes, creating a PR, etc.
     # For now, we'll just log the result
     IO.puts("Implementation completed: #{implementation_result}")
+    IO.puts("code #{inspect(repo.path)}")
 
     :ok
   end

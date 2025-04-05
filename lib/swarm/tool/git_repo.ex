@@ -1,4 +1,4 @@
-defmodule Swarm.Tool.Repo do
+defmodule Swarm.Tool.GitRepo do
   alias LangChain.Function
   alias LangChain.FunctionParam
 
@@ -10,7 +10,8 @@ defmodule Swarm.Tool.Repo do
       rename_file(),
       list_files(),
       open_file(),
-      write_file()
+      write_file(),
+      status()
     ]
   end
 
@@ -26,11 +27,8 @@ defmodule Swarm.Tool.Repo do
           required: true
         })
       ],
-      function: fn %{"file" => file} = _arguments, repo ->
-        case Swarm.Git.Repo.add_file(repo, file) do
-          {:ok, output} -> output
-          {:error, msg} -> "Error: #{msg}"
-        end
+      function: fn %{"file" => file} = _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.add_file(repo, file) |> handle_repo_response()
       end
     })
   end
@@ -40,11 +38,8 @@ defmodule Swarm.Tool.Repo do
       name: "add_all_files",
       description: "Adds all files to the staging area of the git repository.",
       parameters: [],
-      function: fn _arguments, repo ->
-        case Swarm.Git.Repo.add_all_files(repo) do
-          {:ok, output} -> output
-          {:error, msg} -> "Error: #{msg}"
-        end
+      function: fn _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.add_all_files(repo) |> handle_repo_response()
       end
     })
   end
@@ -61,11 +56,8 @@ defmodule Swarm.Tool.Repo do
           required: true
         })
       ],
-      function: fn %{"message" => message} = _arguments, repo ->
-        case Swarm.Git.Repo.commit(repo, message) do
-          {:ok, output} -> output
-          {:error, msg} -> "Error: #{msg}"
-        end
+      function: fn %{"message" => message} = _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.commit(repo, message) |> handle_repo_response()
       end
     })
   end
@@ -88,11 +80,9 @@ defmodule Swarm.Tool.Repo do
           required: true
         })
       ],
-      function: fn %{"old_file" => old_file, "new_file" => new_file} = _arguments, repo ->
-        case Swarm.Git.Repo.rename_file(repo, old_file, new_file) do
-          {:ok, output} -> output
-          {:error, msg} -> "Error: #{msg}"
-        end
+      function: fn %{"old_file" => old_file, "new_file" => new_file} = _arguments,
+                   %{"repo" => repo} ->
+        Swarm.Git.Repo.rename_file(repo, old_file, new_file) |> handle_repo_response()
       end
     })
   end
@@ -102,7 +92,7 @@ defmodule Swarm.Tool.Repo do
       name: "list_files",
       description: "Lists all relative file paths in the git repository.",
       parameters: [],
-      function: fn _arguments, repo ->
+      function: fn _arguments, %{"repo" => repo} ->
         case Swarm.Git.Repo.list_files(repo) do
           {:ok, files} -> Enum.join(files, "\n")
           {:error, msg} -> "Error: #{msg}"
@@ -123,11 +113,8 @@ defmodule Swarm.Tool.Repo do
           required: true
         })
       ],
-      function: fn %{"file" => file} = _arguments, repo ->
-        case Swarm.Git.Repo.open_file(repo, file) do
-          {:ok, content} -> content
-          {:error, msg} -> "Error: #{msg}"
-        end
+      function: fn %{"file" => file} = _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.open_file(repo, file) |> handle_repo_response()
       end
     })
   end
@@ -150,12 +137,27 @@ defmodule Swarm.Tool.Repo do
           required: true
         })
       ],
-      function: fn %{"file" => file, "content" => content} = _arguments, repo ->
-        case Swarm.Git.Repo.write_file(repo, file, content) do
-          :ok -> "OK"
-          {:error, msg} -> "Error: #{msg}"
-        end
+      function: fn %{"file" => file, "content" => content} = _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.write_file(repo, file, content) |> handle_repo_response()
       end
     })
   end
+
+  def status do
+    Function.new!(%{
+      name: "status",
+      description: "Returns the status of the git repository.",
+      parameters: [],
+      function: fn _arguments, %{"repo" => repo} ->
+        Swarm.Git.Repo.status(repo) |> handle_repo_response()
+      end
+    })
+  end
+
+  defp handle_repo_response({:ok, output}) when is_binary(output) do
+    if output == "", do: "OK", else: output
+  end
+
+  defp handle_repo_response({:ok, _}), do: "OK"
+  defp handle_repo_response({:error, msg}), do: "Error: #{msg}"
 end

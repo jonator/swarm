@@ -29,6 +29,13 @@ defmodule Swarm.Git.Repo do
     end
   end
 
+  def status(%__MODULE__{path: path}) do
+    case System.cmd("git", ["status"], cd: path) do
+      {output, 0} -> {:ok, output}
+      _ -> {:error, "Failed to get status"}
+    end
+  end
+
   @doc """
   Lists all relative file paths in the repository.
   """
@@ -51,8 +58,12 @@ defmodule Swarm.Git.Repo do
   @doc """
   Writes content to a relative file path in the repository.
   """
-  def write_file(%__MODULE__{path: path}, file, content),
-    do: File.write(Path.join(path, file), content)
+  def write_file(%__MODULE__{path: path}, file, content) do
+    case File.write(Path.join(path, file), content) do
+      :ok -> {:ok, "File written successfully"}
+      error -> {:error, "Failed to write file: #{error}"}
+    end
+  end
 
   @doc """
   Renames a file in the repository.
@@ -98,7 +109,7 @@ defmodule Swarm.Git.Repo do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       :ok
     else
-      case System.cmd("git", ["clone", url, path]) do
+      case System.cmd("git", ["clone", "--quiet", url, path]) do
         {output, 0} -> {:ok, output}
         _ -> {:error, "Failed to clone repository: #{url}"}
       end

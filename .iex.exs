@@ -20,6 +20,11 @@ Module.create(
       repo
     end
 
+    def ti(id \\ 1) do
+      {:ok, index} = Swarm.Git.Index.from(tr(id))
+      index
+    end
+
     def i() do
       start_time = System.monotonic_time(:millisecond)
       {:ok, index} = Swarm.Git.Index.from(tr())

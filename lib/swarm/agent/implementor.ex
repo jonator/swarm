@@ -1,12 +1,12 @@
 defmodule Swarm.Agent.Implementor do
-  def implement(%Swarm.Git.Repo{} = repo, files, instructions) do
+  def implement(%Swarm.Git.Repo{} = repo, %Swarm.Git.Index{} = index, files, instructions) do
     alias LangChain.Chains.LLMChain
     alias LangChain.Message
     alias LangChain.ChatModels.ChatOpenAI
-    alias Swarm.Tool.Repo, as: ToolRepo
-
+    alias Swarm.Tool.GitRepo, as: ToolRepo
+    alias Swarm.Tool.GitRepoIndex, as: ToolRepoIndex
     # Set up the tools from Repo module
-    tools = ToolRepo.all_tools()
+    tools = ToolRepo.all_tools() ++ ToolRepoIndex.all_tools()
 
     # Create messages for the LLM
     messages = [
@@ -30,7 +30,7 @@ defmodule Swarm.Agent.Implementor do
 
     # Run the LLM chain with tools to implement the changes
     {:ok, updated_chain} =
-      %{llm: chat_model, custom_context: repo, verbose: true}
+      %{llm: chat_model, custom_context: %{"repo" => repo, "repo_index" => index}, verbose: false}
       |> LLMChain.new!()
       |> LLMChain.add_messages(messages)
       |> LLMChain.add_tools(tools)
