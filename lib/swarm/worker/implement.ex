@@ -13,6 +13,8 @@ defmodule Swarm.Worker.Implement do
     :ok
   end
 
+  # TODO: Generate branch name
+
   defp get_relevant_file_list(%Swarm.Git.Repo{} = repo, instructions) do
     # Run tasks concurrently
     tasks = [
@@ -48,7 +50,14 @@ defmodule Swarm.Worker.Implement do
     # For debugging purposes
     IO.inspect(all_files, label: "RESULT FILES, LENGTH: #{length(term_results)}")
 
-    # Return the compiled list of files
-    all_files
+    # Return the implementation result
+    implementation_result = Swarm.Agent.Implementor.implement(repo, all_files, instructions)
+
+    # Process the implementation result
+    # This could include committing changes, creating a PR, etc.
+    # For now, we'll just log the result
+    IO.puts("Implementation completed: #{implementation_result}")
+
+    :ok
   end
 end

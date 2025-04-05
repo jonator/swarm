@@ -14,7 +14,7 @@ defmodule Swarm.Git.Repo do
     path = make_path(url, slug)
 
     with :ok <- clone_repo(url, path),
-         :ok <- switch_branch(path, branch) do
+         {:ok, _} <- switch_branch(path, branch) do
       {:ok, %__MODULE__{url: url, path: path, branch: branch}}
     end
   end
@@ -36,7 +36,6 @@ defmodule Swarm.Git.Repo do
     case System.cmd("git", ["ls-files"], cd: path) do
       {output, 0} ->
         file_list = String.split(output, "\n", trim: true)
-
         {:ok, file_list}
 
       {error, _} ->
@@ -59,8 +58,8 @@ defmodule Swarm.Git.Repo do
   Renames a file in the repository.
   """
   def rename_file(%__MODULE__{path: path}, old_file, new_file) do
-    case System.cmd("git", ["mv", old_file, new_file], cd: path) do
-      {_, 0} -> :ok
+    case System.cmd("git", ["mv", "--quiet", old_file, new_file], cd: path) do
+      {output, 0} -> {:ok, output}
       _ -> {:error, "Failed to rename file from #{old_file} to #{new_file}"}
     end
   end
@@ -68,23 +67,47 @@ defmodule Swarm.Git.Repo do
   @doc """
   Adds a file to the staging area of the repository.
   """
-  def add_file(%__MODULE__{path: path}, file),
-    do: System.cmd("git", ["add", Path.join(path, file)], cd: path)
+  def add_file(%__MODULE__{path: path}, file) do
+    case System.cmd("git", ["add", file], cd: path) do
+      {output, 0} -> {:ok, output}
+      _ -> {:error, "Failed to add file #{file}"}
+    end
+  end
+
+  @doc """
+  Adds all files to the staging area of the repository.
+  """
+  def add_all_files(%__MODULE__{path: path}) do
+    case System.cmd("git", ["add", "."], cd: path) do
+      {output, 0} -> {:ok, output}
+      _ -> {:error, "Failed to add all files"}
+    end
+  end
+
+  @doc """
+  Commits the changes to the repository.
+  """
+  def commit(%__MODULE__{path: path}, message) do
+    case System.cmd("git", ["commit", "-m", message], cd: path) do
+      {output, 0} -> {:ok, output}
+      _ -> {:error, "Failed to commit changes with message: #{message}"}
+    end
+  end
 
   defp clone_repo(url, path) do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       :ok
     else
-      case System.cmd("git", ["clone", "--quiet", url, path]) do
-        {_, 0} -> :ok
+      case System.cmd("git", ["clone", url, path]) do
+        {output, 0} -> {:ok, output}
         _ -> {:error, "Failed to clone repository: #{url}"}
       end
     end
   end
 
   defp switch_branch(path, branch) do
-    case System.cmd("git", ["switch", "-C", branch, "--quiet"], cd: path) do
-      {_, 0} -> :ok
+    case System.cmd("git", ["switch", "-C", branch], cd: path) do
+      {output, 0} -> {:ok, output}
       _ -> {:error, "Failed to switch to branch #{branch}"}
     end
   end
