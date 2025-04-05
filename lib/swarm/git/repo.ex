@@ -49,6 +49,28 @@ defmodule Swarm.Git.Repo do
   """
   def open_file(%__MODULE__{path: path}, file), do: File.read(Path.join(path, file))
 
+  @doc """
+  Writes content to a relative file path in the repository.
+  """
+  def write_file(%__MODULE__{path: path}, file, content),
+    do: File.write(Path.join(path, file), content)
+
+  @doc """
+  Renames a file in the repository.
+  """
+  def rename_file(%__MODULE__{path: path}, old_file, new_file) do
+    case System.cmd("git", ["mv", old_file, new_file], cd: path) do
+      {_, 0} -> :ok
+      _ -> {:error, "Failed to rename file from #{old_file} to #{new_file}"}
+    end
+  end
+
+  @doc """
+  Adds a file to the staging area of the repository.
+  """
+  def add_file(%__MODULE__{path: path}, file),
+    do: System.cmd("git", ["add", Path.join(path, file)], cd: path)
+
   defp clone_repo(url, path) do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       :ok
