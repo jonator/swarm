@@ -4,12 +4,23 @@ defmodule Swarm.Worker.Implement do
   @impl Oban.Worker
   def perform(%Oban.Job{
         id: id,
-        args: %{"url" => url, "instructions" => instructions}
+        args: %{"repo_url" => repo_url, "instructions" => instructions}
       }) do
+    {:ok, %{has_enough: has_enough, reason: reason}} =
+      Swarm.Instructor.HasEnoughInstruction.check(instructions)
+
+    if has_enough do
+      implement_plan(repo_url, id, instructions)
+    else
+      {:error, "Insufficient instruction detail: #{reason}"}
+    end
+  end
+
+  defp implement_plan(repo_url, id, instructions) do
     {:ok, %{branch_name: branch_name}} =
       Swarm.Instructor.BranchName.generate_branch_name(instructions)
 
-    {:ok, repo} = Swarm.Git.Repo.open(url, to_string(id), branch_name)
+    {:ok, repo} = Swarm.Git.Repo.open(repo_url, to_string(id), branch_name)
 
     IO.inspect(repo, label: "REPO")
 

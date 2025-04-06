@@ -17,23 +17,27 @@ defmodule Swarm.Instructor.RelevantFiles do
     files = files |> Enum.join("\n")
 
     Instructor.chat_completion(
-      model: "gpt-4o-mini",
-      response_model: __MODULE__,
-      messages: [
-        %{
-          role: "user",
-          content: """
-          You are a helpful assistant that determines which code repo files are relevant to a given prompt.
+      [
+        model: "gpt-4o-mini",
+        response_model: __MODULE__,
+        messages: [
+          %{
+            role: "user",
+            content: """
+            You are a helpful assistant that determines which code repo files are relevant to a given prompt.
 
-          The prompt is:
-          #{prompt}
+            The prompt is:
+            #{prompt}
 
-          The file list is:
-          #{files}
+            The file list is:
+            #{files}
 
-          """
-        }
-      ]
+            """
+          }
+        ]
+      ],
+      adapter: Instructor.Adapters.OpenAI,
+      api_key: Application.fetch_env!(:instructor, :openai)[:api_key]
     )
   end
 end

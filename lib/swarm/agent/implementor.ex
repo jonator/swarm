@@ -2,7 +2,7 @@ defmodule Swarm.Agent.Implementor do
   def implement(%Swarm.Git.Repo{} = repo, %Swarm.Git.Index{} = index, files, instructions) do
     alias LangChain.Chains.LLMChain
     alias LangChain.Message
-    alias LangChain.ChatModels.ChatOpenAI
+    alias LangChain.ChatModels.ChatAnthropic
     alias Swarm.Tool.GitRepo, as: ToolRepo
     alias Swarm.Tool.GitRepoIndex, as: ToolRepoIndex
     # Set up the tools from Repo module
@@ -13,6 +13,7 @@ defmodule Swarm.Agent.Implementor do
       Message.new_system!("""
       You are a software developer implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
       Write files and commit changes immediately- do not ask for confirmation.
+      Push changes once completed.
 
       Key files of note: #{files}
 
@@ -22,8 +23,9 @@ defmodule Swarm.Agent.Implementor do
 
     # Set up the chat model
     chat_model =
-      ChatOpenAI.new!(%{
-        model: "gpt-4o",
+      ChatAnthropic.new!(%{
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 4096,
         temperature: 0.7,
         stream: false
       })

@@ -120,8 +120,8 @@ defmodule Swarm.Git.Repo do
   @doc """
   Pushes the current branch to origin.
   """
-  def push_origin(%__MODULE__{path: path}) do
-    case System.cmd("git", ["push", "origin"], cd: path) do
+  def push_origin(%__MODULE__{path: path, branch: branch}) do
+    case System.cmd("git", ["push", "--set-upstream", "origin", branch], cd: path) do
       {output, 0} -> {:ok, output}
       _ -> {:error, "Failed to push to origin"}
     end
@@ -131,7 +131,7 @@ defmodule Swarm.Git.Repo do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       {:ok, "Already cloned"}
     else
-      case System.cmd("git", ["clone", "--depth", "1", url, path]) do
+      case System.cmd("git", ["clone", "--depth", "1", "--quiet", url, path]) do
         {output, 0} -> {:ok, output}
         _ -> {:error, "Failed to clone repository: #{url}"}
       end

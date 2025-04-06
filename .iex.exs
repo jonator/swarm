@@ -15,7 +15,7 @@ Module.create(
 
     def tjj(instructions \\ @instructions) do
       %{
-        url: @repo_url,
+        repo_url: @repo_url,
         instructions: instructions
       }
     end
