@@ -6,17 +6,22 @@ defmodule Swarm.Worker.Implement do
         id: id,
         args: %{"repo_url" => repo_url, "instructions" => instructions}
       }) do
-    {:ok, %{has_enough: has_enough, reason: reason}} =
-      Swarm.Instructor.HasEnoughInstruction.check(instructions)
+    case Swarm.Instructor.HasEnoughInstruction.check(instructions) do
+      {:ok, %{has_enough: true}} ->
+        implement_instructions(repo_url, id, instructions)
 
-    if has_enough do
-      implement_plan(repo_url, id, instructions)
-    else
-      {:error, "Insufficient instruction detail: #{reason}"}
+      {:ok, %{has_enough: false, reason: reason}} ->
+        IO.puts("Insufficient instruction detail: #{reason}")
+
+        :ok
+
+      {:error, error} ->
+        IO.puts("Failed to check instruction: #{inspect(error)}")
+        :ok
     end
   end
 
-  defp implement_plan(repo_url, id, instructions) do
+  defp implement_instructions(repo_url, id, instructions) do
     {:ok, %{branch_name: branch_name}} =
       Swarm.Instructor.BranchName.generate_branch_name(instructions)
 
@@ -33,7 +38,19 @@ defmodule Swarm.Worker.Implement do
         Swarm.Instructor.RelevantFiles.get_relevant_files(repo, instructions)
       end),
       Task.async(fn ->
-        Swarm.Git.Index.from(repo)
+        {:ok, %{patterns: exclude_patterns}} =
+          Swarm.Instructor.ExcludeIndexPatterns.get_exclude_patterns(instructions)
+
+        IO.inspect(exclude_patterns, label: "EXCLUDE PATTERNS")
+
+        # Compile string patterns into regex patterns
+        compiled_patterns =
+          Enum.map(exclude_patterns, fn pattern ->
+            {:ok, regex} = Regex.compile(pattern)
+            regex
+          end)
+
+        Swarm.Git.Index.from(repo, compiled_patterns)
       end)
     ]
 

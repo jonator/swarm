@@ -43,10 +43,10 @@ defmodule Swarm.Git.Index do
     field :index, Search.Index.t()
   end
 
-  def from(%Swarm.Git.Repo{} = repo) do
+  def from(%Swarm.Git.Repo{} = repo, excluded_patterns \\ []) do
     with {:ok, file_paths} <- Swarm.Git.Repo.list_files(repo) do
       # Filter out excluded files
-      file_paths = filter_files(file_paths)
+      file_paths = filter_files(file_paths, excluded_patterns)
 
       # Process files in parallel with a limit on concurrent tasks
       tasks =
@@ -84,10 +84,10 @@ defmodule Swarm.Git.Index do
 
   # Private functions
 
-  defp filter_files(files) do
+  defp filter_files(files, excluded_patterns) do
     files
     |> Enum.reject(fn file ->
-      Enum.any?(@excluded_patterns, &Regex.match?(&1, file))
+      Enum.any?(@excluded_patterns ++ excluded_patterns, &Regex.match?(&1, file))
     end)
   end
 

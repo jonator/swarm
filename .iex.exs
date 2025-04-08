@@ -11,6 +11,7 @@ Module.create(
     The stroke width should also be 1px instead of 2px for the timer, the spinner, the button border and the divider between the two fieldsets.
 
     See ui/apps/web/src/components/swap-form/switch-button.tsx, globals.css, and tailwind.config.ts for the relevant code.
+    Ignore the app folder.
     """
 
     def tjj(instructions \\ @instructions) do
@@ -30,7 +31,7 @@ Module.create(
     end
 
     def ti(id \\ 1) do
-      {:ok, index} = Swarm.Git.Index.from(tr(id))
+      {:ok, index} = Swarm.Git.Index.from(tr(id), [~r/app\/.*/])
       index
     end
 
