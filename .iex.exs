@@ -4,14 +4,16 @@ Module.create(
     @repo_url "https://github.com/polaris-portal/polaris"
 
     @instructions """
-    Fix countdown timer color and stroke width issues
+    Filter OKX from cosmos/useWalletOptions and remove existing connections
 
-    Countdown timer segment is still wrong color — should be hsl(var(--border-1))  or text-border-1.
+    Filter any wallet with name "OKX" from response in ui/apps/web/src/ecosystems/cosmos/use-wallet-options.ts.
+    Add code that checks if it's connected and call disconnect() if it is. Maybe in a useEffect.
 
-    The stroke width should also be 1px instead of 2px for the timer, the spinner, the button border and the divider between the two fieldsets.
+    connectedWalletOption returns current connected wallets, which would include OKX if it's connected in the name of the wallet.
 
-    See ui/apps/web/src/components/swap-form/switch-button.tsx, globals.css, and tailwind.config.ts for the relevant code.
-    Ignore the app folder.
+    Types are defined at ui/apps/web/src/hooks/wallet/use-wallet-options.ts
+
+    Ignore app folder.
     """
 
     def tjj(instructions \\ @instructions) do
