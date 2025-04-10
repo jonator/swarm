@@ -11,8 +11,8 @@ defmodule Swarm.Tool.GitRepo do
       list_files(),
       open_file(),
       write_file(),
-      status()
-      # push_origin()
+      status(),
+      push_origin()
     ]
   end
 

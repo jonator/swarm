@@ -8,6 +8,7 @@ defmodule Swarm.Worker.Implement do
       }) do
     case Swarm.Instructor.HasEnoughInstruction.check(instructions) do
       {:ok, %{has_enough: true}} ->
+        IO.puts("Has enough instruction")
         implement_instructions(repo_url, id, instructions)
 
       {:ok, %{has_enough: false, reason: reason}} ->
@@ -24,6 +25,9 @@ defmodule Swarm.Worker.Implement do
   defp implement_instructions(repo_url, id, instructions) do
     {:ok, %{branch_name: branch_name}} =
       Swarm.Instructor.BranchName.generate_branch_name(instructions)
+
+    IO.inspect(branch_name, label: "BRANCH NAME")
+    IO.inspect(repo_url, label: "REPO URL")
 
     {:ok, repo} = Swarm.Git.Repo.open(repo_url, to_string(id), branch_name)
 

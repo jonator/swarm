@@ -20,12 +20,13 @@ defmodule Swarm.Instructor.ExcludeIndexPatterns do
           %{
             role: "user",
             content: """
-            You are a helpful assistant that determines which file patterns should be excluded from indexing based on a given prompt.
+            You are a helpful assistant that determines which file patterns should be EXCLUDED from indexing based on a given prompt.
 
             The prompt is:
             #{prompt}
 
-            Based on this prompt, provide regex patterns for files that should be excluded from indexing for search.
+            Based on this prompt, provide regex patterns for files that should be EXCLUDED from indexing for search.
+            Not files that should be included for implementation and indexing.
             These should be files that are irrelevant to the task or would add noise to the search results or needlessly increase the index size.
             Return patterns as strings that can be compiled into Elixir regular expressions.
             """
