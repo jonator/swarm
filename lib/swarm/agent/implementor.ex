@@ -14,9 +14,9 @@ defmodule Swarm.Agent.Implementor do
       Message.new_system!("""
       You are a software developer implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
       Write files and commit changes immediately- do not ask for confirmation.
-      Push changes once completed.
+      Push changes once completed. If there are newline file terminators, keep them.
 
-      Key files of note: #{files}
+      Key files of note: #{inspect(files)}
 
       """),
       Message.new_user!("I need to implement the following changes: #{inspect(instructions)}")

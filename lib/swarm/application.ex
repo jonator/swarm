@@ -26,7 +26,8 @@ defmodule Swarm.Application do
         min: 0,
         max: 10,
         max_concurrency: 5,
-        idle_shutdown_after: 30_000,
+        idle_shutdown_after: :timer.minutes(15),
+        timeout: :timer.minutes(15),
         log: :debug
       }
     ]
