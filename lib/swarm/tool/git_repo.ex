@@ -11,8 +11,8 @@ defmodule Swarm.Tool.GitRepo do
       list_files(),
       open_file(),
       write_file(),
-      status()
-      # push_origin()
+      status(),
+      push_origin()
     ]
   end
 
@@ -134,7 +134,8 @@ defmodule Swarm.Tool.GitRepo do
   def write_file do
     Function.new!(%{
       name: "write_file",
-      description: "Writes content to a file in the git repository.",
+      description:
+        "Writes content to a file in the git repository. Include line break at the end of the content.",
       parameters: [
         FunctionParam.new!(%{
           name: "file",
