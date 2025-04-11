@@ -18,7 +18,17 @@ defmodule Swarm.Application do
       # {Swarm.Worker, arg},
       # Start to serve requests, typically the last entry
       SwarmWeb.Endpoint,
-      {Oban, Application.fetch_env!(:swarm, Oban)}
+      {Oban, Application.fetch_env!(:swarm, Oban)},
+      {
+        FLAME.Pool,
+        #  backend: FLAME.DockerBackend,
+        name: Swarm.ImplementNextjsPool,
+        min: 0,
+        max: 10,
+        max_concurrency: 5,
+        idle_shutdown_after: 30_000,
+        log: :debug
+      }
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
