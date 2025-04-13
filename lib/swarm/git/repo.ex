@@ -4,9 +4,9 @@ defmodule Swarm.Git.Repo do
   @base_dir Path.join(System.tmp_dir(), Atom.to_string(__MODULE__))
 
   typedstruct enforce: true do
-    field :url, String.t()
-    field :branch, String.t()
-    field :path, String.t()
+    field :url, String.t(), enforce: true
+    field :branch, String.t(), enforce: true
+    field :path, String.t(), enforce: true
     field :closed, boolean(), default: false
   end
 

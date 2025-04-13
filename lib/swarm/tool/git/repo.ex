@@ -1,4 +1,4 @@
-defmodule Swarm.Tool.GitRepo do
+defmodule Swarm.Tool.Git.Repo do
   alias LangChain.Function
   alias LangChain.FunctionParam
 

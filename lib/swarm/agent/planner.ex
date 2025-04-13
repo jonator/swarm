@@ -3,7 +3,7 @@ defmodule Swarm.Agent.Planner do
     alias LangChain.Chains.LLMChain
     alias LangChain.Message
     alias LangChain.ChatModels.ChatAnthropic
-    alias Swarm.Tool.GitRepo, as: ToolRepo
+    alias Swarm.Tool.Git.Repo, as: ToolRepo
 
     # Set up the tools from Repo module
     tools = ToolRepo.all_tools()

@@ -3,8 +3,8 @@ defmodule Swarm.Agent.Implementor do
     alias LangChain.Chains.LLMChain
     alias LangChain.Message
     alias LangChain.ChatModels.ChatAnthropic
-    alias Swarm.Tool.GitRepo, as: ToolRepo
-    alias Swarm.Tool.GitRepoIndex, as: ToolRepoIndex
+    alias Swarm.Tool.Git.Repo, as: ToolRepo
+    alias Swarm.Tool.Git.Index, as: ToolRepoIndex
 
     # Set up the tools from Repo module
     tools = ToolRepo.all_tools() ++ ToolRepoIndex.all_tools()
