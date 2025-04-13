@@ -89,7 +89,7 @@ defmodule Swarm.Worker.Implement do
     # This could include committing changes, creating a PR, etc.
     # For now, we'll just log the result
     IO.puts("Implementation completed: #{implementation_result}")
-    IO.puts("code #{inspect(repo.path)}")
+    IO.puts("code #{repo.path}")
 
     :ok
   end

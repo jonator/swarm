@@ -19,21 +19,13 @@ defmodule Swarm.Application do
         !flame_parent && {Oban, Application.fetch_env!(:swarm, Oban)},
         {
           FLAME.Pool,
-          # backend:
-          #   {FLAME.DockerBackend,
-          #    image: "swarm:latest",
-          #    docker_host: "http://127.0.0.1:2375",
-          #    env: %{
-          #      "DATABASE_URL" => "ecto://postgres:postgres@host.docker.internal/swarm_dev",
-          #      "SECRET_KEY_BASE" =>
-          #        "RHBCo8o7lRUpm2QzooHIsRmRwXWgXVMrgi/4eOGVCipC2v++zRsGW8YSHMS1S8/x"
-          #    }},
           name: Swarm.ImplementNextjsPool,
           min: 0,
           max: 10,
           max_concurrency: 5,
           idle_shutdown_after: :timer.minutes(15),
           timeout: :timer.minutes(15),
+          single_use: true,
           log: :debug
         },
         # Start to serve requests, typically the last entry
