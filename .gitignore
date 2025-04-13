@@ -41,5 +41,5 @@ npm-debug.log
 
 *.secret.*
 
-# Release directory
+# Dont commit release artifacts
 /rel/

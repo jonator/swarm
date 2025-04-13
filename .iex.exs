@@ -4,16 +4,12 @@ Module.create(
     @repo_url "https://github.com/polaris-portal/polaris"
 
     @instructions """
-    Filter OKX from cosmos/useWalletOptions and remove existing connections
+    in tokenInfoPageUrl in ui/apps/web/src/hooks/token-info/use-token-info-url-actions.ts, handle the new route Token RouteProps (to be set as fromRoken) being the same as the already set currentTo.
+    Clear currentTo if chain ID and denom are the same. Ignore app folder, focus on token info page.
 
-    Filter any wallet with name "OKX" from response in ui/apps/web/src/ecosystems/cosmos/use-wallet-options.ts.
-    Add code that checks if it's connected and call disconnect() if it is. Maybe in a useEffect.
-
-    connectedWalletOption returns current connected wallets, which would include OKX if it's connected in the name of the wallet.
-
-    Types are defined at ui/apps/web/src/hooks/wallet/use-wallet-options.ts
-
-    Ignore app folder.
+    Issue description:
+    Strange behavior selecing USDC:base balance with query params. Upon clicking query params temporarily switch to base USDC then revert to screenshot selection.
+    I believe it's because it's trying to set the from asset as the same as to asset. We should notice this then move the from selection to the "to" selection.
     """
 
     def tjj(instructions \\ @instructions) do

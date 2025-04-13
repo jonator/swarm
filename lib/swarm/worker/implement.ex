@@ -6,20 +6,22 @@ defmodule Swarm.Worker.Implement do
         id: id,
         args: %{"repo_url" => repo_url, "instructions" => instructions}
       }) do
-    case Swarm.Instructor.HasEnoughInstruction.check(instructions) do
-      {:ok, %{has_enough: true}} ->
-        IO.puts("Has enough instruction")
-        implement_instructions(repo_url, id, instructions)
+    FLAME.call(Swarm.ImplementNextjsPool, fn ->
+      case Swarm.Instructor.HasEnoughInstruction.check(instructions) do
+        {:ok, %{has_enough: true}} ->
+          IO.puts("Has enough instruction")
+          implement_instructions(repo_url, id, instructions)
 
-      {:ok, %{has_enough: false, reason: reason}} ->
-        IO.puts("Insufficient instruction detail: #{reason}")
+        {:ok, %{has_enough: false, reason: reason}} ->
+          IO.puts("Insufficient instruction detail: #{reason}")
 
-        :ok
+          :ok
 
-      {:error, error} ->
-        IO.puts("Failed to check instruction: #{inspect(error)}")
-        :ok
-    end
+        {:error, error} ->
+          IO.puts("Failed to check instruction: #{inspect(error)}")
+          :ok
+      end
+    end)
   end
 
   defp implement_instructions(repo_url, id, instructions) do
@@ -87,7 +89,7 @@ defmodule Swarm.Worker.Implement do
     # This could include committing changes, creating a PR, etc.
     # For now, we'll just log the result
     IO.puts("Implementation completed: #{implementation_result}")
-    IO.puts("code #{inspect(repo.path)}")
+    IO.puts("code #{repo.path}")
 
     :ok
   end

@@ -7,19 +7,31 @@ defmodule Swarm.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      SwarmWeb.Telemetry,
-      Swarm.Repo,
-      {DNSCluster, query: Application.get_env(:swarm, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Swarm.PubSub},
-      # Start the Finch HTTP client for sending emails
-      {Finch, name: Swarm.Finch},
-      # Start a worker by calling: Swarm.Worker.start_link(arg)
-      # {Swarm.Worker, arg},
-      # Start to serve requests, typically the last entry
-      SwarmWeb.Endpoint,
-      {Oban, Application.fetch_env!(:swarm, Oban)}
-    ]
+    flame_parent = FLAME.Parent.get()
+
+    children =
+      [
+        SwarmWeb.Telemetry,
+        Swarm.Repo,
+        {DNSCluster, query: Application.get_env(:swarm, :dns_cluster_query) || :ignore},
+        {Phoenix.PubSub, name: Swarm.PubSub},
+        {Finch, name: Swarm.Finch},
+        !flame_parent && {Oban, Application.fetch_env!(:swarm, Oban)},
+        {
+          FLAME.Pool,
+          name: Swarm.ImplementNextjsPool,
+          min: 0,
+          max: 10,
+          max_concurrency: 5,
+          idle_shutdown_after: :timer.minutes(15),
+          timeout: :timer.minutes(15),
+          single_use: true,
+          log: :debug
+        },
+        # Start to serve requests, typically the last entry
+        !flame_parent && SwarmWeb.Endpoint
+      ]
+      |> Enum.filter(& &1)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options

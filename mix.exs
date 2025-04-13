@@ -5,7 +5,7 @@ defmodule Swarm.MixProject do
     [
       app: :swarm,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.18.2",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -63,7 +63,8 @@ defmodule Swarm.MixProject do
       {:typed_struct, "~> 0.3.0"},
       {:instructor, "~> 0.1.0"},
       {:search, "~> 0.3"},
-      {:langchain, "~> 0.3.2"}
+      {:langchain, "~> 0.3.2"},
+      {:flame, "~> 0.5.2"}
     ]
   end
 
