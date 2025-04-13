@@ -40,3 +40,6 @@ npm-debug.log
 .elixir_ls
 
 *.secret.*
+
+# Release directory
+/rel/
