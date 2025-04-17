@@ -20,6 +20,8 @@ defmodule Swarm.Application do
         {
           FLAME.Pool,
           name: Swarm.ImplementNextjsPool,
+          backend:
+            {FLAME.DockerBackend, image: "swarmnextjsdev", env: %{"DOCKER_IP" => "127.0.0.1"}},
           min: 0,
           max: 10,
           max_concurrency: 5,
