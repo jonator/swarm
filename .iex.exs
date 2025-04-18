@@ -1,15 +1,11 @@
 Module.create(
   H,
   quote do
-    @repo_url "https://github.com/polaris-portal/polaris"
+    @repo_url "https://github.com/polaris-portal/polaris.git"
 
     @instructions """
-    in tokenInfoPageUrl in ui/apps/web/src/hooks/token-info/use-token-info-url-actions.ts, handle the new route Token RouteProps (to be set as fromRoken) being the same as the already set currentTo.
-    Clear currentTo if chain ID and denom are the same. Ignore app folder, focus on token info page.
-
-    Issue description:
-    Strange behavior selecing USDC:base balance with query params. Upon clicking query params temporarily switch to base USDC then revert to screenshot selection.
-    I believe it's because it's trying to set the from asset as the same as to asset. We should notice this then move the from selection to the "to" selection.
+    in ui/turbo.json ensure that AUTH_CLIENT_SECRET and AUTH_SECRET are added to globalEnv array.
+    Ignore app folder.
     """
 
     def tjj(instructions \\ @instructions) do

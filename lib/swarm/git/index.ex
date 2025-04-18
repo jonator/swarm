@@ -1,5 +1,6 @@
 defmodule Swarm.Git.Index do
   use TypedStruct
+  require Logger
 
   # 1MB chunks
   @chunk_size 1024 * 1024
@@ -44,9 +45,14 @@ defmodule Swarm.Git.Index do
   end
 
   def from(%Swarm.Git.Repo{} = repo, excluded_patterns \\ []) do
+    Logger.debug(
+      "Creating index from repository: path=#{repo.path}, excluded_patterns=#{inspect(excluded_patterns)}"
+    )
+
     with {:ok, file_paths} <- Swarm.Git.Repo.list_files(repo) do
       # Filter out excluded files
       file_paths = filter_files(file_paths, excluded_patterns)
+      Logger.debug("Files to index: count=#{length(file_paths)}")
 
       # Process files in parallel with a limit on concurrent tasks
       tasks =
@@ -63,15 +69,22 @@ defmodule Swarm.Git.Index do
         end)
         |> Enum.map(fn {:ok, {:ok, doc}} -> doc end)
 
+      Logger.debug("Processed documents: count=#{length(documents)}")
+
       # Create search index
       case documents do
         [] ->
+          Logger.debug("No valid files to index: path=#{repo.path}")
           {:error, "No valid files to index"}
 
         documents ->
           {:ok, new_index} =
             Search.new(fields: [:content])
             |> Search.add(documents)
+
+          Logger.debug(
+            "Index created successfully: path=#{repo.path}, document_count=#{length(documents)}"
+          )
 
           {:ok, %__MODULE__{index: new_index}}
       end
@@ -80,7 +93,10 @@ defmodule Swarm.Git.Index do
     end
   end
 
-  def search(%__MODULE__{index: index}, query), do: Search.search(index, query)
+  def search(%__MODULE__{index: index}, query) do
+    Logger.debug("Searching index: query=#{query}")
+    Search.search(index, query)
+  end
 
   # Private functions
 
