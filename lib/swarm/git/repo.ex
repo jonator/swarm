@@ -15,8 +15,8 @@ defmodule Swarm.Git.Repo do
   Opens a git repository and switches to a branch.
   """
   def open(url, slug, branch) do
-    Logger.debug("Opening repository: url=#{url}, slug=#{slug}, branch=#{branch}")
     path = make_path(url, slug)
+    Logger.debug("Opening repository: url=#{url}, slug=#{slug}, branch=#{branch}, path=#{path}")
 
     with {:ok, _} <- clone_repo(url, path),
          {:ok, _} <- switch_branch(path, branch) do
@@ -154,7 +154,7 @@ defmodule Swarm.Git.Repo do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       {:ok, "Already cloned"}
     else
-      case System.cmd("git", ["clone", "--depth", "1", "--quiet", url, path]) do
+      case System.cmd("git", ["clone", "--filter=blob:none", "--quiet", url, path]) do
         {output, 0} -> {:ok, output}
         _ -> {:error, "Failed to clone repository: #{url}"}
       end
