@@ -1,4 +1,6 @@
 defmodule Swarm.Tool.Git.Index do
+  @moduledoc false
+
   alias LangChain.Function
   alias LangChain.FunctionParam
 
@@ -26,9 +28,7 @@ defmodule Swarm.Tool.Git.Index do
             "No results found for query: #{query}"
 
           results ->
-            results
-            |> Enum.map(fn %{id: id} -> id end)
-            |> Enum.join("\n")
+            Enum.map_join(results, "\n", fn %{id: id} -> id end)
         end
       end
     })

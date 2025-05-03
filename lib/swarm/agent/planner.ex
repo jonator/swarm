@@ -1,4 +1,6 @@
 defmodule Swarm.Agent.Planner do
+  @moduledoc false
+
   def generate_plan(%Swarm.Git.Repo{} = repo, instructions) do
     alias LangChain.Chains.LLMChain
     alias LangChain.Message

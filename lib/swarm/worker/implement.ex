@@ -1,4 +1,5 @@
 defmodule Swarm.Worker.Implement do
+  @moduledoc false
   use Oban.Worker, queue: :default
   require Logger
 

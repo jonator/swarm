@@ -1,4 +1,6 @@
 defmodule Swarm.Agent.Implementor do
+  @moduledoc false
+
   def implement(%Swarm.Git.Repo{} = repo, %Swarm.Git.Index{} = index, files, instructions) do
     alias LangChain.Chains.LLMChain
     alias LangChain.Message

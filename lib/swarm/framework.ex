@@ -1,4 +1,6 @@
 defmodule Swarm.Framework do
+  @moduledoc false
+
   def detect(%Swarm.Git.Repo{} = repo) do
     case Swarm.Framework.Nextjs.detect(repo) do
       {:ok, nextjs} ->

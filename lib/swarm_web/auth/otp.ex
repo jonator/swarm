@@ -39,9 +39,6 @@ defmodule SwarmWeb.Auth.OTP do
   def validate(email, code) when is_binary(email) and is_binary(code) do
     case :ets.lookup(@table_name, email) do
       [{^email, stored_code, expiry}] ->
-        IO.inspect(stored_code, label: "stored_code")
-        IO.inspect(code, label: "code")
-
         cond do
           System.system_time(:second) > expiry ->
             :ets.delete(@table_name, email)

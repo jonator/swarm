@@ -1,4 +1,5 @@
 defmodule Swarm.Instructor.ExcludeIndexPatterns do
+  @moduledoc false
   use Ecto.Schema
   use Instructor
 

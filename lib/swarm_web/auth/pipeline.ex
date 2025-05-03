@@ -1,4 +1,5 @@
 defmodule SwarmWeb.Auth.AuthPipeline do
+  @moduledoc false
   use Guardian.Plug.Pipeline,
     otp_app: :swarm,
     module: SwarmWeb.Auth.Guardian,
