@@ -1,48 +1,48 @@
-"use client";
+'use client'
 
-import { useRef, useMemo, useState, useEffect } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
 import {
+  Environment,
+  Float,
   OrbitControls,
   Sphere,
   Trail,
-  Float,
-  Environment,
-} from "@react-three/drei";
-import * as THREE from "three";
-import { useMobile } from "@/hooks/use-mobile";
+} from '@react-three/drei'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import * as THREE from 'three'
+import { useMobile } from '../hooks/use-mobile'
 
 // Define ParticlesBackground component (replace with your actual implementation)
 function ParticlesBackground() {
-  return null; // Placeholder: Replace with your particle background implementation
+  return null // Placeholder: Replace with your particle background implementation
 }
 
 interface GitHubLogoProps {
-  position: [number, number, number];
+  position: [number, number, number]
 }
 
 function GitHubLogo({ position }: GitHubLogoProps) {
-  const ref = useRef<THREE.Mesh>(null);
-  const [hovered, setHovered] = useState(false);
-  const [active, setActive] = useState(false);
+  const ref = useRef<THREE.Mesh>(null)
+  const [hovered, setHovered] = useState(false)
+  const [active, setActive] = useState(false)
 
   useFrame(({ clock }) => {
-    if (!ref.current) return;
+    if (!ref.current) return
 
-    const t = clock.getElapsedTime();
+    const t = clock.getElapsedTime()
 
     // Gentle floating rotation
-    ref.current.rotation.y = t * 0.2;
-    ref.current.rotation.x = Math.sin(t * 0.1) * 0.1;
+    ref.current.rotation.y = t * 0.2
+    ref.current.rotation.x = Math.sin(t * 0.1) * 0.1
 
     // Pulse effect when active
     if (active) {
-      const scale = 1 + Math.sin(t * 4) * 0.05;
-      ref.current.scale.set(scale, scale, scale);
+      const scale = 1 + Math.sin(t * 4) * 0.05
+      ref.current.scale.set(scale, scale, scale)
     } else {
-      ref.current.scale.setScalar(hovered ? 1.2 : 1);
+      ref.current.scale.setScalar(hovered ? 1.2 : 1)
     }
-  });
+  })
 
   return (
     <Float
@@ -61,8 +61,8 @@ function GitHubLogo({ position }: GitHubLogoProps) {
         <mesh>
           <octahedronGeometry args={[0.8, 0]} />
           <meshStandardMaterial
-            color="#ffffff"
-            emissive="#ffffff"
+            color='#ffffff'
+            emissive='#ffffff'
             emissiveIntensity={active ? 2 : 0.8}
             metalness={0.8}
             roughness={0.2}
@@ -73,80 +73,83 @@ function GitHubLogo({ position }: GitHubLogoProps) {
         <mesh>
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial
-            color="#00D4FF"
+            color='#00D4FF'
             transparent={true}
             opacity={0.15}
           />
         </mesh>
       </group>
     </Float>
-  );
+  )
 }
 
 interface LightningBoltProps {
-  startRef: React.RefObject<THREE.Vector3>;
-  end: [number, number, number];
-  color: string;
-  active: boolean;
+  startRef: React.RefObject<THREE.Vector3>
+  end: [number, number, number]
+  color: string
+  active: boolean
 }
 
 function LightningBolt({ startRef, end, color, active }: LightningBoltProps) {
-  const ref = useRef<THREE.Mesh>(null);
-  const pointsRef = useRef<THREE.Vector3[]>([]);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const ref = useRef<THREE.Mesh>(null)
+  const pointsRef = useRef<THREE.Vector3[]>([])
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    if (!active) return;
+    if (!active) return
 
     const generateLightningPoints = () => {
-      if (!startRef.current) return [];
+      if (!startRef.current) return []
 
-      const startVec = startRef.current.clone();
-      const endVec = new THREE.Vector3(...end);
-      const direction = endVec.clone().sub(startVec);
-      const length = direction.length();
-      const segments = Math.floor(length * 2) + 2;
+      const startVec = startRef.current.clone()
+      const endVec = new THREE.Vector3(...end)
+      const direction = endVec.clone().sub(startVec)
+      const length = direction.length()
+      const segments = Math.floor(length * 2) + 2
 
-      const points = [startVec.clone()];
+      const points = [startVec.clone()]
 
       for (let i = 1; i < segments; i++) {
-        const t = i / segments;
-        const pos = startVec.clone().lerp(endVec, t);
+        const t = i / segments
+        const pos = startVec.clone().lerp(endVec, t)
 
         if (i !== segments - 1) {
-          const jitter = 0.3 - t * 0.2;
-          pos.x += (Math.random() - 0.5) * jitter;
-          pos.y += (Math.random() - 0.5) * jitter;
-          pos.z += (Math.random() - 0.5) * jitter;
+          const jitter = 0.3 - t * 0.2
+          pos.x += (Math.random() - 0.5) * jitter
+          pos.y += (Math.random() - 0.5) * jitter
+          pos.z += (Math.random() - 0.5) * jitter
         }
 
-        points.push(pos);
+        points.push(pos)
       }
 
-      points.push(endVec.clone());
-      return points;
-    };
+      points.push(endVec.clone())
+      return points
+    }
 
-    pointsRef.current = generateLightningPoints();
+    pointsRef.current = generateLightningPoints()
 
-    intervalRef.current = setInterval(() => {
-      pointsRef.current = generateLightningPoints();
-    }, 100 + Math.random() * 200);
+    intervalRef.current = setInterval(
+      () => {
+        pointsRef.current = generateLightningPoints()
+      },
+      100 + Math.random() * 200,
+    )
 
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [active, end, startRef]);
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [active, end, startRef])
 
   useFrame(() => {
-    if (!ref.current || !active || pointsRef.current.length < 2) return;
+    if (!ref.current || !active || pointsRef.current.length < 2) return
 
-    const curve = new THREE.CatmullRomCurve3(pointsRef.current);
-    ref.current.geometry.dispose();
-    ref.current.geometry = new THREE.TubeGeometry(curve, 64, 0.02, 8, false);
-  });
+    const curve = new THREE.CatmullRomCurve3(pointsRef.current)
+    ref.current.geometry.dispose()
+    ref.current.geometry = new THREE.TubeGeometry(curve, 64, 0.02, 8, false)
+  })
 
-  if (!active) return null;
+  if (!active) return null
 
   return (
     <mesh ref={ref}>
@@ -168,44 +171,44 @@ function LightningBolt({ startRef, end, color, active }: LightningBoltProps) {
         emissiveIntensity={2}
       />
     </mesh>
-  );
+  )
 }
 
 interface AISpriteProps {
-  position: [number, number, number];
-  color: string;
-  target: [number, number, number];
-  isActive: boolean;
+  position: [number, number, number]
+  color: string
+  target: [number, number, number]
+  isActive: boolean
 }
 
 function AISprite({ position, color, target, isActive }: AISpriteProps) {
-  const ref = useRef<THREE.Group>(null);
-  const [active, setActive] = useState(isActive);
-  const positionRef = useRef(new THREE.Vector3(...position));
-  const targetPosition = useMemo(() => new THREE.Vector3(...target), [target]);
+  const ref = useRef<THREE.Group>(null)
+  const [active, setActive] = useState(isActive)
+  const positionRef = useRef(new THREE.Vector3(...position))
+  const targetPosition = useMemo(() => new THREE.Vector3(...target), [target])
 
   // Create a unique orbit path for each sprite
-  const orbitRadius = useMemo(() => 2 + Math.random() * 3, []);
-  const orbitSpeed = useMemo(() => 0.2 + Math.random() * 0.3, []);
-  const orbitOffset = useMemo(() => Math.random() * Math.PI * 2, []);
-  const verticalOffset = useMemo(() => (Math.random() - 0.5) * 2, []);
+  const orbitRadius = useMemo(() => 2 + Math.random() * 3, [])
+  const orbitSpeed = useMemo(() => 0.2 + Math.random() * 0.3, [])
+  const orbitOffset = useMemo(() => Math.random() * Math.PI * 2, [])
+  const verticalOffset = useMemo(() => (Math.random() - 0.5) * 2, [])
 
   useFrame(({ clock }) => {
-    if (!ref.current) return;
+    if (!ref.current) return
 
-    const t = clock.getElapsedTime();
+    const t = clock.getElapsedTime()
 
     // Orbital movement
-    const x = Math.cos(t * orbitSpeed + orbitOffset) * orbitRadius;
-    const z = Math.sin(t * orbitSpeed + orbitOffset) * orbitRadius;
-    const y = Math.sin(t * 0.5) * 0.5 + verticalOffset;
+    const x = Math.cos(t * orbitSpeed + orbitOffset) * orbitRadius
+    const z = Math.sin(t * orbitSpeed + orbitOffset) * orbitRadius
+    const y = Math.sin(t * 0.5) * 0.5 + verticalOffset
 
-    ref.current.position.set(x, y, z);
-    positionRef.current.set(x, y, z);
+    ref.current.position.set(x, y, z)
+    positionRef.current.set(x, y, z)
 
     // Always look at the target
-    ref.current.lookAt(targetPosition);
-  });
+    ref.current.lookAt(targetPosition)
+  })
 
   return (
     <>
@@ -231,57 +234,57 @@ function AISprite({ position, color, target, isActive }: AISpriteProps) {
         active={active}
       />
     </>
-  );
+  )
 }
 
 // Update the main visualization component
 export default function SwarmVisualization() {
-  const isMobile = useMobile();
+  const isMobile = useMobile()
 
   // Create AI sprites and GitHub logos
-  const aiCount = isMobile ? 8 : 15;
-  const githubCount = isMobile ? 2 : 3;
+  const aiCount = isMobile ? 8 : 15
+  const githubCount = isMobile ? 2 : 3
 
   // Create GitHub logos in the center
   const githubLogos = useMemo(() => {
     return Array.from({ length: githubCount }).map((_, i) => {
-      const angle = (i / githubCount) * Math.PI * 2;
-      const radius = 1.2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = (Math.random() - 0.5) * 1.2;
+      const angle = (i / githubCount) * Math.PI * 2
+      const radius = 1.2
+      const x = Math.cos(angle) * radius
+      const z = Math.sin(angle) * radius
+      const y = (Math.random() - 0.5) * 1.2
 
       return {
         position: [x, y, z] as [number, number, number],
-      };
-    });
-  }, [githubCount]);
+      }
+    })
+  }, [githubCount])
 
   // Create AI sprites that orbit around
   const aiSprites = useMemo(() => {
-    const colors = ["#00A3A3", "#00D4FF", "#4B0082", "#9900FF"];
+    const colors = ['#00A3A3', '#00D4FF', '#4B0082', '#9900FF']
 
     return Array.from({ length: aiCount }).map((_, i) => {
-      const angle = (i / aiCount) * Math.PI * 2;
-      const radius = 4 + Math.random() * 2;
-      const x = Math.cos(angle) * radius;
-      const z = Math.sin(angle) * radius;
-      const y = (Math.random() - 0.5) * 4;
+      const angle = (i / aiCount) * Math.PI * 2
+      const radius = 4 + Math.random() * 2
+      const x = Math.cos(angle) * radius
+      const z = Math.sin(angle) * radius
+      const y = (Math.random() - 0.5) * 4
 
-      const targetLogo = githubLogos[i % githubLogos.length];
+      const targetLogo = githubLogos[i % githubLogos.length]
 
       return {
         position: [x, y, z] as [number, number, number],
         color: colors[i % colors.length],
         target: targetLogo.position as [number, number, number],
         isActive: Math.random() > 0.5,
-      };
-    });
-  }, [aiCount, githubLogos]);
+      }
+    })
+  }, [aiCount, githubLogos])
 
   return (
     <Canvas camera={{ position: [0, 0, 10], fov: 50 }}>
-      <color attach="background" args={["#0A0A0A"]} />
+      <color attach='background' args={['#0A0A0A']} />
       <ambientLight intensity={0.2} />
       <spotLight
         position={[10, 10, 10]}
@@ -308,7 +311,7 @@ export default function SwarmVisualization() {
         />
       ))}
 
-      <Environment preset="night" />
+      <Environment preset='night' />
       <OrbitControls
         enableZoom={false}
         enablePan={false}
@@ -317,5 +320,5 @@ export default function SwarmVisualization() {
         autoRotateSpeed={0.5}
       />
     </Canvas>
-  );
+  )
 }
