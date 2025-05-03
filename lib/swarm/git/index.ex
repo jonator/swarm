@@ -51,49 +51,40 @@ defmodule Swarm.Git.Index do
       "Creating index from repository: path=#{repo.path}, excluded_patterns=#{inspect(excluded_patterns)}"
     )
 
-    case Swarm.Git.Repo.list_files(repo) do
-      {:ok, file_paths} ->
-        # Filter out excluded files
-        file_paths = filter_files(file_paths, excluded_patterns)
-        Logger.debug("Files to index: count=#{length(file_paths)}")
-
-        # Process files in parallel with a limit on concurrent tasks
-        tasks =
-          file_paths
-          |> Task.async_stream(&process_file(repo, &1), max_concurrency: 10, timeout: 30_000)
-          |> Enum.to_list()
-
-        # Collect successful results
-        documents =
-          tasks
-          |> Enum.filter(fn
-            {:ok, {:ok, _doc}} -> true
-            _ -> false
-          end)
-          |> Enum.map(fn {:ok, {:ok, doc}} -> doc end)
-
-        Logger.debug("Processed documents: count=#{length(documents)}")
-
-        # Create search index
-        case documents do
-          [] ->
-            Logger.debug("No valid files to index: path=#{repo.path}")
-            {:error, "No valid files to index"}
-
-          documents ->
-            {:ok, new_index} =
-              Search.new(fields: [:content])
-              |> Search.add(documents)
-
-            Logger.debug(
-              "Index created successfully: path=#{repo.path}, document_count=#{length(documents)}"
-            )
-
-            {:ok, %__MODULE__{index: new_index}}
-        end
-
-      error ->
-        error
+    with {:ok, file_paths} <- Swarm.Git.Repo.list_files(repo),
+         filtered_paths = filter_files(file_paths, excluded_patterns),
+         _ <- Logger.debug("Files to index: count=#{length(filtered_paths)}"),
+         tasks =
+           Task.async_stream(filtered_paths, &process_file(repo, &1),
+             max_concurrency: 10,
+             timeout: 30_000
+           )
+           |> Enum.to_list(),
+         documents =
+           tasks
+           |> Enum.filter(fn
+             {:ok, {:ok, _doc}} -> true
+             _ -> false
+           end)
+           |> Enum.map(fn {:ok, {:ok, doc}} -> doc end),
+         _ <- Logger.debug("Processed documents: count=#{length(documents)}"),
+         {:ok, documents} <-
+           if(documents == [],
+             do:
+               (
+                 Logger.debug("No valid files to index: path=#{repo.path}")
+                 {:error, "No valid files to index"}
+               ),
+             else: {:ok, documents}
+           ),
+         {:ok, new_index} <- Search.new(fields: [:content]) |> Search.add(documents),
+         _ <-
+           Logger.debug(
+             "Index created successfully: path=#{repo.path}, document_count=#{length(documents)}"
+           ) do
+      {:ok, %__MODULE__{index: new_index}}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
