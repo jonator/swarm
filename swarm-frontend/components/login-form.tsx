@@ -19,7 +19,7 @@ export function LoginForm({
         <div className='flex flex-col gap-6'>
           <div className='flex flex-col items-center gap-2'>
             <a
-              href='#'
+              href='/'
               className='flex flex-col items-center gap-2 font-medium text-foreground'
             >
               <div className='flex size-8 items-center justify-center rounded-md bg-primary/10'>
@@ -55,14 +55,14 @@ export function LoginForm({
       <div className='text-muted-foreground text-center text-xs text-balance'>
         By clicking continue, you agree to our{' '}
         <a
-          href='#'
+          href='/'
           className='text-primary hover:text-primary/80 underline underline-offset-4'
         >
           Terms of Service
         </a>{' '}
         and{' '}
         <a
-          href='#'
+          href='/'
           className='text-primary hover:text-primary/80 underline underline-offset-4'
         >
           Privacy Policy

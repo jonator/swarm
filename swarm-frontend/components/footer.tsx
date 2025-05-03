@@ -37,7 +37,7 @@ export default function Footer() {
       </div>
 
       {/* Gradient bar at bottom */}
-      <div className='h-1 w-full bg-gradient-to-r from-[#00A3A3] to-[#4B0082]'></div>
+      <div className='h-1 w-full bg-gradient-to-r from-[#00A3A3] to-[#4B0082]' />
     </footer>
   )
 }

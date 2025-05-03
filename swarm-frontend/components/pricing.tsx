@@ -176,7 +176,7 @@ export default function Pricing() {
         <div className='mt-16 text-center'>
           <p className='text-gray-400'>
             Need a custom solution?{' '}
-            <a href='#' className='text-[#00D4FF] hover:underline'>
+            <a href='/' className='text-[#00D4FF] hover:underline'>
               Contact our sales team
             </a>
           </p>
