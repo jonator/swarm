@@ -2,6 +2,18 @@ defmodule SwarmWeb.Router do
   use SwarmWeb, :router
   import Oban.Web.Router
 
+  pipeline :auth do
+    plug SwarmWeb.Auth.AuthPipeline
+  end
+
+  pipeline :ensure_auth do
+    plug Guardian.Plug.EnsureAuthenticated
+  end
+
+  pipeline :ensure_admin do
+    plug Guardian.Permissions, ensure: %{default: [:admin]}
+  end
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -14,16 +26,18 @@ defmodule SwarmWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", SwarmWeb do
-    pipe_through :browser
+  scope "/api", SwarmWeb do
+    pipe_through [:api, :auth]
 
-    oban_dashboard("/oban")
+    get "/users/email_otp", SessionController, :email_otp
+    post "/users/email_otp", SessionController, :email_otp
+
+    scope "/admin" do
+      pipe_through [:ensure_auth, :ensure_admin]
+
+      resources "/users", UserController
+    end
   end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", SwarmWeb do
-  #   pipe_through :api
-  # end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:swarm, :dev_routes) do
@@ -39,6 +53,14 @@ defmodule SwarmWeb.Router do
 
       live_dashboard "/dashboard", metrics: SwarmWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+
+      oban_dashboard("/oban")
+    end
+  else
+    scope "/admin", SwarmWeb do
+      pipe_through [:browser, :auth, :ensure_auth, :ensure_admin]
+
+      oban_dashboard("/oban")
     end
   end
 end

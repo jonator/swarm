@@ -64,7 +64,8 @@ defmodule Swarm.MixProject do
       {:instructor, "~> 0.1.0"},
       {:search, "~> 0.3"},
       {:langchain, "~> 0.3.2"},
-      {:flame, github: "jonator/flame", branch: "main"}
+      {:flame, github: "jonator/flame", branch: "main"},
+      {:guardian, "~> 2.3"}
     ]
   end
 

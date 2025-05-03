@@ -9,6 +9,9 @@ defmodule Swarm.Application do
   def start(_type, _args) do
     flame_parent = FLAME.Parent.get()
 
+    # Start the OTP ETS table
+    SwarmWeb.Auth.OTP.start()
+
     children =
       [
         SwarmWeb.Telemetry,

@@ -37,3 +37,6 @@ config :phoenix_live_view,
   enable_expensive_runtime_checks: true
 
 config :swarm, Oban, testing: :manual
+
+config :swarm, SwarmWeb.Auth.Guardian,
+  secret_key: "kGVky75fpq5397T0SqWuFLaSc1bBKkLoWWDWklyp913E4Fe33kwYkuS+LWEXSdpq"

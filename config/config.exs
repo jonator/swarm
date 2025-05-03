@@ -7,9 +7,7 @@
 # General application configuration
 import Config
 
-config :swarm,
-  ecto_repos: [Swarm.Repo],
-  generators: [timestamp_type: :utc_datetime]
+config :swarm, ecto_repos: [Swarm.Repo]
 
 # Configures the endpoint
 config :swarm, SwarmWeb.Endpoint,
@@ -67,6 +65,8 @@ config :swarm, Oban,
   engine: Oban.Engines.Basic,
   queues: [default: 10],
   repo: Swarm.Repo
+
+config :swarm, SwarmWeb.Auth.Guardian, issuer: "swarm", ttl: {7, :days}
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
