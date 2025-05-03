@@ -8,6 +8,7 @@ import {
   Trail,
 } from '@react-three/drei'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useMobile } from '../hooks/use-mobile'
@@ -61,8 +62,8 @@ function GitHubLogo({ position }: GitHubLogoProps) {
         <mesh>
           <octahedronGeometry args={[0.8, 0]} />
           <meshStandardMaterial
-            color='#ffffff'
-            emissive='#ffffff'
+            color='hsl(var(--foreground))'
+            emissive='hsl(var(--foreground))'
             emissiveIntensity={active ? 2 : 0.8}
             metalness={0.8}
             roughness={0.2}
@@ -73,7 +74,7 @@ function GitHubLogo({ position }: GitHubLogoProps) {
         <mesh>
           <sphereGeometry args={[1, 16, 16]} />
           <meshBasicMaterial
-            color='#00D4FF'
+            color='hsl(var(--primary))'
             transparent={true}
             opacity={0.15}
           />
@@ -86,11 +87,10 @@ function GitHubLogo({ position }: GitHubLogoProps) {
 interface LightningBoltProps {
   startRef: React.RefObject<THREE.Vector3>
   end: [number, number, number]
-  color: string
   active: boolean
 }
 
-function LightningBolt({ startRef, end, color, active }: LightningBoltProps) {
+function LightningBolt({ startRef, end, active }: LightningBoltProps) {
   const ref = useRef<THREE.Mesh>(null)
   const pointsRef = useRef<THREE.Vector3[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -166,8 +166,8 @@ function LightningBolt({ startRef, end, color, active }: LightningBoltProps) {
         ]}
       />
       <meshStandardMaterial
-        color={color}
-        emissive={color}
+        color='hsl(var(--primary))'
+        emissive='hsl(var(--primary))'
         emissiveIntensity={2}
       />
     </mesh>
@@ -176,12 +176,11 @@ function LightningBolt({ startRef, end, color, active }: LightningBoltProps) {
 
 interface AISpriteProps {
   position: [number, number, number]
-  color: string
   target: [number, number, number]
   isActive: boolean
 }
 
-function AISprite({ position, color, target, isActive }: AISpriteProps) {
+function AISprite({ position, target, isActive }: AISpriteProps) {
   const ref = useRef<THREE.Group>(null)
   const [active, setActive] = useState(isActive)
   const positionRef = useRef(new THREE.Vector3(...position))
@@ -213,11 +212,16 @@ function AISprite({ position, color, target, isActive }: AISpriteProps) {
   return (
     <>
       <group ref={ref} position={position}>
-        <Trail width={0.05} length={4} color={color} attenuation={(t) => t * t}>
+        <Trail
+          width={0.05}
+          length={4}
+          color='hsl(var(--primary))'
+          attenuation={(t) => t * t}
+        >
           <Sphere args={[0.15, 16, 16]} onClick={() => setActive(!active)}>
             <meshStandardMaterial
-              color={color}
-              emissive={color}
+              color='hsl(var(--primary))'
+              emissive='hsl(var(--primary))'
               emissiveIntensity={2}
               transparent
               opacity={0.7}
@@ -227,12 +231,7 @@ function AISprite({ position, color, target, isActive }: AISpriteProps) {
       </group>
 
       {/* Lightning bolt to target */}
-      <LightningBolt
-        startRef={positionRef}
-        end={target}
-        color={color}
-        active={active}
-      />
+      <LightningBolt startRef={positionRef} end={target} active={active} />
     </>
   )
 }
@@ -240,6 +239,10 @@ function AISprite({ position, color, target, isActive }: AISpriteProps) {
 // Update the main visualization component
 export default function SwarmVisualization() {
   const isMobile = useMobile()
+  const { resolvedTheme } = useTheme()
+
+  // Map theme to background color
+  const backgroundColor = resolvedTheme === 'dark' ? '#0A0A0A' : '#fff'
 
   // Create AI sprites and GitHub logos
   const aiCount = isMobile ? 8 : 15
@@ -261,30 +264,29 @@ export default function SwarmVisualization() {
   }, [githubCount])
 
   // Create AI sprites that orbit around
-  const aiSprites = useMemo(() => {
-    const colors = ['#00A3A3', '#00D4FF', '#4B0082', '#9900FF']
+  const aiSprites = useMemo(
+    () =>
+      Array.from({ length: aiCount }).map((_, i) => {
+        const angle = (i / aiCount) * Math.PI * 2
+        const radius = 4 + Math.random() * 2
+        const x = Math.cos(angle) * radius
+        const z = Math.sin(angle) * radius
+        const y = (Math.random() - 0.5) * 4
 
-    return Array.from({ length: aiCount }).map((_, i) => {
-      const angle = (i / aiCount) * Math.PI * 2
-      const radius = 4 + Math.random() * 2
-      const x = Math.cos(angle) * radius
-      const z = Math.sin(angle) * radius
-      const y = (Math.random() - 0.5) * 4
+        const targetLogo = githubLogos[i % githubLogos.length]
 
-      const targetLogo = githubLogos[i % githubLogos.length]
-
-      return {
-        position: [x, y, z] as [number, number, number],
-        color: colors[i % colors.length],
-        target: targetLogo.position as [number, number, number],
-        isActive: Math.random() > 0.5,
-      }
-    })
-  }, [aiCount, githubLogos])
+        return {
+          position: [x, y, z] as [number, number, number],
+          target: targetLogo.position as [number, number, number],
+          isActive: Math.random() > 0.5,
+        }
+      }),
+    [aiCount, githubLogos],
+  )
 
   return (
     <Canvas camera={{ position: [0, 0, 10], fov: 50 }}>
-      <color attach='background' args={['#0A0A0A']} />
+      <color attach='background' args={[backgroundColor]} />
       <ambientLight intensity={0.2} />
       <spotLight
         position={[10, 10, 10]}
@@ -305,7 +307,6 @@ export default function SwarmVisualization() {
         <AISprite
           key={`ai-${i}`}
           position={sprite.position}
-          color={sprite.color}
           target={sprite.target}
           isActive={sprite.isActive}
         />

@@ -63,27 +63,27 @@ export default function Pricing() {
   return (
     <section
       id='pricing'
-      className='py-20 px-4 bg-gradient-to-b from-[#0A0A0A] to-[#1A1A1A]'
+      className='py-20 px-4 bg-gradient-to-b from-background to-background/80'
     >
       <div className='container mx-auto max-w-6xl'>
         <div className='text-center mb-16'>
           <h2 className='text-3xl md:text-4xl font-bold mb-4'>
-            <span className='bg-clip-text text-transparent bg-gradient-to-r from-[#00A3A3] to-[#00D4FF]'>
+            <span className='bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80'>
               Simple, Transparent Pricing
             </span>
           </h2>
-          <p className='text-gray-400 max-w-2xl mx-auto'>
+          <p className='text-muted-foreground max-w-2xl mx-auto'>
             Choose the plan that&apos;s right for your team
           </p>
 
           {/* Billing toggle */}
           <div className='flex items-center justify-center mt-8'>
-            <div className='flex items-center p-1 bg-[#121212] rounded-lg'>
+            <div className='flex items-center p-1 bg-muted rounded-lg'>
               <button
                 className={`px-4 py-2 rounded-md transition-all ${
                   billingPeriod === 'monthly'
-                    ? 'bg-[#2A2A2A] text-white'
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => setBillingPeriod('monthly')}
               >
@@ -92,12 +92,12 @@ export default function Pricing() {
               <button
                 className={`px-4 py-2 rounded-md transition-all ${
                   billingPeriod === 'yearly'
-                    ? 'bg-[#2A2A2A] text-white'
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
                 onClick={() => setBillingPeriod('yearly')}
               >
-                Yearly <span className='text-xs text-[#00D4FF]'>Save 20%</span>
+                Yearly <span className='text-xs text-primary'>Save 20%</span>
               </button>
             </div>
           </div>
@@ -109,26 +109,23 @@ export default function Pricing() {
               key={index}
               className={`relative rounded-lg overflow-hidden transition-all duration-300 ${
                 plan.popular
-                  ? 'border-2 border-[#00D4FF] transform md:-translate-y-4'
-                  : 'border border-[#2A2A2A]'
+                  ? 'border-2 border-primary transform md:-translate-y-4'
+                  : 'border border-border'
               }`}
             >
               {plan.popular && (
-                <div className='absolute top-0 right-0 bg-[#00D4FF] text-black font-medium py-1 px-4 text-sm'>
+                <div className='absolute top-0 right-0 bg-primary text-primary-foreground font-medium py-1 px-4 text-sm'>
                   Most Popular
                 </div>
               )}
 
-              <div className='p-8 bg-[#121212] h-full flex flex-col'>
+              <div className='p-8 bg-card h-full flex flex-col'>
                 <div className='mb-8'>
-                  <h3 className='text-2xl font-bold mb-2 text-white'>
+                  <h3 className='text-2xl font-bold mb-2 text-foreground'>
                     {plan.name}
                   </h3>
                   <div className='flex items-end mb-2'>
-                    <span
-                      className='text-4xl font-bold'
-                      style={{ color: plan.color }}
-                    >
+                    <span className='text-4xl font-bold text-primary'>
                       {billingPeriod === 'yearly' &&
                       plan.price !== 'Custom' &&
                       plan.price !== '$0'
@@ -136,12 +133,12 @@ export default function Pricing() {
                         : plan.price}
                     </span>
                     {plan.period && (
-                      <span className='text-gray-400 ml-1'>
+                      <span className='text-muted-foreground ml-1'>
                         {billingPeriod === 'yearly' ? '/year' : plan.period}
                       </span>
                     )}
                   </div>
-                  <p className='text-gray-400'>{plan.description}</p>
+                  <p className='text-muted-foreground'>{plan.description}</p>
                 </div>
 
                 <div className='mb-8 flex-grow'>
@@ -150,22 +147,15 @@ export default function Pricing() {
                       <li key={i} className='flex items-start'>
                         <Check
                           size={18}
-                          className='mr-2 mt-0.5 flex-shrink-0'
-                          style={{ color: plan.color }}
+                          className='mr-2 mt-0.5 flex-shrink-0 text-primary'
                         />
-                        <span className='text-gray-300'>{feature}</span>
+                        <span className='text-muted-foreground'>{feature}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <Button
-                  className='w-full transition-all duration-300'
-                  style={{
-                    backgroundColor: plan.color,
-                    color: plan.name === 'Enterprise' ? 'white' : 'black',
-                  }}
-                >
+                <Button className='w-full transition-all duration-300 bg-primary hover:bg-primary/90 text-primary-foreground'>
                   {plan.cta}
                 </Button>
               </div>
@@ -174,9 +164,9 @@ export default function Pricing() {
         </div>
 
         <div className='mt-16 text-center'>
-          <p className='text-gray-400'>
+          <p className='text-muted-foreground'>
             Need a custom solution?{' '}
-            <a href='/' className='text-[#00D4FF] hover:underline'>
+            <a href='/' className='text-primary hover:underline'>
               Contact our sales team
             </a>
           </p>

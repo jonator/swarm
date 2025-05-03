@@ -1,5 +1,4 @@
 import { CheckCircle, GitBranch, GitPullRequest } from 'lucide-react'
-import type React from 'react'
 
 const steps = [
   {
@@ -30,15 +29,15 @@ const steps = [
 
 export default function Steps() {
   return (
-    <section id='how-it-works' className='py-20 px-4 bg-[#0A0A0A]'>
+    <section id='how-it-works' className='py-20 px-4 bg-background'>
       <div className='container mx-auto max-w-6xl'>
         <div className='text-center mb-16'>
           <h2 className='text-3xl md:text-4xl font-bold mb-4'>
-            <span className='bg-clip-text text-transparent bg-gradient-to-r from-[#00A3A3] to-[#00D4FF]'>
+            <span className='bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80'>
               How It Works
             </span>
           </h2>
-          <p className='text-gray-400 max-w-2xl mx-auto'>
+          <p className='text-muted-foreground max-w-2xl mx-auto'>
             Get started in minutes with our simple three-step process
           </p>
         </div>
@@ -47,35 +46,27 @@ export default function Steps() {
           {steps.map((step, index) => (
             <div
               key={index}
-              className='relative p-8 rounded-lg bg-[#121212] border border-[#2A2A2A] hover:border-[color:var(--step-color)] transition-all duration-300 group'
-              style={{ '--step-color': step.color } as React.CSSProperties}
+              className='relative p-8 rounded-lg bg-card border border-border hover:border-primary transition-all duration-300 group'
             >
               {/* Step number */}
-              <div className='absolute -top-5 -left-5 w-10 h-10 rounded-full flex items-center justify-center text-white font-bold bg-[color:var(--step-color)]'>
+              <div className='absolute -top-5 -left-5 w-10 h-10 rounded-full flex items-center justify-center text-primary-foreground font-bold bg-primary'>
                 {step.number}
               </div>
 
               {/* Icon */}
-              <div className='w-16 h-16 flex items-center justify-center rounded-full bg-[#1A1A1A] mb-6 group-hover:bg-[color:var(--step-color)]/10 transition-all duration-300'>
-                <step.icon className='w-8 h-8' style={{ color: step.color }} />
+              <div className='w-16 h-16 flex items-center justify-center rounded-full bg-muted mb-6 group-hover:bg-primary/10 transition-all duration-300'>
+                <step.icon className='w-8 h-8 text-primary' />
               </div>
 
               {/* Content */}
-              <h3 className='text-xl font-semibold mb-3 text-white'>
+              <h3 className='text-xl font-semibold mb-3 text-foreground'>
                 {step.title}
               </h3>
-              <p className='text-gray-400'>{step.description}</p>
+              <p className='text-muted-foreground'>{step.description}</p>
 
               {/* Connector line for desktop */}
               {index < steps.length - 1 && (
-                <div
-                  className='hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-[color:var(--step-color)] to-[color:var(--next-step-color)]'
-                  style={
-                    {
-                      '--next-step-color': steps[index + 1].color,
-                    } as React.CSSProperties
-                  }
-                />
+                <div className='hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-primary to-primary/80' />
               )}
             </div>
           ))}
