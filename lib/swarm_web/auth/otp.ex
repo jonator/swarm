@@ -11,7 +11,7 @@ defmodule SwarmWeb.Auth.OTP do
   Starts the OTP ETS table. Should be called when your application starts.
   """
   def start do
-    :ets.new(@table_name, [:set, :public, :named_table])
+    :ets.new(@table_name, [:set, :public, :named_table, read_concurrency: true])
   end
 
   @doc """

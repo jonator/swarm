@@ -72,6 +72,10 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 
+  # TODO: Update to domain when ready
+  config :cors_plug,
+    origin: ["*"]
+
   # ## SSL Support
   #
   # To get SSL working, you will need to add the `https` key

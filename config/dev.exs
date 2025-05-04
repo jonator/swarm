@@ -31,6 +31,10 @@ config :swarm, SwarmWeb.Endpoint,
     tailwind: {Tailwind, :install_and_run, [:swarm, ~w(--watch)]}
   ]
 
+config :cors_plug,
+  origin: ["http://localhost:3000"],
+  credentials: true
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

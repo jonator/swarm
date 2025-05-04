@@ -24,6 +24,11 @@ defmodule SwarmWeb.UserController do
     render(conn, :show, user: user)
   end
 
+  def show(conn, _params) do
+    user = Guardian.Plug.current_resource(conn)
+    render(conn, :show, user: user)
+  end
+
   def update(conn, %{"id" => id, "user" => user_params}) do
     user = Accounts.get_user!(id)
 

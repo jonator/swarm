@@ -1,6 +1,36 @@
+defmodule DebugMe do
+  def init(_), do: :ok
+
+  def call(conn, _) do
+    IO.inspect(conn.req_headers, label: "req_headers")
+    IO.inspect(conn.req_cookies, label: "req_cookies")
+    IO.inspect(Map.get(conn.private, :plug_session), label: "plug_session")
+
+    IO.inspect(SwarmWeb.Auth.Guardian.Plug.current_resource(conn), label: "current_resource")
+
+    # IO.inspect(conn)
+
+    conn
+  end
+end
+
 defmodule SwarmWeb.Router do
   use SwarmWeb, :router
   import Oban.Web.Router
+
+  pipeline :browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+  end
+
+  pipeline :api do
+    plug :accepts, ["json"]
+    plug :fetch_session
+    plug DebugMe
+  end
 
   pipeline :auth do
     plug SwarmWeb.Auth.AuthPipeline
@@ -14,23 +44,17 @@ defmodule SwarmWeb.Router do
     plug Guardian.Permissions, ensure: %{default: [:admin]}
   end
 
-  pipeline :browser do
-    plug :accepts, ["html"]
-    plug :fetch_session
-    plug :fetch_live_flash
-    plug :protect_from_forgery
-    plug :put_secure_browser_headers
-  end
-
-  pipeline :api do
-    plug :accepts, ["json"]
-  end
-
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
     get "/users/email_otp", SessionController, :email_otp
     post "/users/email_otp", SessionController, :email_otp
+
+    scope "/users" do
+      pipe_through [:ensure_auth]
+
+      get "/", UserController, :show
+    end
 
     scope "/admin" do
       pipe_through [:ensure_auth, :ensure_admin]

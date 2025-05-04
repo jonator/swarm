@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Providers } from '@/components/providers'
 import { ThemeProvider as NextThemesProvider } from 'next-themes'
+import { Toaster } from 'sonner'
 
 export const metadata: Metadata = {
   title: 'Swarm',
@@ -14,15 +16,16 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang='en'>
+    <html lang='en' suppressHydrationWarning>
       <body>
         <NextThemesProvider
           attribute='class'
           defaultTheme='system'
           enableSystem
         >
-          {children}
+          <Providers>{children}</Providers>
         </NextThemesProvider>
+        <Toaster />
       </body>
     </html>
   )
