@@ -1,19 +1,3 @@
-defmodule DebugMe do
-  def init(_), do: :ok
-
-  def call(conn, _) do
-    IO.inspect(conn.req_headers, label: "req_headers")
-    IO.inspect(conn.req_cookies, label: "req_cookies")
-    IO.inspect(Map.get(conn.private, :plug_session), label: "plug_session")
-
-    IO.inspect(SwarmWeb.Auth.Guardian.Plug.current_resource(conn), label: "current_resource")
-
-    # IO.inspect(conn)
-
-    conn
-  end
-end
-
 defmodule SwarmWeb.Router do
   use SwarmWeb, :router
   import Oban.Web.Router
@@ -29,7 +13,6 @@ defmodule SwarmWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug :fetch_session
-    plug DebugMe
   end
 
   pipeline :auth do

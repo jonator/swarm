@@ -76,6 +76,12 @@ export function LoginForm({
       try {
         await submitEmailOtpAction(emailForm.getValues('email'), data.code)
       } catch (error) {
+        // Next.js will throw an error intentionally to try to redirect from an action
+        // so we need to throw it again to let the caller handle it
+        // but not treat it as an error.
+        if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
+          throw error
+        }
         console.error(error)
         toast.error('Failed to verify code. Please try again.')
       }
