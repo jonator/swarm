@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+An Elixir Phoenix app called "Swarm" that allows users to spawn AI coding agents that can clone repos, create or switch to a branch, index the code for searching, generate code changes, run build/lint/format commands in a code sandbox, then finally push the completed branch to a GitHub pull request with the completed solution.
+
+With GitHub, users can authorize a Swarm GitHub OAuth app to expose their repositories, organizations, and pull requests.
+
+With Linear, users can authorize a Swarm Linear OAuth app to assign issues to Swarm as a starting point for Swarm to spawn AI coding agents to attempt to implement the described solution in the Linear issue description. The description is expected to contain a specific implementation plan with a step by step solution and mention of specific filenames.

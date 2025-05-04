@@ -1,0 +1,44 @@
+---
+description: Diagram of resources users have access to for viewing the activity of Swarm AI coding agents and their connected GitHub organizations, repositories, and pull requests
+globs: 
+alwaysApply: false
+---
+erDiagram
+    User {
+        int ID PK
+        string email
+    }
+    Repository {
+        int ID PK
+        string Name
+    }
+    Application {
+        int ID PK
+        string RootDir
+        string Type
+    }
+    Organization {
+        int ID PK
+        string Name
+        string Type
+    }
+    UsersRepositories {
+        int UserId FK
+        int RepositoryId FK
+    }
+    UsersOrganizations {
+        int UserId FK
+        int OrganizationId FK
+    }
+    OrganizationsRepositories {
+        int OrganizationId FK
+        int RepositoryId FK
+    }
+
+    User ||--o{ UsersRepositories : has
+    Repository ||--o{ UsersRepositories : has
+    User ||--o{ UsersOrganizations : has
+    Organization ||--o{ UsersOrganizations : has
+    Organization ||--o{ OrganizationsRepositories : has
+    Repository ||--o{ OrganizationsRepositories : has
+    Application }o--|| Repository : belongs_to
