@@ -35,7 +35,9 @@ export default function Footer() {
         </div>
 
         <div className='border-t border-border mt-8 pt-8 flex justify-center'>
-          <p className='text-muted-foreground text-sm'>Swarm AI © 2025</p>
+          <p className='text-muted-foreground text-sm'>
+            Swarm AI © {new Date().getFullYear()}
+          </p>
         </div>
       </div>
 
