@@ -3,7 +3,7 @@ defmodule Swarm.Repo.Migrations.CreateUsers do
 
   def change do
     create table(:users) do
-      add :email, :string, null: false
+      add :email, :string, null: false, unique: true
       add :role, :string, null: false
 
       timestamps(type: :utc_datetime)

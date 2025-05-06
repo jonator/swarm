@@ -36,6 +36,19 @@ Module.create(
       IO.puts("Index creation took #{end_time - start_time}ms")
       index
     end
+
+    def user() do
+      Swarm.Accounts.get_user_by_email("test@email.com")
+    end
+
+    def repo_attr() do
+      %{
+        name: "test/repo",
+        applications: [
+          %{type: "nextjs"}
+        ]
+      }
+    end
   end,
   Macro.Env.location(__ENV__)
 )
