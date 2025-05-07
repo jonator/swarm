@@ -44,7 +44,7 @@ Module.create(
     def repo_attr() do
       %{
         name: "test/repo",
-        applications: [
+        projects: [
           %{type: "nextjs"}
         ]
       }

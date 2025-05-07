@@ -1,8 +1,8 @@
-defmodule Swarm.Repo.Migrations.CreateApplications do
+defmodule Swarm.Repo.Migrations.CreateProjects do
   use Ecto.Migration
 
   def change do
-    create table(:applications) do
+    create table(:projects) do
       add :root_dir, :string, null: false
       add :type, :string, null: false
       add :repository_id, references(:repositories, on_delete: :delete_all), null: false
@@ -10,6 +10,6 @@ defmodule Swarm.Repo.Migrations.CreateApplications do
       timestamps()
     end
 
-    create index(:applications, [:repository_id])
+    create index(:projects, [:repository_id])
   end
 end

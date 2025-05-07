@@ -4,13 +4,13 @@ defmodule Swarm.Repositories.Repository do
   import Ecto.Changeset
   alias Swarm.Accounts.User
   alias Swarm.Organizations.Organization
-  alias Swarm.Applications.Application
+  alias Swarm.Projects.Project
 
   schema "repositories" do
     field :name, :string
     many_to_many :users, User, join_through: "users_repositories"
     many_to_many :organizations, Organization, join_through: "organizations_repositories"
-    has_many :applications, Application
+    has_many :projects, Project
 
     timestamps()
   end

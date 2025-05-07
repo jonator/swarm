@@ -1,14 +1,14 @@
-defmodule Swarm.ApplicationsFixtures do
+defmodule Swarm.ProjectsFixtures do
   @moduledoc """
   This module defines test helpers for creating
-  entities via the `Swarm.Applications` context.
+  entities via the `Swarm.Projects` context.
   """
 
   @doc """
-  Generate a application.
+  Generate a project.
   """
-  def application_fixture(attrs \\ %{}) do
-    {:ok, application} =
+  def project_fixture(attrs \\ %{}) do
+    {:ok, project} =
       attrs
       |> Enum.into(%{
         root_dir: "./root_dir",
@@ -17,8 +17,8 @@ defmodule Swarm.ApplicationsFixtures do
           name: "some/name"
         }
       })
-      |> Swarm.Applications.create_application()
+      |> Swarm.Projects.create_project()
 
-    application
+    project
   end
 end
