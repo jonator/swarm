@@ -11,7 +11,8 @@ defmodule Swarm.RepositoriesFixtures do
     {:ok, repository} =
       attrs
       |> Enum.into(%{
-        name: "some/name"
+        name: "some/name",
+        owner: "some_owner"
       })
       |> Swarm.Repositories.create_repository()
 

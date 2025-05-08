@@ -37,14 +37,15 @@ defmodule Swarm.ProjectsTest do
         type: :nextjs,
         root_dir: "./root_dir",
         repository: %{
-          name: "somenew/name"
+          owner: "owner",
+          name: "somenewname"
         }
       }
 
       assert {:ok, %Project{} = project} = Projects.create_project(valid_attrs)
       assert project.type == :nextjs
       assert project.root_dir == "./root_dir"
-      assert project.repository.name == "somenew/name"
+      assert project.repository.name == "somenewname"
     end
 
     test "create_project/1 with invalid data returns error changeset" do

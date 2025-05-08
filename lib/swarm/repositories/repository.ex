@@ -8,6 +8,7 @@ defmodule Swarm.Repositories.Repository do
 
   schema "repositories" do
     field :name, :string
+    field :owner, :string
     many_to_many :users, User, join_through: "users_repositories"
     many_to_many :organizations, Organization, join_through: "organizations_repositories"
     has_many :projects, Project
@@ -18,10 +19,10 @@ defmodule Swarm.Repositories.Repository do
   @doc false
   def changeset(repository, attrs) do
     repository
-    |> cast(attrs, [:name])
-    |> validate_required([:name])
+    |> cast(attrs, [:name, :owner])
+    |> validate_required([:name, :owner])
     |> update_change(:name, &String.trim/1)
-    |> unique_constraint(:name)
+    |> unique_constraint([:name, :owner])
     |> validate_length(:name, min: 3, max: 100)
     |> validate_format(:name, ~r/^[a-zA-Z0-9 _\-\/]+$/,
       message: "can only contain letters, numbers, spaces, underscores, hyphens, and slashes"

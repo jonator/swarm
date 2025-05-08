@@ -4,6 +4,7 @@ defmodule Swarm.Repo.Migrations.CreateRepositories do
   def change do
     create table(:repositories) do
       add :name, :string, null: false, unique: true
+      add :owner, :string, null: false, unique: true
 
       timestamps()
     end

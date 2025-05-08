@@ -14,7 +14,8 @@ defmodule Swarm.ProjectsFixtures do
         root_dir: "./root_dir",
         type: :nextjs,
         repository: %{
-          name: "some/name"
+          owner: "someowner",
+          name: "somename"
         }
       })
       |> Swarm.Projects.create_project()

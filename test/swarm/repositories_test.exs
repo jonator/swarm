@@ -8,7 +8,7 @@ defmodule Swarm.RepositoriesTest do
 
     import Swarm.RepositoriesFixtures
 
-    @invalid_attrs %{name: nil}
+    @invalid_attrs %{name: nil, owner: nil}
 
     test "list_repositories/0 returns all repositories" do
       repository = repository_fixture()
@@ -21,10 +21,11 @@ defmodule Swarm.RepositoriesTest do
     end
 
     test "create_repository/1 with valid data creates a repository" do
-      valid_attrs = %{name: "some/name"}
+      valid_attrs = %{name: "name", owner: "some_owner"}
 
       assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
-      assert repository.name == "some/name"
+      assert repository.name == "name"
+      assert repository.owner == "some_owner"
     end
 
     test "create_repository/1 with invalid data returns error changeset" do
@@ -33,12 +34,13 @@ defmodule Swarm.RepositoriesTest do
 
     test "update_repository/2 with valid data updates the repository" do
       repository = repository_fixture()
-      update_attrs = %{name: "someupdated/name"}
+      update_attrs = %{name: "updated_name", owner: "updated_owner"}
 
       assert {:ok, %Repository{} = repository} =
                Repositories.update_repository(repository, update_attrs)
 
-      assert repository.name == "someupdated/name"
+      assert repository.name == "updated_name"
+      assert repository.owner == "updated_owner"
     end
 
     test "update_repository/2 with invalid data returns error changeset" do
