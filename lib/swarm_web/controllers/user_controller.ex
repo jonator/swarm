@@ -7,12 +7,12 @@ defmodule SwarmWeb.UserController do
 
   action_fallback SwarmWeb.FallbackController
 
-  def index(conn, _params) do
+  def index(conn, _params, _user) do
     users = Accounts.list_users()
     render(conn, :index, users: users)
   end
 
-  def create(conn, %{"user" => user_params}) do
+  def create(conn, %{"user" => user_params}, _user) do
     with {:ok, %User{} = user} <- Accounts.create_user(user_params) do
       conn
       |> put_status(:created)
@@ -20,7 +20,7 @@ defmodule SwarmWeb.UserController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
+  def show(conn, %{"id" => id}, _user) do
     user = Accounts.get_user!(id)
     render(conn, :show, user: user)
   end
@@ -29,7 +29,7 @@ defmodule SwarmWeb.UserController do
     render(conn, :show, user: user)
   end
 
-  def update(conn, %{"id" => id, "user" => user_params}) do
+  def update(conn, %{"id" => id, "user" => user_params}, _user) do
     user = Accounts.get_user!(id)
 
     with {:ok, %User{} = user} <- Accounts.update_user(user, user_params) do
@@ -37,7 +37,7 @@ defmodule SwarmWeb.UserController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
+  def delete(conn, %{"id" => id}, _user) do
     user = Accounts.get_user!(id)
 
     with {:ok, %User{}} <- Accounts.delete_user(user) do
