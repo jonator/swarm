@@ -8,8 +8,8 @@ defmodule SwarmWeb.SessionController do
   action_fallback SwarmWeb.FallbackController
 
   def github(conn, %{"code" => code}) do
-    with {:ok, github_user, tokens} <- Github.exchange_user_code(code),
-         {:ok, user} <- Accounts.get_or_create_user(github_user["email"], github_user["login"]),
+    with {:ok, github_user, email, tokens} <- Github.exchange_user_code(code),
+         {:ok, user} <- Accounts.get_or_create_user(email, github_user["login"]),
          opts <-
            if(user.role == :admin, do: [permissions: %{default: [:admin]}], else: []),
          {:ok, token, _claims} <- Guardian.encode_and_sign(user, %{}, opts),

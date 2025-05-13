@@ -1,6 +1,6 @@
 defmodule Swarm.Services.Github do
   @doc """
-  Exchanges a GitHub OAuth code for an access token and uses it to fetch the user's information.
+  Exchanges a GitHub OAuth code for an access token and uses it to fetch the user's information and emails.
 
   Tokens are returned in the following format:
   `
@@ -25,13 +25,15 @@ defmodule Swarm.Services.Github do
          %{
            "access_token" => access_token
          } = tokens <-
-           URI.decode_query(resp.body) |> IO.inspect(),
+           URI.decode_query(resp.body),
          client <-
            Tentacat.Client.new(%{
              access_token: access_token
            }),
-         {200, user, _} <- Tentacat.Users.me(client) |> IO.inspect() do
-      {:ok, user, tokens}
+         {200, user, _} <- Tentacat.Users.me(client),
+         {200, [%{"email" => email, "verified" => true} | _], _} =
+           Tentacat.Users.Emails.list(client) do
+      {:ok, user, email, tokens}
     else
       {:error, error} -> {:error, "Failed to exchange GitHub auth code: #{inspect(error)}"}
     end
