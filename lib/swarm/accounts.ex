@@ -7,6 +7,7 @@ defmodule Swarm.Accounts do
   alias Swarm.Repo
 
   alias Swarm.Accounts.User
+  alias Swarm.Accounts.Token
 
   @doc """
   Returns the list of users.
@@ -53,20 +54,20 @@ defmodule Swarm.Accounts do
   def get_user(id), do: Repo.get(User, id)
 
   @doc """
-  Gets a single user by email.
+  Gets a single user by username.
 
   Returns `nil` if the User does not exist.
   """
-  def get_user_by_email(email), do: Repo.get_by(User, email: email)
+  def get_user_by_username(username), do: Repo.get_by(User, username: username)
 
   @doc """
-  Gets a single user by email or creates a new user if they don't exist.
+  Gets a single user by username and email or creates a new user if they don't exist.
 
   Returns the existing user if they exist, or a new user if they don't.
   """
-  def get_or_create_user_by_email(email) do
-    case get_user_by_email(email) do
-      nil -> create_user(%{email: email, role: "user"})
+  def get_or_create_user(email, username) do
+    case get_user_by_username(username) do
+      nil -> create_user(%{email: email, username: username, role: "user"})
       user -> {:ok, user}
     end
   end
@@ -134,5 +135,58 @@ defmodule Swarm.Accounts do
   """
   def change_user(%User{} = user, attrs \\ %{}) do
     User.changeset(user, attrs)
+  end
+
+  @doc """
+  Saves a token for a user.
+
+  Can include integer `expires_in` attribute that can be converted to a DateTime for `:expires`.
+
+  ## Examples
+
+      iex> save_token(user, %{field: new_value})
+      {:ok, %Token{}}
+
+      iex> save_token(user, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def save_token(%User{} = user, attrs \\ %{}) do
+    attrs =
+      case Map.get(attrs, :expires_in) do
+        nil ->
+          attrs
+
+        expires_in ->
+          expires = DateTime.add(DateTime.utc_now(), expires_in, :second)
+
+          Map.put(attrs, :expires, expires)
+      end
+
+    Token
+    |> where(user_id: ^user.id)
+    |> where(type: ^Map.get(attrs, :type))
+    |> where(context: ^Map.get(attrs, :context))
+    |> Repo.delete_all()
+
+    %Token{}
+    |> Token.changeset(attrs)
+    |> Ecto.Changeset.put_assoc(:user, user)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Gets tokens for a user.
+
+  ## Examples
+
+      iex> get_tokens(user)
+      [%Token{}, ...]
+
+  """
+  def get_tokens(%User{} = user) do
+    Token
+    |> where(user_id: ^user.id)
+    |> Repo.all()
   end
 end

@@ -30,8 +30,7 @@ defmodule SwarmWeb.Router do
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
-    get "/users/email_otp", SessionController, :email_otp
-    post "/users/email_otp", SessionController, :email_otp
+    post "/auth/github", SessionController, :github
 
     scope "/users" do
       pipe_through [:ensure_auth]

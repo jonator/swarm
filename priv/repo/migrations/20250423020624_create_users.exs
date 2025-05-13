@@ -3,12 +3,25 @@ defmodule Swarm.Repo.Migrations.CreateUsers do
 
   def change do
     create table(:users) do
-      add :email, :string, null: false, unique: true
+      add :email, :string, unique: true
+      add :username, :string, null: false, unique: true
       add :role, :string, null: false
 
-      timestamps(type: :utc_datetime)
+      timestamps()
     end
 
-    create unique_index(:users, [:email])
+    create unique_index(:users, [:email, :username])
+
+    create table(:tokens) do
+      add :user_id, references(:users, on_delete: :delete_all), null: false
+      add :token, :string, null: false
+      add :context, :string, null: false
+      add :type, :string, null: false
+      add :expires, :utc_datetime, null: false
+
+      timestamps()
+    end
+
+    create index(:tokens, [:user_id])
   end
 end

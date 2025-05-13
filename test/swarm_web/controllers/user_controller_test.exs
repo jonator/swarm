@@ -6,10 +6,12 @@ defmodule SwarmWeb.UserControllerTest do
   alias Swarm.Accounts.User
 
   @create_attrs %{
-    email: "test@email.com"
+    email: "create@email.com",
+    username: "createuser"
   }
   @update_attrs %{
-    email: "updated@email.com"
+    email: "updated@email.com",
+    username: "updateduser"
   }
   @invalid_attrs %{
     email: "invalid_email"
@@ -17,7 +19,7 @@ defmodule SwarmWeb.UserControllerTest do
 
   setup %{conn: conn} do
     # Create an admin user for authentication
-    admin = user_fixture(%{email: "admin@test.com", role: "admin"})
+    admin = user_fixture(%{email: "admin@test.com", username: "adminuser", role: "admin"})
 
     # Generate a JWT token for the admin user
     {:ok, token, _} =

@@ -38,7 +38,7 @@ Module.create(
     end
 
     def user() do
-      Swarm.Accounts.get_user_by_email("test@email.com")
+      Swarm.Accounts.get_user_by_username("test")
     end
 
     def repo_attr() do

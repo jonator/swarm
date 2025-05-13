@@ -67,7 +67,9 @@ defmodule Swarm.MixProject do
       {:flame, github: "jonator/flame", branch: "main"},
       {:guardian, "~> 2.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:cors_plug, "~> 3.0"}
+      {:cors_plug, "~> 3.0"},
+      {:req, "~> 0.5.10"},
+      {:tentacat, "~> 2.5.0"}
     ]
   end
 

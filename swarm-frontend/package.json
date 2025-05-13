@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev --turbopack & smee -u https://smee.io/ZbGn4kOyoveRrXFk",
     "build": "next build",
     "start": "next start",
     "lint": "biome check",
@@ -41,6 +41,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "knip": "^5.53.0",
+    "smee-client": "^3.1.1",
     "tailwindcss": "^4.1.5",
     "typescript": "^5"
   }

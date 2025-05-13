@@ -15,6 +15,8 @@ defmodule Swarm.Repo.Migrations.CreateOrganizations do
       # timestamps()
     end
 
+    create unique_index(:organizations_repositories, [:organization_id, :repository_id])
+
     create table(:users_organizations, primary_key: false) do
       add :user_id, references(:users, on_delete: :delete_all), null: false
       add :organization_id, references(:organizations, on_delete: :delete_all), null: false
@@ -24,7 +26,6 @@ defmodule Swarm.Repo.Migrations.CreateOrganizations do
       timestamps()
     end
 
-    create unique_index(:organizations_repositories, [:organization_id, :repository_id])
     create unique_index(:users_organizations, [:user_id, :organization_id])
   end
 end

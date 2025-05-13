@@ -1,4 +1,42 @@
 {
+  "languages": {
+    "Elixir": {
+      "format_on_save": {
+        "external": {
+          "command": "mix",
+          "arguments": ["format", "--stdin-filename", "{buffer_path}", "-"]
+        }
+      }
+    },
+    "TypesScript": {
+      "format_on_save": {
+        "external": {
+          "command": "biome",
+          "arguments": ["format", "--write", "--stdin-file-path={buffer_path}"]
+        }
+      }
+    },
+    "TSX": {
+      "format_on_save": {
+        "external": {
+          "command": "biome",
+          "arguments": ["format", "--write", "--stdin-file-path={buffer_path}"]
+        }
+      }
+    },
+    "JavaScript": {
+      "format_on_save": {
+        "external": {
+          "command": "biome",
+          "arguments": ["format", "--write", "--stdin-file-path={buffer_path}"]
+        }
+      }
+    }
+  },
+  "code_actions_on_format": {
+    "source.fixAll.biome": true,
+    "source.organizeImports.biome": true
+  },
   "context_servers": {
     "postgres-context-server": {
       "settings": {
