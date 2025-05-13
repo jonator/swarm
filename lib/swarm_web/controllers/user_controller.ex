@@ -1,5 +1,6 @@
 defmodule SwarmWeb.UserController do
   use SwarmWeb, :controller
+  use SwarmWeb.CurrentResource
 
   alias Swarm.Accounts
   alias Swarm.Accounts.User
@@ -24,8 +25,7 @@ defmodule SwarmWeb.UserController do
     render(conn, :show, user: user)
   end
 
-  def show(conn, _params) do
-    user = Guardian.Plug.current_resource(conn)
+  def show(conn, _params, user) do
     render(conn, :show, user: user)
   end
 
