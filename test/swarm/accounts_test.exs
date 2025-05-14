@@ -113,7 +113,8 @@ defmodule Swarm.AccountsTest do
           type: :refresh
         })
 
-      [new_token, new_token2] = Accounts.get_tokens(user)
+      new_token = Accounts.get_token(user, :access, :github)
+      new_token2 = Accounts.get_token(user, :refresh, :github)
 
       assert Accounts.get_user!(user.id) == user
       assert new_token.token == "test"
@@ -124,6 +125,23 @@ defmodule Swarm.AccountsTest do
       assert new_token2.type == :refresh
       assert new_token2.context == :github
       assert DateTime.after?(new_token2.expires, DateTime.utc_now())
+    end
+
+    test "delete_token/3 deletes the specified token for a user" do
+      user = user_fixture()
+
+      {:ok, token} =
+        Accounts.save_token(user, %{
+          expires_in: 300,
+          token: "test",
+          context: :github,
+          type: :access
+        })
+
+      assert token.id == Accounts.get_token(user, :access, :github).id
+
+      Accounts.delete_token(user, :access, :github)
+      assert nil == Accounts.get_token(user, :access, :github)
     end
 
     test "save_token/2 deletes previous tokens for the same user, context, and type" do

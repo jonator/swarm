@@ -1,6 +1,7 @@
 defmodule Swarm.Accounts.User do
   @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
   alias Swarm.Repositories.Repository
   alias Swarm.Organizations.Organization

@@ -189,4 +189,41 @@ defmodule Swarm.Accounts do
     |> where(user_id: ^user.id)
     |> Repo.all()
   end
+
+  @doc """
+  Gets tokens for a user of a specific type and context.
+
+  ## Examples
+
+      iex> get_token(user, :access, :github)
+      %Token{}
+
+      iex> get_token(user, :refresh, :github)
+      nil
+
+  """
+  def get_token(%User{} = user, type, context) do
+    Token
+    |> where(user_id: ^user.id)
+    |> where(type: ^type)
+    |> where(context: ^context)
+    |> Repo.one()
+  end
+
+  @doc """
+  Deletes a token for a user of a specific type and context.
+
+  ## Examples
+
+      iex> get_token(user)
+      [%Token{}, ...]
+
+  """
+  def delete_token(%User{} = user, type, context) do
+    Token
+    |> where(user_id: ^user.id)
+    |> where(type: ^type)
+    |> where(context: ^context)
+    |> Repo.delete_all()
+  end
 end
