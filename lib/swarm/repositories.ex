@@ -6,6 +6,7 @@ defmodule Swarm.Repositories do
   import Ecto.Query, warn: false
   alias Swarm.Repo
 
+  alias Swarm.Accounts.User
   alias Swarm.Repositories.Repository
 
   @doc """
@@ -19,6 +20,19 @@ defmodule Swarm.Repositories do
   """
   def list_repositories do
     Repo.all(Repository)
+  end
+
+  @doc """
+  Returns the list of repositories for a given user.
+
+  ## Examples
+
+      iex> list_repositories(user)
+      [%Repository{}, ...]
+
+  """
+  def list_repositories(%User{} = user) do
+    Repo.preload(user, :repositories).repositories
   end
 
   @doc """
@@ -49,9 +63,35 @@ defmodule Swarm.Repositories do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_repository(attrs \\ %{}) do
+  def create_repository(attrs) do
     %Repository{}
     |> Repository.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Creates a repository for a given user.
+
+  ## Examples
+
+      iex> create_repository(user, %{field: value})
+      {:ok, %Repository{}}
+
+      iex> create_repository(user, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_repository(%User{username: username} = user, attrs) do
+    %Repository{}
+    |> Repository.changeset(attrs)
+    |> Ecto.Changeset.put_assoc(:users, [user])
+    |> Ecto.Changeset.validate_change(:owner, fn :owner, owner ->
+      if owner == username do
+        []
+      else
+        [owner: "must be the same as the user"]
+      end
+    end)
     |> Repo.insert()
   end
 

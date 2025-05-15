@@ -1,4 +1,4 @@
-defmodule SwarmWeb.CurrentResource do
+defmodule SwarmWeb.Auth.CurrentResource do
   @moduledoc """
   Use this module in a controller to take the advantage of having
   the subject of authentication (eg.: JWT current resource) injected

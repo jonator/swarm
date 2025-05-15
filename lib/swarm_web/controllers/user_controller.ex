@@ -1,6 +1,6 @@
 defmodule SwarmWeb.UserController do
   use SwarmWeb, :controller
-  use SwarmWeb.CurrentResource
+  use SwarmWeb.Auth.CurrentResource
 
   alias Swarm.Accounts
   alias Swarm.Accounts.User

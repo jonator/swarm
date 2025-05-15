@@ -43,7 +43,8 @@ Module.create(
 
     def repo_attr() do
       %{
-        name: "test/repo",
+        name: "repo",
+        owner: "owner",
         projects: [
           %{type: "nextjs"}
         ]
