@@ -21,4 +21,24 @@ defmodule SwarmWeb.FallbackController do
     |> put_view(html: SwarmWeb.ErrorHTML, json: SwarmWeb.ErrorJSON)
     |> render(:"404")
   end
+
+  def call(conn, {:unauthorized, reason}) do
+    conn
+    |> put_status(:unauthorized)
+    |> json(%{message: "Unauthorized #{reason}"})
+  end
+
+  # Handles all other errors from error tuple pattern
+  def call(conn, {:error, message}) do
+    conn
+    |> put_status(500)
+    |> json(%{message: message})
+  end
+
+  # Handles errors from Tentacat client
+  def call(conn, {status, %{"message" => message}, _http_poison_resp}) do
+    conn
+    |> put_status(status)
+    |> json(%{message: message})
+  end
 end

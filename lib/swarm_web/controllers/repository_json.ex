@@ -5,14 +5,14 @@ defmodule SwarmWeb.RepositoryJSON do
   Renders a list of repositories.
   """
   def index(%{repositories: repositories}) do
-    %{data: for(repository <- repositories, do: data(repository))}
+    %{repositories: for(repository <- repositories, do: data(repository))}
   end
 
   @doc """
   Renders a single repository.
   """
   def show(%{repository: repository}) do
-    %{data: data(repository)}
+    %{repository: data(repository)}
   end
 
   defp data(%Repository{} = repository) do

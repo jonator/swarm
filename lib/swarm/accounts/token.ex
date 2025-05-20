@@ -20,7 +20,7 @@ defmodule Swarm.Accounts.Token do
     |> validate_required([:token, :context, :type, :expires])
   end
 
-  def is_expired(%__MODULE__{} = token) do
-    DateTime.after?(token.expires, DateTime.utc_now())
+  def expired?(%__MODULE__{} = token) do
+    DateTime.after?(DateTime.utc_now(), token.expires)
   end
 end

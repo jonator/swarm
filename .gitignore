@@ -40,6 +40,7 @@ npm-debug.log
 .elixir_ls
 
 *.secret.*
+*.private-key.pem
 
 # Dont commit release artifacts
 /rel/

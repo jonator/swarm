@@ -1,4 +1,7 @@
-defmodule Swarm.Services.Github do
+defmodule Swarm.Services.GitHub do
+  @moduledoc """
+  This module implements a GitHub service for interacting with the GitHub API as needed by Swarm.
+  """
   use TypedStruct
 
   alias Swarm.Accounts
@@ -7,21 +10,27 @@ defmodule Swarm.Services.Github do
 
   typedstruct enforce: true do
     field :client, Tentacat.Client.t(), enforce: true
+    field :installation_client, Tentacat.Client.t()
     field :access_token, %Token{type: :access}, enforce: true
   end
 
   @doc """
-  Creates a new GitHub service instance for the given user.
+  Creates a new GitHub service instance for the given user with user access token.
   """
   def new(%User{} = user) do
     with {:ok, %Token{token: access_token} = token} <- access_token(user),
          client <-
            Tentacat.Client.new(%{
              access_token: access_token
-           }) do
-      {:ok, %__MODULE__{client: client, access_token: token}}
+           }),
+          app_jwt = SwarmWeb.Auth.GitHubToken.create(),
+          installation_client <- Tentacat.Client.new(%{
+            jwt: app_jwt
+          }) do
+      {:ok, %__MODULE__{client: client, installation_client: installation_client, access_token: token}}
     else
       {:error, reason} -> {:error, "Failed to create GitHub client: #{reason}"}
+      {:unauthorized, reason} -> {:unauthorized, "Unauthorized with GitHub: #{reason}"}
       _ -> {:error, "Failed to create GitHub client"}
     end
   end
@@ -43,6 +52,51 @@ defmodule Swarm.Services.Github do
     end
   end
 
+  def installations(%User{} = user) do
+    with {:ok, github} <- new(user) do
+      installations(github)
+    end
+  end
+
+  def installations(%__MODULE__{client: client}) do
+    # https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
+    with {200, installations, _} <- Tentacat.App.Installations.list_for_user(client) do
+      {:ok, installations}
+    end
+  end
+
+  def installation_repositories(user_or_client, target_type_or_id \\ "User")
+
+  def installation_repositories(%User{} = user, target_type) do
+    with {:ok, %__MODULE__{} = client} <- new(user),
+         {:ok, %{"installations" => installations}} <- installations(client),
+         %{"id" => installation_id} <- Enum.find(installations, {:error, "Installation not found for user #{user.id} of target_type #{target_type}"}, &(&1["target_type"] == target_type)) do
+      installation_repositories(client, installation_id)
+    end
+  end
+
+  def installation_repositories(%__MODULE__{client: client}, installation_id) do
+    # https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
+    with {200, repositories, _} <- Tentacat.App.Installations.list_repositories_for_user(client, installation_id) do
+      {:ok, repositories}
+    end
+  end
+
+  def repository_trees(user_or_client, owner, repo, branch \\ "main")
+
+  def repository_trees(%User{} = user, owner, repo, branch) do
+    with {:ok, %__MODULE__{} = client} <- new(user) do
+      repository_trees(client, owner, repo, branch)
+    end
+  end
+
+  def repository_trees(%__MODULE__{client: client}, owner, repo, branch) do
+    # https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28#get-a-tree
+    with {200, tree, _} <- Tentacat.Trees.find_recursive(owner, repo, branch, client) do
+      {:ok, tree}
+    end
+  end
+
   defp access_token(%User{} = user) do
     case Accounts.get_token(user, :access, :github) do
       # could have been cleaned up due to expiration
@@ -50,7 +104,7 @@ defmodule Swarm.Services.Github do
         refresh_token(user)
 
       %Token{} = token ->
-        if Token.is_expired(token) do
+        if Token.expired?(token) do
           refresh_token(user)
         else
           {:ok, token}
@@ -58,23 +112,20 @@ defmodule Swarm.Services.Github do
     end
   end
 
+  # Refreshes the GitHub access token for a user using the cached refresh token.
   defp refresh_token(%User{} = user) do
     case Accounts.get_token(user, :refresh, :github) do
       nil ->
-        {:error,
+        {:unauthorized,
          "No tokens found for user, #{user.username} likely not authenticated with GitHub."}
 
       %Token{token: refresh_token} ->
-        case github_login(
+        with {:ok, _user, fresh_access_token, _fresh_refresh_token} <- github_login(
                user,
                grant_type: "refresh_token",
                refresh_token: refresh_token
              ) do
-          {:ok, _user, fresh_access_token, _fresh_refresh_token} ->
-            {:ok, fresh_access_token}
-
-          {:error, error} ->
-            {:error, "Failed to exchange refresh token: #{inspect(error)}"}
+          {:ok, fresh_access_token}
         end
     end
   end
@@ -86,7 +137,7 @@ defmodule Swarm.Services.Github do
         client_secret: Application.get_env(:swarm, :github_client_secret)
       ] ++ params
 
-    with {:ok, resp} <- Req.post("https://github.com/login/oauth/access_token", form: form),
+    with {:ok, %Req.Response{status: 200} = resp} <- Req.post("https://github.com/login/oauth/access_token", form: form),
          %{
            "access_token" => access_token,
            "expires_in" => expires_in,
@@ -115,6 +166,7 @@ defmodule Swarm.Services.Github do
            }) do
       {:ok, user, fresh_access_token, fresh_refresh_token}
     else
+      {:ok, %Req.Response{status: 401}} -> {:unauthorized, "Unauthorized with GitHub: user_or_nil-#{user_or_nil}"}
       {:error, error} -> {:error, "Failed to login to github: #{inspect(error)}"}
       _ -> {:error, "Failed to login to github: unknown error"}
     end
@@ -131,6 +183,7 @@ defmodule Swarm.Services.Github do
          {:ok, user} <- Accounts.get_or_create_user(email, github_user["login"]) do
       {:ok, user}
     else
+      {401, %{"message" => message}, _} -> {:unauthorized, "Unauthorized with GitHub: #{message}"}
       {:error, error} -> {:error, "Failed to fetch user from github: #{inspect(error)}"}
       _ -> {:error, "Failed to fetch user from github: unknown error"}
     end

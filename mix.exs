@@ -69,7 +69,8 @@ defmodule Swarm.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:cors_plug, "~> 3.0"},
       {:req, "~> 0.5.10"},
-      {:tentacat, "~> 2.5.0"}
+      {:tentacat, "~> 2.5.0"},
+      {:joken, "~> 2.6.2"}
     ]
   end
 

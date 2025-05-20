@@ -1,5 +1,7 @@
 'use client'
 
+import { cn } from '@/lib/utils/shadcn'
+
 export default function SwarmLogo({
   size = 40,
   className = '',
@@ -9,7 +11,7 @@ export default function SwarmLogo({
 }) {
   return (
     <div
-      className={`relative text-foreground ${className}`}
+      className={cn('text-foreground', className)}
       style={{ width: size, height: size }}
     >
       <svg

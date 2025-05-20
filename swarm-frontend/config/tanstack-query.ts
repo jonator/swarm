@@ -24,7 +24,7 @@ export const getQueryClient = () => {
   })
 
   if (isServer) {
-    // Server: always make a new query client
+    // Server: always make a new query client. This ensures that data is not shared between different users and requests.
     return queryClient
   }
 

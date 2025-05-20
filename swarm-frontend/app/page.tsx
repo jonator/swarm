@@ -1,19 +1,11 @@
-import Features from '../components/features'
-import Footer from '../components/footer'
-import Header from '../components/header'
-import Hero from '../components/hero'
-import Pricing from '../components/pricing'
-import Steps from '../components/steps'
+import { routeEntry } from '@/actions/routing'
+import { Home as HomeContent } from '@/components/home'
+import { authGuard } from '@/lib/client/authed'
 
-export default function Home() {
-  return (
-    <main className='min-h-screen bg-background text-white overflow-hidden'>
-      <Header />
-      <Hero />
-      <Steps />
-      <Features />
-      <Pricing />
-      <Footer />
-    </main>
-  )
+export default async function Home() {
+  // Redirect to the dashboard if the user is authenticated, but don't redirect to login otherwise
+  const token = await authGuard({ redirect: false })
+  if (token) await routeEntry()
+
+  return <HomeContent />
 }

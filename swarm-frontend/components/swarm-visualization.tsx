@@ -312,7 +312,7 @@ export default function SwarmVisualization() {
         />
       ))}
 
-      <Environment preset='night' />
+      <Environment preset='dawn' />
       <OrbitControls
         enableZoom={false}
         enablePan={false}

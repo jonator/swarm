@@ -1,7 +1,7 @@
-import { getUser } from '@/lib/services/authed/users'
+import { routeEntry } from '@/actions/routing'
 
 export default async function DashboardPage() {
-  await getUser()
+  await routeEntry()
 
   return (
     <div className='bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10'>

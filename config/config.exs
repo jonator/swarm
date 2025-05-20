@@ -66,6 +66,7 @@ config :swarm, Oban,
   queues: [default: 10],
   repo: Swarm.Repo
 
+# Auth
 config :swarm, SwarmWeb.Auth.Guardian, issuer: "swarm", ttl: {7, :days}
 
 # Import environment specific config. This must remain at the bottom

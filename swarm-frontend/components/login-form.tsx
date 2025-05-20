@@ -1,8 +1,9 @@
 'use client'
 
+import { routeEntry } from '@/actions/routing'
 import Image from 'next/image'
 import { useState } from 'react'
-import { cn } from '../lib/utils'
+import { cn } from '../lib/utils/shadcn'
 import SwarmLogo from './swarm-logo'
 import { Button } from './ui/button'
 
@@ -45,12 +46,10 @@ export function LoginForm({
               setIsAuthenticating(true)
               if (popupWindow) {
                 const timer = setInterval(() => {
-                  console.log('Checking if popup is closed...')
                   if (popupWindow.closed) {
-                    console.log('Popup is closed')
                     setIsAuthenticating(false)
                     clearInterval(timer)
-                    window.location.href = '/'
+                    routeEntry()
                   }
                 }, 100)
               }

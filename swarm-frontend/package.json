@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack & smee -u https://smee.io/ZbGn4kOyoveRrXFk",
     "build": "next build",
     "start": "next start",
+    "clean": "rm -rf node_modules .next",
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "knip": "knip",
@@ -15,7 +16,9 @@
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-dropdown-menu": "^2.1.12",
     "@radix-ui/react-label": "^2.1.4",
+    "@radix-ui/react-select": "^2.2.4",
     "@radix-ui/react-slot": "^1.2.0",
+    "@radix-ui/react-tooltip": "^1.2.6",
     "@react-three/drei": "^10.0.7",
     "@react-three/fiber": "^9.1.2",
     "@tanstack/react-query": "^5.75.1",
@@ -32,6 +35,7 @@
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.2.0",
     "three": "^0.176.0",
+    "tw-animate-css": "^1.3.0",
     "zod": "^3.24.3"
   },
   "devDependencies": {

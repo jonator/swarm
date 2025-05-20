@@ -25,6 +25,8 @@ defmodule Swarm.Framework.Nextjs do
 
   use TypedStruct
 
+  def key, do: "nextjs"
+
   typedstruct enforce: true do
     field :repo, Swarm.Git.Repo.t(), enforce: true
     field :root_dir, String.t(), enforce: true
@@ -59,6 +61,10 @@ defmodule Swarm.Framework.Nextjs do
       _ ->
         {:error, "Failed to detect Next.js project structure"}
     end
+  end
+
+  def detect(filename) do
+    Regex.match?(@nextjs_indicator, filename)
   end
 
   def new(%Swarm.Git.Repo{} = repo, root_dir, package),
