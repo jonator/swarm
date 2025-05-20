@@ -1,5 +1,6 @@
 defmodule Swarm.RepositoriesFixtures do
   alias Swarm.Accounts.User
+  import Swarm.AccountsFixtures
 
   @moduledoc """
   This module defines test helpers for creating
@@ -7,16 +8,16 @@ defmodule Swarm.RepositoriesFixtures do
   """
 
   @doc """
-  Generate a repository.
+  Generate a repository, comes with user.
   """
-  def repository_fixture(%User{} = user, attrs \\ %{}) do
+  def repository_fixture(%User{} = user \\ user_fixture(), attrs \\ %{}) do
     {:ok, repository} =
       Swarm.Repositories.create_repository(
         user,
         attrs
         |> Enum.into(%{
           name: "some/name",
-          owner: "some_owner"
+          owner: "User"
         })
       )
 

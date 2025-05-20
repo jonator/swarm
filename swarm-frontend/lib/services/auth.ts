@@ -3,8 +3,8 @@ import { apiClient } from '../client'
 interface SubmitGithubResponse {
   token: string
 }
-
-export const submitGithubAuth = async (code: string) =>
-  apiClient
+export async function submitGithubAuth(code: string) {
+  return apiClient
     .post('auth/github', { searchParams: { code } })
     .json<SubmitGithubResponse>()
+}

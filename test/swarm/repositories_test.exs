@@ -12,16 +12,24 @@ defmodule Swarm.RepositoriesTest do
 
     test "list_repositories/0 returns all repositories" do
       repository = repository_fixture()
-      assert Repositories.list_repositories() == [repository]
+      assert Repositories.list_repositories() == [Ecto.reset_fields(repository, [:users])]
     end
 
     test "get_repository!/1 returns the repository with given id" do
       repository = repository_fixture()
-      assert Repositories.get_repository!(repository.id) == repository
+      assert Repositories.get_repository!(repository.id) == Ecto.reset_fields(repository, [:users])
     end
 
     test "create_repository/1 with valid data creates a repository" do
       valid_attrs = %{name: "name", owner: "some_owner"}
+
+      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
+      assert repository.name == "name"
+      assert repository.owner == "some_owner"
+    end
+
+    test "create_repository/1 with valid data including project creates a repository & project" do
+      valid_attrs = %{name: "name", owner: "some_owner", projects: [%{type: "nextjs", root_dir: "path"}]}
 
       assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
       assert repository.name == "name"
@@ -49,7 +57,7 @@ defmodule Swarm.RepositoriesTest do
       assert {:error, %Ecto.Changeset{}} =
                Repositories.update_repository(repository, @invalid_attrs)
 
-      assert repository == Repositories.get_repository!(repository.id)
+      assert Ecto.reset_fields(repository, [:users]) == Repositories.get_repository!(repository.id)
     end
 
     test "delete_repository/1 deletes the repository" do

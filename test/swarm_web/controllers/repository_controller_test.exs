@@ -35,7 +35,7 @@ defmodule SwarmWeb.RepositoryControllerTest do
       repository = repository_fixture(user, %{owner: user.username})
       conn = get(conn, ~p"/api/users/repositories")
 
-      assert [returned_repo] = json_response(conn, 200)["data"]
+      assert [returned_repo] = json_response(conn, 200)["repositories"]
       assert returned_repo["id"] == repository.id
       assert returned_repo["name"] == repository.name
       assert returned_repo["owner"] == repository.owner
@@ -45,11 +45,11 @@ defmodule SwarmWeb.RepositoryControllerTest do
   describe "create repository" do
     test "renders repository when data is valid", %{conn: conn} do
       conn = post(conn, ~p"/api/users/repositories", %{repository: @create_attrs})
-      assert %{"id" => id} = json_response(conn, 201)["data"]
+      assert %{"id" => id} = json_response(conn, 201)["repository"]
 
       # Check the repository exists by fetching the index
       conn = get(conn, ~p"/api/users/repositories")
-      repositories = json_response(conn, 200)["data"]
+      repositories = json_response(conn, 200)["repositories"]
       created_repo = Enum.find(repositories, fn repo -> repo["id"] == id end)
 
       assert created_repo["name"] == "test-repo"

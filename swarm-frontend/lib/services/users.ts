@@ -5,5 +5,6 @@ interface GetUserResponse {
   email: string
 }
 
-export const getUser = async () =>
-  apiClientWithAuth.get('users').json<GetUserResponse>()
+export async function getUser() {
+  return apiClientWithAuth.get('users').json<GetUserResponse>()
+}

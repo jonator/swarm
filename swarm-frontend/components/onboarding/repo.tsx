@@ -1,15 +1,18 @@
 'use client'
 
-import { getRepositoryFrameworks } from '@/actions/github'
+import { getRepositoryFrameworks } from '@/lib/services/github'
 import type { Repositories, Repository } from '@/lib/services/github'
+import { createRepository } from '@/lib/services/repositories'
+import type { CreateRepositoryParams } from '@/lib/services/repositories'
 import { cn } from '@/lib/utils/shadcn'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { BookIcon, Info } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { Button } from '../ui/button'
 import {
@@ -79,8 +82,10 @@ export const ChooseRepo = ({
       </button>
       <ChooseRepoProject
         repository={repository}
-        onSubmit={(project) => {
-          console.log(project)
+        onDone={() => {
+          toast('Project created!', {
+            description: 'Your project has been successfully created.',
+          })
         }}
       />
     </div>
@@ -145,18 +150,55 @@ type ProjectForm = z.infer<typeof projectFormSchema>
 
 const ChooseRepoProject = ({
   repository,
-  onSubmit,
+  onDone,
 }: {
   repository: Repository
-  onSubmit: (project: ProjectForm) => void
+  onDone: () => void
 }) => {
   const { data: frameworks, isLoading } = useQuery({
     queryKey: ['repo-frameworks', repository.id],
-    queryFn: () => getRepositoryFrameworks(repository),
+    queryFn: () =>
+      getRepositoryFrameworks(
+        repository.owner.login,
+        repository.name,
+        repository.default_branch,
+      ),
   })
   const form = useForm<ProjectForm>({
     resolver: zodResolver(projectFormSchema),
   })
+
+  const mutation = useMutation({
+    mutationFn: (params: CreateRepositoryParams) => createRepository(params),
+    onError: (error) => {
+      console.error(error.message)
+      toast.error(`Error creating repository: ${error.message}`)
+    },
+  })
+
+  function onSubmit(project: ProjectForm) {
+    const selectedFramework = frameworks?.find(
+      (framework) => framework.type === project.projectType,
+    )
+
+    if (!selectedFramework) {
+      console.error('Invalid project type')
+      return
+    }
+
+    mutation.mutate({
+      name: repository.name,
+      owner: repository.owner.login,
+      projects: [
+        {
+          type: selectedFramework.type,
+          root_dir: selectedFramework.path,
+        },
+      ],
+    })
+
+    onDone()
+  }
 
   const selectPlaceholder = frameworks?.length
     ? `${frameworks?.length} project${frameworks?.length === 1 ? '' : 's'} type detected`
@@ -223,7 +265,11 @@ const ChooseRepoProject = ({
                 </FormItem>
               )}
             />
-            <Button type='submit' className='w-full'>
+            <Button
+              type='submit'
+              className='w-full'
+              disabled={mutation.isPending}
+            >
               Create
             </Button>
           </form>

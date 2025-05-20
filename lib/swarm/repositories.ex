@@ -8,6 +8,7 @@ defmodule Swarm.Repositories do
 
   alias Swarm.Accounts.User
   alias Swarm.Repositories.Repository
+  alias Swarm.Projects.Project
 
   @doc """
   Returns the list of repositories.
@@ -70,7 +71,7 @@ defmodule Swarm.Repositories do
   end
 
   @doc """
-  Creates a repository for a given user.
+  Creates a repository for a given user (not org).
 
   ## Examples
 
@@ -92,6 +93,7 @@ defmodule Swarm.Repositories do
         [owner: "must be the same as the user"]
       end
     end)
+    |> Ecto.Changeset.cast_assoc(:projects, with: &Project.changeset/2)
     |> Repo.insert()
   end
 

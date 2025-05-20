@@ -1,3 +1,5 @@
+'use server'
+
 import { apiClientWithAuth } from '@/lib/client/authed'
 
 type Installation = {
@@ -28,10 +30,11 @@ type InstallationsResponse = {
   total_count: number
 }
 
-export const getInstallations = async () =>
-  apiClientWithAuth
+export async function getInstallations() {
+  return apiClientWithAuth
     .get('users/github/installations')
     .json<InstallationsResponse>()
+}
 
 export type Repository = {
   mirror_url: string | null
@@ -147,8 +150,9 @@ export type Repositories = {
   total_count: number
 }
 
-export const getRepositories = () =>
-  apiClientWithAuth.get('users/github/repositories').json<Repositories>()
+export async function getRepositories() {
+  return apiClientWithAuth.get('users/github/repositories').json<Repositories>()
+}
 
 // export type Tree = {
 //   mode: string
@@ -182,22 +186,22 @@ type DetectedFramework = {
   icon: string
 }
 
-export const getRepositoryFrameworks = (
+export async function getRepositoryFrameworks(
   owner: string,
   repo: string,
   branch = 'main',
-) =>
-  apiClientWithAuth
+) {
+  const frameworks = await apiClientWithAuth
     .get('users/github/repositories/frameworks', {
       searchParams: { owner, repo, branch },
     })
     .json<Omit<DetectedFramework, 'icon'>[]>()
-    .then<DetectedFramework[]>((frameworks) =>
-      frameworks.map((framework) => {
-        if (framework.type === 'nextjs') {
-          return { ...framework, name: 'Next.js', icon: '/nextjs-icon.svg' }
-        }
 
-        throw new Error(`Unsupported framework type: ${framework.type}`)
-      }),
-    )
+  return frameworks.map((framework) => {
+    if (framework.type === 'nextjs') {
+      return { ...framework, name: 'Next.js', icon: '/nextjs-icon.svg' }
+    }
+
+    throw new Error(`Unsupported framework type: ${framework.type}`)
+  })
+}

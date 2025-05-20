@@ -1,4 +1,7 @@
+'use server'
+
 import { apiClientWithAuth } from '@/lib/client/authed'
+import type { Project } from './projects'
 
 type Repository = {
   id: number
@@ -12,5 +15,18 @@ type RepositoriesResponse = {
   repositories: Repository[]
 }
 
-export const getRepositories = async () =>
-  apiClientWithAuth.get('users/repositories').json<RepositoriesResponse>()
+export async function getRepositories() {
+  return apiClientWithAuth.get('users/repositories').json<RepositoriesResponse>()
+}
+
+export type CreateRepositoryParams = {
+  name: string
+  owner: string
+  projects?: Project[]
+}
+
+export async function createRepository(params: CreateRepositoryParams) {
+  return apiClientWithAuth
+    .post('users/repositories', { json: { repository: params } })
+    .json<{ repository: Repository }>()
+}
