@@ -71,7 +71,6 @@ export const ChooseRepo = ({
   return (
     <div>
       <button
-        type='button'
         onClick={() => setRepository(null)}
         className='flex items-center w-full justify-center gap-2 mb-4 text-lg font-medium animate-in fade-in hover:line-through transition-all'
       >
@@ -224,11 +223,7 @@ const ChooseRepoProject = ({
                 </FormItem>
               )}
             />
-            <Button
-              type='submit'
-              className='w-full'
-              disabled={!form.formState.isReady}
-            >
+            <Button type='submit' className='w-full'>
               Create
             </Button>
           </form>
