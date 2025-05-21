@@ -97,6 +97,28 @@ defmodule Swarm.Services.GitHub do
     end
   end
 
+  def repository_file_content(%User{} = user, owner, repo, file_path) do
+    with {:ok, %__MODULE__{} = client} <- new(user) do
+      repository_file_content(client, owner, repo, file_path)
+    end
+  end
+
+  def repository_file_content(%__MODULE__{client: client}, owner, repo, file_path) do
+    case Tentacat.Repositories.Contents.content(client, owner, repo, file_path) do
+        {200, %{"content" => content, "encoding" => "base64"}, _} ->
+          with {:ok, decoded_content} <- Base.decode64(content, ignore: :whitespace) do
+            {:ok,
+            decoded_content}
+          end
+
+        {200, %{"content" => content}, _} ->
+          {:ok, content}
+
+        error ->
+          error
+      end
+  end
+
   defp access_token(%User{} = user) do
     case Accounts.get_token(user, :access, :github) do
       # could have been cleaned up due to expiration

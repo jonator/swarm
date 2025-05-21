@@ -13,6 +13,7 @@ defmodule Swarm.ProjectsFixtures do
       |> Enum.into(%{
         root_dir: "./root_dir",
         type: :nextjs,
+        name: "@nextjs-package/tests",
         repository: %{
           owner: "someowner",
           name: "somename"

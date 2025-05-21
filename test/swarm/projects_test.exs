@@ -15,9 +15,9 @@ defmodule Swarm.ProjectsTest do
 
       assert Enum.map(
                Projects.list_projects(),
-               &Map.take(&1, [:id, :type, :root_dir, :repository_id])
+               &Map.take(&1, [:id, :type, :root_dir, :repository_id, :name])
              ) ==
-               [Map.take(project, [:id, :type, :root_dir, :repository_id])]
+               [Map.take(project, [:id, :type, :root_dir, :repository_id, :name])]
     end
 
     test "get_project!/1 returns the project with given id" do
@@ -27,15 +27,17 @@ defmodule Swarm.ProjectsTest do
                :id,
                :type,
                :root_dir,
-               :repository_id
+               :repository_id,
+               :name
              ]) ==
-               Map.take(project, [:id, :type, :root_dir, :repository_id])
+               Map.take(project, [:id, :type, :root_dir, :repository_id, :name])
     end
 
     test "create_project/1 with valid data creates a project" do
       valid_attrs = %{
         type: :nextjs,
         root_dir: "./root_dir",
+        name: "@swarm-labs/frontend",
         repository: %{
           owner: "owner",
           name: "somenewname"
@@ -46,6 +48,7 @@ defmodule Swarm.ProjectsTest do
       assert project.type == :nextjs
       assert project.root_dir == "./root_dir"
       assert project.repository.name == "somenewname"
+      assert project.name == "@swarm-labs/frontend"
     end
 
     test "create_project/1 with invalid data returns error changeset" do
@@ -54,20 +57,31 @@ defmodule Swarm.ProjectsTest do
 
     test "update_project/2 with valid data updates the project" do
       project = project_fixture()
-      update_attrs = %{type: :nextjs, root_dir: "./updated_root_dir"}
+      update_attrs = %{type: :nextjs, root_dir: "./updated_root_dir", name: "updated_project_name"}
 
       assert {:ok, %Project{} = project} =
                Projects.update_project(project, update_attrs)
 
       assert project.type == :nextjs
       assert project.root_dir == "./updated_root_dir"
+      assert project.name == "updated_project_name"
     end
 
-    test "update_project/2 with invalid data returns error changeset" do
+    test "update_project/2 with invalid data returns error changeset (1)" do
       project = project_fixture()
 
       assert {:error, %Ecto.Changeset{}} =
                Projects.update_project(project, @invalid_attrs)
+
+      assert project ==
+               Projects.get_project!(project.id) |> Repo.preload(:repository)
+    end
+
+    test "update_project/2 with invalid data returns error changeset (2)" do
+      project = project_fixture()
+
+      assert {:error, %Ecto.Changeset{}} =
+               Projects.update_project(project, %{name: "has alsdkjfa;ldskjf;alksjdflkjdoi9d9fs0df09sdf09fdf..;;sdf'sdfjljf¢¢¢¢"})
 
       assert project ==
                Projects.get_project!(project.id) |> Repo.preload(:repository)

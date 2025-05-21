@@ -1,5 +1,6 @@
 export type Project = {
   id?: string
-  type: string
+  type: 'nextjs'
+  name: string
   root_dir: string
 }

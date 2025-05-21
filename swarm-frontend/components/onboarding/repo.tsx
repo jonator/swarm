@@ -193,6 +193,7 @@ const ChooseRepoProject = ({
         {
           type: selectedFramework.type,
           root_dir: selectedFramework.path,
+          name: selectedFramework.name,
         },
       ],
     })
@@ -250,15 +251,27 @@ const ChooseRepoProject = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {frameworks?.map(({ type, icon, name, path }) => (
-                        <SelectItem key={type} value={type}>
-                          <Image src={icon} alt={name} width={20} height={20} />
-                          {name}
-                          <span className='ml-2 text-secondary-foreground'>
-                            {path}
-                          </span>
-                        </SelectItem>
-                      ))}
+                      {frameworks?.map(
+                        ({ type, icon, name, typeName, path }) => (
+                          <SelectItem key={type} value={type}>
+                            <Image
+                              src={icon}
+                              alt={name}
+                              width={20}
+                              height={20}
+                            />
+                            {typeName}
+                            <span className='ml-2 text-secondary-foreground'>
+                              {name}
+                            </span>
+                            {path !== name && (
+                              <span className='ml-2 text-secondary-foreground/80'>
+                                {path}
+                              </span>
+                            )}
+                          </SelectItem>
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

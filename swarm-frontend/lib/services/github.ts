@@ -181,6 +181,7 @@ export async function getRepositories() {
 
 type DetectedFramework = {
   type: 'nextjs'
+  typeName: string
   path: string
   name: string
   icon: string
@@ -199,7 +200,7 @@ export async function getRepositoryFrameworks(
 
   return frameworks.map((framework) => {
     if (framework.type === 'nextjs') {
-      return { ...framework, name: 'Next.js', icon: '/nextjs-icon.svg' }
+      return { ...framework, typeName: 'Next.js', icon: '/nextjs-icon.svg' }
     }
 
     throw new Error(`Unsupported framework type: ${framework.type}`)
