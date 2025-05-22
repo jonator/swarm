@@ -1,5 +1,5 @@
 'use client'
-import { Moon, Sun } from 'lucide-react'
+import { Computer, Moon, Sun } from 'lucide-react'
 import { useTheme } from 'next-themes'
 
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 
 export function ModeToggle() {
   const { setTheme } = useTheme()
@@ -48,5 +49,28 @@ export function ModeToggle() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  )
+}
+
+export function ModeToggleGroup() {
+  const { setTheme } = useTheme()
+
+  return (
+    <ToggleGroup
+      type='single'
+      defaultValue='system'
+      onValueChange={(value) => value && setTheme(value)}
+      className='w-fit'
+    >
+      <ToggleGroupItem value='light' aria-label='Light theme'>
+        <Sun className='h-4 w-4' />
+      </ToggleGroupItem>
+      <ToggleGroupItem value='dark' aria-label='Dark theme'>
+        <Moon className='h-4 w-4' />
+      </ToggleGroupItem>
+      <ToggleGroupItem value='system' aria-label='System theme'>
+        <Computer className='h-4 w-4' />
+      </ToggleGroupItem>
+    </ToggleGroup>
   )
 }

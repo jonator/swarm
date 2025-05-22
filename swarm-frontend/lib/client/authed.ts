@@ -47,8 +47,14 @@ export async function authGuard({
   return token?.value
 }
 
-export async function setAuth(token: string) {
+export async function setAuth(token: string | null) {
   const cookieStore = await cookies()
+
+  if (!token) {
+    cookieStore.delete('access_token')
+    return
+  }
+
   cookieStore.set('access_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

@@ -1,6 +1,6 @@
 import { apiClientWithAuth } from '@/lib/client/authed'
 
-interface GetUserResponse {
+export type User = {
   id: string
   email: string
   username: string
@@ -8,5 +8,5 @@ interface GetUserResponse {
 }
 
 export async function getUser() {
-  return apiClientWithAuth.get('users').json<GetUserResponse>()
+  return apiClientWithAuth.get('users').json<{ data: User }>()
 }
