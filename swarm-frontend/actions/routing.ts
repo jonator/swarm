@@ -24,5 +24,5 @@ export async function routeEntry() {
     redirect('/onboarding/repo')
   }
 
-  // TODO: redirect to dashboard, either personal or org
+  redirect(`/${repositories[0].owner}`)
 }

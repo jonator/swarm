@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { BookIcon, Info } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -48,7 +48,6 @@ import {
 export const ChooseRepo = ({
   repositories,
 }: { repositories: Repositories }) => {
-  const router = useRouter()
   const [repository, setRepository] = useState<Repository | null>(null)
 
   if (!repository) {
@@ -86,6 +85,7 @@ export const ChooseRepo = ({
           toast('Project created!', {
             description: 'Your project has been successfully created.',
           })
+          redirect(`/${repository.owner.login}/${repository.name}`)
         }}
       />
     </div>

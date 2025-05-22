@@ -199,10 +199,10 @@ defmodule Swarm.Services.GitHub do
            Tentacat.Client.new(%{
              access_token: access_token
            }),
-         {200, github_user, _} <- Tentacat.Users.me(client),
+         {200, %{"login" => login, "avatar_url" => avatar_url}, _} <- Tentacat.Users.me(client),
          {200, [%{"email" => email, "verified" => true} | _], _} =
            Tentacat.Users.Emails.list(client),
-         {:ok, user} <- Accounts.get_or_create_user(email, github_user["login"]) do
+         {:ok, user} <- Accounts.get_or_create_user(email, login, avatar_url) do
       {:ok, user}
     else
       {401, %{"message" => message}, _} -> {:unauthorized, "Unauthorized with GitHub: #{message}"}

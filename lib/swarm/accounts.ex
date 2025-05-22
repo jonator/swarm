@@ -65,9 +65,9 @@ defmodule Swarm.Accounts do
 
   Returns the existing user if they exist, or a new user if they don't.
   """
-  def get_or_create_user(email, username) do
+  def get_or_create_user(email, username, avatar_url) do
     case get_user_by_username(username) do
-      nil -> create_user(%{email: email, username: username, role: "user"})
+      nil -> create_user(%{email: email, username: username, role: "user", avatar_url: avatar_url})
       user -> {:ok, user}
     end
   end

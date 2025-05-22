@@ -7,14 +7,18 @@ defmodule SwarmWeb.UserControllerTest do
 
   @create_attrs %{
     email: "create@email.com",
+    avatar_url: "https://example.com/avatar.jpg",
     username: "createuser"
   }
   @update_attrs %{
     email: "updated@email.com",
+    avatar_url: "https://example.com/updated_avatar.jpg",
     username: "updateduser"
   }
   @invalid_attrs %{
-    email: "invalid_email"
+    email: "invalid_email",
+    avatar_url: "not_a_url",
+    username: nil
   }
 
   setup %{conn: conn} do
@@ -49,11 +53,32 @@ defmodule SwarmWeb.UserControllerTest do
       assert %{"id" => id} = json_response(conn, 201)["data"]
 
       conn = get(conn, ~p"/api/admin/users/#{id}")
-      assert %{"id" => ^id} = json_response(conn, 200)["data"]
+      response = json_response(conn, 200)["data"]
+      assert %{
+        "id" => ^id,
+        "avatar_url" => "https://example.com/avatar.jpg",
+        "email" => "create@email.com",
+        "username" => "createuser",
+        "role" => "user",
+        "created_at" => _,
+        "updated_at" => _
+      } = response
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
       conn = post(conn, ~p"/api/admin/users", %{user: @invalid_attrs})
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when avatar_url is too long", %{conn: conn} do
+      attrs = Map.put(@create_attrs, :avatar_url, "https://" <> String.duplicate("a", 300) <> ".com/image.jpg")
+      conn = post(conn, ~p"/api/admin/users", %{user: attrs})
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when avatar_url is not a valid URL", %{conn: conn} do
+      attrs = Map.put(@create_attrs, :avatar_url, "not_a_url")
+      conn = post(conn, ~p"/api/admin/users", %{user: attrs})
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
@@ -66,7 +91,16 @@ defmodule SwarmWeb.UserControllerTest do
       assert %{"id" => ^id} = json_response(conn, 200)["data"]
 
       conn = get(conn, ~p"/api/admin/users/#{id}")
-      assert %{"id" => ^id} = json_response(conn, 200)["data"]
+      response = json_response(conn, 200)["data"]
+      assert %{
+        "id" => ^id,
+        "avatar_url" => "https://example.com/updated_avatar.jpg",
+        "email" => "updated@email.com",
+        "username" => "updateduser",
+        "role" => "user",
+        "created_at" => _,
+        "updated_at" => _
+      } = response
     end
 
     test "renders errors when data is invalid", %{conn: conn, user: %User{id: id}} do

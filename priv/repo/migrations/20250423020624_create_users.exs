@@ -6,6 +6,7 @@ defmodule Swarm.Repo.Migrations.CreateUsers do
       add :email, :string, unique: true
       add :username, :string, null: false, unique: true
       add :role, :string, null: false
+      add :avatar_url, :string
 
       timestamps()
     end

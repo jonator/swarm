@@ -1,6 +1,6 @@
 ---
 description: Diagram of resources users have access to for viewing the activity of Swarm AI coding agents and their connected GitHub organizations, repositories, and pull requests
-globs: 
+globs:
 alwaysApply: false
 ---
 erDiagram
@@ -10,12 +10,14 @@ erDiagram
     }
     Repository {
         int ID PK
+        string Owner
         string Name
     }
-    Application {
+    Project {
         int ID PK
         string RootDir
         string Type
+        string Name
     }
     Organization {
         int ID PK
@@ -41,4 +43,4 @@ erDiagram
     Organization ||--o{ UsersOrganizations : has
     Organization ||--o{ OrganizationsRepositories : has
     Repository ||--o{ OrganizationsRepositories : has
-    Application }o--|| Repository : belongs_to
+    Project }o--|| Repository : belongs_to

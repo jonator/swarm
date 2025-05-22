@@ -19,7 +19,9 @@ defmodule SwarmWeb.UserJSON do
     %{
       id: user.id,
       email: user.email,
+      username: user.username,
       role: user.role,
+      avatar_url: user.avatar_url,
       created_at: user.inserted_at,
       updated_at: user.updated_at
     }
