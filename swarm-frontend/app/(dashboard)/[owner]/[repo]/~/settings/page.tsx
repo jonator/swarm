@@ -1,7 +1,7 @@
 import Navbar from '@/components/navbar'
 import { getUser } from '@/lib/services/users'
 
-export default async function RepoPage({
+export default async function RepoSettingsPage({
   params,
 }: { params: Promise<{ owner: string; repo: string }> }) {
   const { owner, repo } = await params
@@ -17,11 +17,13 @@ export default async function RepoPage({
         ]}
       />
 
-      <div className='w-full max-w-6xl space-y-6'>
+      <div className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <div>
-            <h1 className='text-2xl font-bold'>{repo}</h1>
-            <p className='text-muted-foreground'>Repository in {owner}</p>
+            <h1 className='text-2xl font-bold'>Repository Settings</h1>
+            <p className='text-muted-foreground'>
+              Manage settings for {owner}/{repo}
+            </p>
           </div>
         </div>
 

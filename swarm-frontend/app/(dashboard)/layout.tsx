@@ -3,9 +3,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <div className='bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10'>
-      {children}
-    </div>
-  )
+  // Will contain prefetches and other stuff
+
+  return children
 }
