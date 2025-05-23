@@ -2,7 +2,9 @@
 
 import { logout } from '@/actions/auth'
 import type { User } from '@/lib/services/users'
-import { LogOut, Settings, User as UserIcon } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ModeToggleGroup } from './mode'
 import SwarmLogo from './swarm-logo'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
@@ -16,11 +18,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
+import {
+  NavigationMenu,
+  NavigationMenuIndicator,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  navigationMenuTriggerStyle,
+} from './ui/navigation-menu'
 
-export default function Navbar({ user }: { user: User }) {
+type Tab = {
+  label: string
+  onClick?: () => void
+  href?: string
+  active?: boolean
+}
+
+export default function Navbar({ user, tabs }: { user: User; tabs: Tab[] }) {
+  const pathname = usePathname()
+
   return (
-    <header className='fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 py-4'>
-      <div className='flex items-center justify-between'>
+    <header className='fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 pt-4 pb-2'>
+      <div className='flex items-center justify-between mb-3'>
         {/* Logo */}
         <SwarmLogo size={32} className='mr-2' />
 
@@ -29,6 +48,34 @@ export default function Navbar({ user }: { user: User }) {
           <UserDropdown user={user} />
         </div>
       </div>
+
+      {/* Tabs */}
+      <NavigationMenu>
+        <NavigationMenuList>
+          {tabs.map((tab) => (
+            <NavigationMenuItem key={tab.href}>
+              {tab.href ? (
+                <Link href={tab.href} legacyBehavior passHref>
+                  <NavigationMenuLink
+                    className={navigationMenuTriggerStyle()}
+                    active={true}
+                  >
+                    {tab.label}
+                  </NavigationMenuLink>
+                </Link>
+              ) : (
+                <NavigationMenuLink
+                  className={navigationMenuTriggerStyle()}
+                  onClick={tab.onClick}
+                >
+                  {tab.label}
+                </NavigationMenuLink>
+              )}
+            </NavigationMenuItem>
+          ))}
+          <NavigationMenuIndicator />
+        </NavigationMenuList>
+      </NavigationMenu>
     </header>
   )
 }
@@ -63,10 +110,6 @@ const UserDropdown = ({ user }: { user: User }) => (
       </DropdownMenuLabel>
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
-        <DropdownMenuItem>
-          <UserIcon className='mr-2 size-4' />
-          <span>Profile</span>
-        </DropdownMenuItem>
         <DropdownMenuItem>
           <Settings className='mr-2 size-4' />
           <span>Settings</span>

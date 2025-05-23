@@ -27,7 +27,7 @@ defmodule SwarmWeb.Auth.CurrentResource do
     quote do
       def action(conn, _opts) do
         current_resource = Guardian.Plug.current_resource(conn)
-        
+
         if unquote(required) && is_nil(current_resource) do
           conn
           |> put_status(:unauthorized)

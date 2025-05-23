@@ -3,11 +3,14 @@ defmodule Swarm.Repo.Migrations.CreateRepositories do
 
   def change do
     create table(:repositories) do
+      add :external_id, :string, null: false, unique: true
       add :name, :string, null: false, unique: true
       add :owner, :string, null: false, unique: true
 
       timestamps()
     end
+
+    create unique_index(:repositories, [:external_id])
 
     create table("users_repositories", primary_key: false) do
       add :user_id, references(:users, on_delete: :delete_all), null: false

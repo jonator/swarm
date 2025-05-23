@@ -6,6 +6,7 @@ defmodule Swarm.Services do
   alias Swarm.Accounts.User
   alias Swarm.Services.GitHub
   alias Swarm.Framework
+  alias Swarm.Repositories
 
   defdelegate github(user), to: GitHub, as: :new
 
@@ -23,21 +24,147 @@ defmodule Swarm.Services do
     - `{:error, reason}` - If the detection failed
   """
   def detect_github_repository_frameworks(%User{} = user, owner, repo, branch) do
-    with {:ok, trees} <- GitHub.repository_trees(user, owner, repo, branch),
-         frameworks = Framework.detect(trees) |> Enum.reduce([], fn framework, acc ->
-           case framework do
-             %{type: "nextjs", path: dir} ->
-               with {:ok, package_json_content} <- GitHub.repository_file_content(user, owner, repo, dir <> "/package.json"),
-                    {:ok, package_json} <- Jason.decode(package_json_content),
-                    {:ok, name} <- Map.fetch(package_json, "name") do
-                     [%{type: "nextjs", path: dir, name: name} | acc]
-               else
-                 _ -> acc
-               end
-             _ -> acc
-           end
-         end) do
+    with {:ok, trees} <- GitHub.repository_trees(user, owner, repo, branch) do
+      frameworks = Framework.detect(trees) |> Enum.reduce([], fn framework, acc ->
+        case framework do
+          %{type: "nextjs", path: dir} ->
+            with {:ok, package_json_content} <- GitHub.repository_file_content(user, owner, repo, dir <> "/package.json"),
+                 {:ok, package_json} <- Jason.decode(package_json_content),
+                 {:ok, name} <- Map.fetch(package_json, "name") do
+                  [%{type: "nextjs", path: dir, name: name} | acc]
+            else
+              _ -> acc
+            end
+          _ -> acc
+        end
+      end)
       {:ok, frameworks}
     end
+  end
+
+  @doc """
+  Creates a repository from a GitHub repository ID and project attributes.
+
+  This function fetches the repository details from GitHub's API, validates that the user
+  owns the repository, and creates a local repository record with optional project data.
+
+  ## Parameters
+    - user: The authenticated user record
+    - github_repo_id: GitHub repository ID (numeric string or integer)
+    - project_data: Map containing projects array and optional name:
+      - projects: [%{name: ..., type: ...}, ...] (optional)
+      - name: repository name override (optional)
+
+  ## Returns
+    - `{:ok, repository}` - Successfully created repository
+    - `{:error, reason}` - If the creation failed (GitHub API error, validation error, or changeset error)
+
+  ## Examples
+
+      # Create repository with projects
+      iex> Services.create_repository_from_github(user, "123456", %{
+      ...>   projects: [%{name: "frontend", type: "nextjs"}, %{name: "backend", type: "elixir"}]
+      ...> })
+      {:ok, %Repository{external_id: "github:123456", name: "my-repo"}}
+
+      # Create repository without projects (minimal)
+      iex> Services.create_repository_from_github(user, "789012")
+      {:ok, %Repository{external_id: "github:789012", name: "repo-789012"}}
+
+      # Error when repository not accessible
+      iex> Services.create_repository_from_github(user, "999999")
+      {:error, "Repository with ID 999999 not found in user's accessible repositories"}
+
+      # Error when user doesn't own the repository
+      iex> Services.create_repository_from_github(user, "111111")
+      {:error, "Repository owner 'otheruser' does not match user 'myuser'"}
+  """
+  def create_repository_from_github(%User{username: username} = user, github_repo_id, project_data \\ %{}) do
+    with {:ok, github_repo} <- fetch_github_repository(user, github_repo_id),
+         :ok <- validate_repository_ownership(github_repo, username) do
+
+      # Extract projects from the data
+      projects = project_data["projects"] || []
+
+      # Filter to only valid projects
+      valid_projects = Enum.filter(projects, &has_required_project_fields?/1)
+
+      repo_attrs = %{
+        external_id: "github:#{github_repo_id}",
+        name: github_repo["name"],
+        owner: username
+      }
+
+      # Add projects to repo_attrs only if we have valid projects
+      repo_attrs_with_projects = if length(valid_projects) > 0 do
+        Map.put(repo_attrs, :projects, valid_projects)
+      else
+        repo_attrs
+      end
+
+      Repositories.create_repository(user, repo_attrs_with_projects)
+    end
+  end
+
+  @doc """
+  Fetches a GitHub repository by ID from the user's accessible repositories.
+
+  This function queries GitHub's installation repositories API to find a repository
+  by its numeric ID within the user's accessible repositories.
+
+  ## Parameters
+    - user: The authenticated user record with valid GitHub tokens
+    - github_repo_id: GitHub repository ID (numeric string or integer)
+
+  ## Returns
+    - `{:ok, repository_map}` - GitHub repository data containing id, name, owner, etc.
+    - `{:error, reason}` - If the repository could not be found or accessed
+
+  ## Examples
+
+      iex> Services.fetch_github_repository(user, "123456")
+      {:ok, %{
+        "id" => 123456,
+        "name" => "my-repo",
+        "owner" => %{"login" => "myuser"},
+        "full_name" => "myuser/my-repo",
+        ...
+      }}
+
+      iex> Services.fetch_github_repository(user, "999999")
+      {:error, "Repository with ID 999999 not found in user's accessible repositories"}
+  """
+  def fetch_github_repository(%User{} = user, github_repo_id) do
+    repo_id = if is_binary(github_repo_id), do: String.to_integer(github_repo_id), else: github_repo_id
+
+    case GitHub.installation_repositories(user) do
+      {:ok, %{"repositories" => repositories}} ->
+        case Enum.find(repositories, &(&1["id"] == repo_id)) do
+          nil ->
+            {:error, "Repository with ID #{github_repo_id} not found in user's accessible repositories"}
+          repository ->
+            {:ok, repository}
+        end
+      {:error, reason} ->
+        {:error, "Failed to fetch repositories from GitHub: #{reason}"}
+      error ->
+        error
+    end
+  end
+
+  defp validate_repository_ownership(github_repo, username) do
+    case github_repo["owner"]["login"] do
+      ^username ->
+        :ok
+      other_owner ->
+        {:error, "Repository owner '#{other_owner}' does not match user '#{username}'"}
+    end
+  end
+
+  defp has_required_project_fields?(project_attrs) do
+    name = project_attrs["name"] || project_attrs[:name]
+    type = project_attrs["type"] || project_attrs[:type]
+
+    name != nil and type != nil and map_size(project_attrs) > 0
   end
 end

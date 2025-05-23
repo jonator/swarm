@@ -106,9 +106,11 @@ defmodule Swarm.Services.GitHub do
   def repository_file_content(%__MODULE__{client: client}, owner, repo, file_path) do
     case Tentacat.Repositories.Contents.content(client, owner, repo, file_path) do
         {200, %{"content" => content, "encoding" => "base64"}, _} ->
-          with {:ok, decoded_content} <- Base.decode64(content, ignore: :whitespace) do
-            {:ok,
-            decoded_content}
+          case Base.decode64(content, ignore: :whitespace) do
+            {:ok, decoded_content} ->
+              {:ok, decoded_content}
+            error ->
+              error
           end
 
         {200, %{"content" => content}, _} ->

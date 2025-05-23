@@ -187,8 +187,7 @@ const ChooseRepoProject = ({
     }
 
     mutation.mutate({
-      name: repository.name,
-      owner: repository.owner.login,
+      github_repo_id: repository.id,
       projects: [
         {
           type: selectedFramework.type,

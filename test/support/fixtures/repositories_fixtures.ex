@@ -16,6 +16,7 @@ defmodule Swarm.RepositoriesFixtures do
         user,
         attrs
         |> Enum.into(%{
+          external_id: "github:#{System.unique_integer([:positive])}",
           name: "some/name",
           owner: "User"
         })

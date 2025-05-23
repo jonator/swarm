@@ -1,0 +1,24 @@
+---
+description: Information hierarchy of pages in swarm frontend
+globs: swarm-frontend/**
+alwaysApply: false
+---
+
+This is a Next.js v15 app using app router. Using react-query with prefetching and query hydration.
+
+Owner: organization or user in github owning repositories. ('jonator' in repository 'jonator/swarm')
+Repository: repository in github owned by owner ('swarm' in 'jonator/swarm')
+Agents: currently, agents are ephemeral and their messages are not persisted. So only currently working agents are displayed or available.
+
+* [owner]
+    / Overview: lists repositories and projects, each with an indicator of the number of agents active
+    /~/ [agents]: lists agents across all repositories associated with owner
+    /~/ [settings]: manage settings for the owner (user or org)
+    / [repository]
+        / Overview: lists projects and active agents
+        /~/ [settings]: manage settings for repository
+        / [project]
+            / Overview: lists agents and their messages
+            / [agents]: lists agents associated with project
+            / [messages]: lists messages from agents associated with project
+            / [settings]: manage settings for project

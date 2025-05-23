@@ -35,10 +35,11 @@ defmodule Swarm.ProjectsTest do
 
     test "create_project/1 with valid data creates a project" do
       valid_attrs = %{
-        type: :nextjs,
         root_dir: "./root_dir",
+        type: :nextjs,
         name: "@swarm-labs/frontend",
         repository: %{
+          external_id: "github:123456",
           owner: "owner",
           name: "somenewname"
         }

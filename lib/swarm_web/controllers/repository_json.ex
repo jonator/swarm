@@ -18,6 +18,7 @@ defmodule SwarmWeb.RepositoryJSON do
   defp data(%Repository{} = repository) do
     %{
       id: repository.id,
+      external_id: repository.external_id,
       name: repository.name,
       owner: repository.owner,
       created_at: repository.inserted_at,

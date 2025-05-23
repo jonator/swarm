@@ -1,11 +1,27 @@
+import Navbar from '@/components/navbar'
+import { getUser } from '@/lib/services/users'
+
 export default async function OwnerPage({
   params,
 }: { params: Promise<{ owner: string }> }) {
-  const { owner } = await params
+  const { owner, ...rest } = await params
+  const { data: user } = await getUser()
+
+  console.log(rest)
 
   return (
-    <div className='bg-background flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10'>
-      <div className='w-full max-w-sm'>This is {owner} page</div>
-    </div>
+    <>
+      <Navbar
+        user={user}
+        tabs={[
+          { label: 'Overview', href: `/${owner}`, active: true },
+          { label: 'Issues', href: `/dashboard/${owner}/issues` },
+          { label: 'Pull Requests', href: `/dashboard/${owner}/pulls` },
+          { label: 'Settings', href: `/dashboard/${owner}/settings` },
+        ]}
+      />
+
+      <div className='w-full max-w-sm'>This is repo {owner}</div>
+    </>
   )
 }

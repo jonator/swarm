@@ -3,6 +3,7 @@ defmodule SwarmWeb.RepositoryController do
   use SwarmWeb.Auth.CurrentResource
 
   alias Swarm.Repositories
+  alias Swarm.Services
 
   action_fallback SwarmWeb.FallbackController
 
@@ -17,5 +18,19 @@ defmodule SwarmWeb.RepositoryController do
       |> put_status(:created)
       |> render(:show, repository: repository)
     end
+  end
+
+  def create(conn, %{"github_repo_id" => github_repo_id, "project" => project_attrs}, user) do
+    with {:ok, repository} <- Services.create_repository_from_github(user, github_repo_id, project_attrs) do
+      conn
+      |> put_status(:created)
+      |> render(:show, repository: repository)
+    end
+  end
+
+  def create(conn, _params, _user) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{errors: %{params: ["repository or github_repo_id is required"]}})
   end
 end

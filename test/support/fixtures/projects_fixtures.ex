@@ -15,6 +15,7 @@ defmodule Swarm.ProjectsFixtures do
         type: :nextjs,
         name: "@nextjs-package/tests",
         repository: %{
+          external_id: "github:#{System.unique_integer([:positive])}",
           owner: "someowner",
           name: "somename"
         }

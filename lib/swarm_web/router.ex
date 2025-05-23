@@ -36,7 +36,6 @@ defmodule SwarmWeb.Router do
       pipe_through [:ensure_auth]
 
       get "/", UserController, :show
-      get "/overview", UserController, :overview
       resources "/repositories", RepositoryController, only: [:index, :create]
       get "/github/installations", GitHubController, :installations
       get "/github/repositories", GitHubController, :repositories

@@ -16,16 +16,28 @@ type RepositoriesResponse = {
 }
 
 export async function getRepositories() {
-  return apiClientWithAuth.get('users/repositories').json<RepositoriesResponse>()
+  return apiClientWithAuth
+    .get('users/repositories')
+    .json<RepositoriesResponse>()
 }
 
-export type CreateRepositoryParams = {
-  name: string
-  owner: string
-  projects?: Project[]
-}
+export type CreateRepositoryParams =
+  | {
+      name: string
+      owner: string
+      projects?: Project[]
+    }
+  | {
+      github_repo_id: number
+      projects?: Project[]
+    }
 
 export async function createRepository(params: CreateRepositoryParams) {
+  if ('github_repo_id' in params) {
+    return apiClientWithAuth
+      .post('users/repositories', { json: params })
+      .json<{ repository: Repository }>()
+  }
   return apiClientWithAuth
     .post('users/repositories', { json: { repository: params } })
     .json<{ repository: Repository }>()

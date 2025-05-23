@@ -7,6 +7,7 @@ defmodule Swarm.Repositories.Repository do
   alias Swarm.Projects.Project
 
   schema "repositories" do
+    field :external_id, :string
     field :name, :string
     field :owner, :string
     many_to_many :users, User, join_through: "users_repositories"
@@ -19,9 +20,13 @@ defmodule Swarm.Repositories.Repository do
   @doc false
   def changeset(repository, attrs) do
     repository
-    |> cast(attrs, [:name, :owner])
-    |> validate_required([:name, :owner])
+    |> cast(attrs, [:external_id, :name, :owner])
+    |> validate_required([:external_id, :name, :owner])
     |> update_change(:name, &String.trim/1)
+    |> validate_format(:external_id, ~r/^[a-zA-Z0-9_-]+:[0-9]+$/,
+      message: "must be in format 'provider:id' (e.g., 'github:1234556')"
+    )
+    |> unique_constraint(:external_id)
     |> unique_constraint([:name, :owner])
     |> validate_length(:name, min: 3, max: 100)
     |> validate_format(:name, ~r/^[a-zA-Z0-9 _\-\/]+$/,

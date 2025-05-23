@@ -5,10 +5,12 @@ defmodule SwarmWeb.RepositoryControllerTest do
   import Swarm.AccountsFixtures
 
   @create_attrs %{
+    external_id: "github:123456",
     name: "test-repo",
     owner: "testuser"
   }
   @invalid_attrs %{
+    external_id: nil,
     name: nil,
     owner: nil
   }
@@ -32,11 +34,12 @@ defmodule SwarmWeb.RepositoryControllerTest do
 
   describe "index" do
     test "lists all repositories for the authenticated user", %{conn: conn, user: user} do
-      repository = repository_fixture(user, %{owner: user.username})
+      repository = repository_fixture(user, %{owner: user.username, external_id: "github:654321"})
       conn = get(conn, ~p"/api/users/repositories")
 
       assert [returned_repo] = json_response(conn, 200)["repositories"]
       assert returned_repo["id"] == repository.id
+      assert returned_repo["external_id"] == repository.external_id
       assert returned_repo["name"] == repository.name
       assert returned_repo["owner"] == repository.owner
     end
@@ -52,12 +55,30 @@ defmodule SwarmWeb.RepositoryControllerTest do
       repositories = json_response(conn, 200)["repositories"]
       created_repo = Enum.find(repositories, fn repo -> repo["id"] == id end)
 
+      assert created_repo["external_id"] == "github:123456"
       assert created_repo["name"] == "test-repo"
       assert created_repo["owner"] == "testuser"
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
       conn = post(conn, ~p"/api/users/repositories", %{repository: @invalid_attrs})
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+  end
+
+  describe "create repository from GitHub" do
+    test "returns error when GitHub API is not accessible", %{conn: conn} do
+      conn = post(conn, ~p"/api/users/repositories", %{
+        github_repo_id: "789012",
+        project: %{name: "github-repo"}
+      })
+      
+      # Without real GitHub integration, this should return an error
+      assert json_response(conn, 401)["message"] != nil
+    end
+
+    test "renders errors when neither repository nor github_repo_id is provided", %{conn: conn} do
+      conn = post(conn, ~p"/api/users/repositories", %{})
       assert json_response(conn, 422)["errors"] != %{}
     end
   end
