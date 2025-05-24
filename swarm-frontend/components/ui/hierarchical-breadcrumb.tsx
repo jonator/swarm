@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronsUpDown, Slash, Check, Search, Plus } from "lucide-react";
+import { ChevronsUpDown, Slash, Check, Search, CirclePlus } from "lucide-react";
 
 import {
   Breadcrumb,
@@ -34,12 +34,10 @@ interface HierarchicalBreadcrumbProps {
 
 function HierarchicalBreadcrumbPopover({
   items,
-  currentPath,
   levelIndex,
   onSelect,
 }: {
   items: HierarchicalItem[];
-  currentPath: number[];
   levelIndex: number;
   onSelect?: (selectedItem: HierarchicalItem, levelIndex: number) => void;
 }) {
@@ -50,7 +48,10 @@ function HierarchicalBreadcrumbPopover({
   const nextLevel =
     levelIndex < items.length - 1 ? items[levelIndex + 1] : null;
 
-  const levelsToShow = [currentLevel, nextLevel].filter(Boolean);
+  // Only include levels that have children
+  const levelsToShow = [currentLevel, nextLevel].filter(
+    (level) => level && level.children && level.children.length > 0
+  );
 
   // Filter items based on search terms
   const getFilteredChildren = (
@@ -71,22 +72,18 @@ function HierarchicalBreadcrumbPopover({
           variant="ghost"
           size="sm"
           className={cn(
-            "flex items-center justify-center rounded-r-md px-1.5 py-1.5 transition-colors",
+            "flex items-center justify-center px-1 py-1.5 transition-colors",
             "hover:bg-accent hover:text-accent-foreground",
             "text-muted-foreground hover:text-foreground",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+            // "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             "h-auto"
           )}
         >
           <ChevronsUpDown className="h-3.5 w-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-auto p-3 min-w-[500px]"
-        align="start"
-        sideOffset={8}
-      >
-        <div className="grid grid-cols-2 gap-4">
+      <PopoverContent className="p-3 w-fit" align="start" sideOffset={8}>
+        <div className="flex gap-3">
           {levelsToShow.map((levelItem, columnIndex) => {
             if (!levelItem?.children || levelItem.children.length === 0)
               return null;
@@ -98,10 +95,13 @@ function HierarchicalBreadcrumbPopover({
             const actualLevelIndex = levelIndex + columnIndex;
 
             return (
-              <div key={`level-${actualLevelIndex}`} className="space-y-3">
+              <div
+                key={`level-${actualLevelIndex}`}
+                className="space-y-3 max-w-xs"
+              >
                 {/* Header */}
                 <div className="space-y-2">
-                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider truncate">
                     {levelItem.label}
                   </h4>
 
@@ -109,7 +109,7 @@ function HierarchicalBreadcrumbPopover({
                   <div className="relative">
                     <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
-                      placeholder={`Search ${levelItem.label.toLowerCase()}...`}
+                      placeholder={`Search...`}
                       value={searchTerms[columnIndex] || ""}
                       onChange={(e) => {
                         const newSearchTerms = [...searchTerms];
@@ -121,59 +121,63 @@ function HierarchicalBreadcrumbPopover({
                   </div>
                 </div>
 
-                {/* Items list */}
-                <div className="space-y-0.5 max-h-64 overflow-y-auto">
-                  {filteredChildren.map((child, childIndex) => (
-                    <Button
-                      key={`${child.label}-${childIndex}`}
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        "w-full justify-between px-2 py-1.5 h-auto text-sm font-normal",
-                        "hover:bg-accent/50 focus:bg-accent/50",
-                        child.isActive && "bg-accent text-accent-foreground",
-                        "transition-colors"
-                      )}
-                      onClick={() => {
-                        if (child.href) {
-                          window.location.href = child.href;
-                        }
-                        onSelect?.(child, actualLevelIndex);
-                      }}
-                    >
-                      <span className="truncate">{child.label}</span>
-                      {child.isActive && (
-                        <Check className="h-3.5 w-3.5 text-primary" />
-                      )}
-                    </Button>
-                  ))}
+                {/* Items list and create button grouped together */}
+                <div className="space-y-0">
+                  {/* Items list */}
+                  <div className="space-y-0.5 max-h-64 overflow-y-auto">
+                    {filteredChildren.map((child, childIndex) => (
+                      <Button
+                        key={`${child.label}-${childIndex}`}
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                          "w-full justify-between px-2 py-1.5 h-auto text-sm font-normal",
+                          "hover:bg-accent/50 focus:bg-accent/50",
+                          child.isActive && "bg-accent text-accent-foreground",
+                          "transition-colors"
+                        )}
+                        onClick={() => {
+                          if (child.href) {
+                            window.location.href = child.href;
+                          }
+                          onSelect?.(child, actualLevelIndex);
+                        }}
+                      >
+                        <span className="truncate">{child.label}</span>
+                        {child.isActive && (
+                          <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                        )}
+                      </Button>
+                    ))}
 
-                  {filteredChildren.length === 0 &&
-                    searchTerms[columnIndex] && (
-                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                        No results found
-                      </div>
+                    {filteredChildren.length === 0 &&
+                      searchTerms[columnIndex] && (
+                        <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                          No results found
+                        </div>
+                      )}
+                  </div>
+
+                  {/* Create button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start px-2 py-1.5 h-auto text-sm font-normal",
+                      "text-muted-foreground hover:text-foreground",
+                      "border-t border-border/50 rounded-none rounded-b-sm pt-2"
                     )}
+                    onClick={() => {
+                      // Handle create action
+                      console.log(
+                        `Create new ${levelItem.label.toLowerCase()}`
+                      );
+                    }}
+                  >
+                    <CirclePlus className="h-3.5 w-3.5 mr-2 flex-shrink-0" />
+                    <span className="truncate">Create</span>
+                  </Button>
                 </div>
-
-                {/* Create button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start px-2 py-1.5 h-auto text-sm font-normal",
-                    "text-muted-foreground hover:text-foreground",
-                    "border-t border-border/50 rounded-none rounded-b-sm mt-2 pt-2"
-                  )}
-                  onClick={() => {
-                    // Handle create action
-                    console.log(`Create new ${levelItem.label.toLowerCase()}`);
-                  }}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-2" />
-                  Create {levelItem.label.slice(0, -1)}{" "}
-                  {/* Remove 's' from plural */}
-                </Button>
               </div>
             );
           })}
@@ -186,47 +190,36 @@ function HierarchicalBreadcrumbPopover({
 function HierarchicalBreadcrumbDropdown({
   item,
   allItems,
-  currentPath,
   levelIndex,
+  selectedItems,
   onSelect,
 }: {
   item: HierarchicalItem;
   allItems: HierarchicalItem[];
-  currentPath: number[];
   levelIndex: number;
+  selectedItems: HierarchicalItem[];
   onSelect?: (selectedItem: HierarchicalItem, levelIndex: number) => void;
 }) {
+  // If no children, just show as a simple link
   if (!item.children || item.children.length === 0) {
-    return (
-      <BreadcrumbLink
-        href={item.href}
-        className={cn(
-          "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors",
-          "hover:bg-accent hover:text-accent-foreground",
-          "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        {item.label}
-      </BreadcrumbLink>
-    );
+    return <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>;
   }
 
+  // Get the current selection for this level
+  const currentSelection =
+    selectedItems[levelIndex] ||
+    item.children.find((child) => child.isActive) ||
+    item.children[0];
+
   return (
-    <div className="flex items-center">
-      <BreadcrumbLink
-        href={item.href}
-        className={cn(
-          "flex items-center rounded-l-md px-2.5 py-1.5 text-sm font-medium transition-colors",
-          "hover:bg-accent hover:text-accent-foreground",
-          "text-muted-foreground hover:text-foreground"
-        )}
-      >
-        {item.label}
+    <div className="flex items-center gap-1">
+      {/* Current selection navigation button */}
+      <BreadcrumbLink href={currentSelection.href}>
+        {currentSelection.label}
       </BreadcrumbLink>
 
       <HierarchicalBreadcrumbPopover
         items={allItems}
-        currentPath={currentPath}
         levelIndex={levelIndex}
         onSelect={onSelect}
       />
@@ -241,7 +234,6 @@ export function HierarchicalBreadcrumb({
   const [selectedItems, setSelectedItems] = React.useState<HierarchicalItem[]>(
     []
   );
-  const [currentPath, setCurrentPath] = React.useState<number[]>([]);
 
   const handleSelect = React.useCallback(
     (item: HierarchicalItem, levelIndex: number) => {
@@ -250,15 +242,6 @@ export function HierarchicalBreadcrumb({
         newSelected[levelIndex] = item;
         // Clear any selections after this level
         return newSelected.slice(0, levelIndex + 1);
-      });
-
-      setCurrentPath((prev) => {
-        const newPath = [...prev];
-        newPath[levelIndex] =
-          items[levelIndex]?.children?.findIndex(
-            (child) => child.label === item.label
-          ) ?? 0;
-        return newPath.slice(0, levelIndex + 1);
       });
     },
     [items]
@@ -287,8 +270,8 @@ export function HierarchicalBreadcrumb({
                   <HierarchicalBreadcrumbDropdown
                     item={item}
                     allItems={items}
-                    currentPath={currentPath}
                     levelIndex={index}
+                    selectedItems={selectedItems}
                     onSelect={(selected) => handleSelect(selected, index)}
                   />
                 )}
@@ -303,44 +286,5 @@ export function HierarchicalBreadcrumb({
         })}
       </BreadcrumbList>
     </Breadcrumb>
-  );
-}
-
-// Example usage component for demonstration
-export function HierarchicalBreadcrumbExample() {
-  const breadcrumbItems: HierarchicalItem[] = [
-    {
-      label: "Teams",
-      href: "/teams",
-      children: [
-        { label: "Jon Ator's projects", href: "/personal", isActive: true },
-        { label: "Work Team", href: "/work" },
-        { label: "Open Source", href: "/oss" },
-      ],
-    },
-    {
-      label: "Projects",
-      href: "/projects",
-      children: [
-        { label: "polaris-web", href: "/polaris-web" },
-        { label: "homepage", href: "/homepage", isActive: true },
-        { label: "blog", href: "/blog" },
-      ],
-    },
-    {
-      label: "Environment",
-      href: "/environment",
-      children: [
-        { label: "Production", href: "/production", isActive: true },
-        { label: "Preview", href: "/preview" },
-        { label: "Development", href: "/development" },
-      ],
-    },
-  ];
-
-  return (
-    <div className="p-6 bg-background">
-      <HierarchicalBreadcrumb items={breadcrumbItems} className="mb-4" />
-    </div>
   );
 }
