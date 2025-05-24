@@ -20,7 +20,7 @@ defmodule SwarmWeb.RepositoryController do
     end
   end
 
-  def create(conn, %{"github_repo_id" => github_repo_id, "project" => project_attrs}, user) do
+  def create(conn, %{"github_repo_id" => github_repo_id, "projects" => project_attrs}, user) do
     with {:ok, repository} <- Services.create_repository_from_github(user, github_repo_id, project_attrs) do
       conn
       |> put_status(:created)

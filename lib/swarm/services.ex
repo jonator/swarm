@@ -79,12 +79,9 @@ defmodule Swarm.Services do
       iex> Services.create_repository_from_github(user, "111111")
       {:error, "Repository owner 'otheruser' does not match user 'myuser'"}
   """
-  def create_repository_from_github(%User{username: username} = user, github_repo_id, project_data \\ %{}) do
+  def create_repository_from_github(%User{username: username} = user, github_repo_id, projects \\ [%{}]) do
     with {:ok, github_repo} <- fetch_github_repository(user, github_repo_id),
          :ok <- validate_repository_ownership(github_repo, username) do
-
-      # Extract projects from the data
-      projects = project_data["projects"] || []
 
       # Filter to only valid projects
       valid_projects = Enum.filter(projects, &has_required_project_fields?/1)
