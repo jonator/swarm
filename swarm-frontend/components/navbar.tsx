@@ -26,6 +26,12 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu'
+import {
+  HierarchicalBreadcrumb,
+  type HierarchicalItem,
+} from './ui/hierarchical-breadcrumb'
+import { useMemo } from 'react'
+import { useRepositories } from '@/lib/queries/hooks/repositories'
 
 type Tab = {
   label: string
@@ -34,13 +40,60 @@ type Tab = {
 
 export default function Navbar({ user, tabs }: { user: User; tabs: Tab[] }) {
   const pathname = usePathname()
-  console.log(pathname, tabs)
+  const { data: repositories } = useRepositories()
+
+  const hierarchy = useMemo(() => {
+    return (repositories ?? []).reduce((acc, repository) => {
+      const existingOwner = acc.find((item) => item.label === repository.owner)
+
+      if (existingOwner) {
+        existingOwner.children = existingOwner.children ?? []
+        existingOwner.children.push({
+          label: repository.name,
+          href: `/${repository.owner}/${repository.name}`,
+        })
+      } else {
+        acc.push({
+          label: repository.owner,
+          href: `/${repository.owner}`,
+          children: [
+            {
+              label: repository.name,
+              href: `/${repository.owner}/${repository.name}`,
+            },
+          ],
+        })
+      }
+
+      return acc
+    }, [] as HierarchicalItem[])
+  }, [repositories])
+
+  console.log(hierarchy)
 
   return (
     <header className='fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 pt-4'>
       <div className='flex items-center justify-between mb-3'>
         {/* Logo */}
-        <SwarmLogo size={32} className='mr-2' />
+        <div className='flex items-center gap-2'>
+          <SwarmLogo size={32} className='mr-2' />
+          <HierarchicalBreadcrumb
+            items={hierarchy}
+            pathname={pathname}
+            hierarchy={[
+              {
+                label: 'Teams',
+                onCreateClick: () => console.log('Create new team'),
+                createCta: 'Create Team',
+              },
+              {
+                label: 'Repositories',
+                onCreateClick: () => console.log('Create new repository'),
+                createCta: 'Create Repository',
+              },
+            ]}
+          />
+        </div>
 
         <div className='flex items-center gap-4'>
           {/* User Avatar Dropdown */}

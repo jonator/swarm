@@ -1,3 +1,5 @@
+'use client'
+
 import { HierarchicalBreadcrumb } from '@/components/ui/hierarchical-breadcrumb'
 
 export default function HierarchicalBreadcrumbDemo() {
@@ -7,7 +9,7 @@ export default function HierarchicalBreadcrumbDemo() {
       label: 'Organizations',
       href: '/orgs',
       children: [
-        { label: 'jonator', href: '/jonator', isActive: true },
+        { label: 'jonator', href: '/jonator' },
         { label: 'vercel', href: '/vercel' },
         { label: 'nextjs', href: '/nextjs' },
         { label: 'shadcn', href: '/shadcn' },
@@ -21,7 +23,7 @@ export default function HierarchicalBreadcrumbDemo() {
       label: 'Repositories',
       href: '/jonator/repos',
       children: [
-        { label: 'swarm', href: '/jonator/swarm', isActive: true },
+        { label: 'swarm', href: '/jonator/swarm' },
         { label: 'personal-site', href: '/jonator/personal-site' },
         { label: 'dotfiles', href: '/jonator/dotfiles' },
         { label: 'portfolio', href: '/jonator/portfolio' },
@@ -38,7 +40,6 @@ export default function HierarchicalBreadcrumbDemo() {
         {
           label: 'swarm-frontend (Next.js)',
           href: '/jonator/swarm/swarm-frontend',
-          isActive: true,
         },
         {
           label: 'swarm-backend (Elixir)',
@@ -59,7 +60,7 @@ export default function HierarchicalBreadcrumbDemo() {
       label: 'Teams',
       href: '/teams',
       children: [
-        { label: "Jon Ator's projects", href: '/jonator-team', isActive: true },
+        { label: "Jon Ator's projects", href: '/jonator-team' },
         { label: 'Acme Corporation', href: '/acme' },
         { label: 'Design Team', href: '/design-team' },
         { label: 'Engineering Team', href: '/engineering' },
@@ -74,7 +75,7 @@ export default function HierarchicalBreadcrumbDemo() {
       href: '/projects',
       children: [
         { label: 'polaris-web', href: '/polaris-web' },
-        { label: 'homepage', href: '/homepage', isActive: true },
+        { label: 'homepage', href: '/homepage' },
         { label: 'blog', href: '/blog' },
         { label: 'docs', href: '/docs' },
         { label: 'api', href: '/api' },
@@ -89,7 +90,7 @@ export default function HierarchicalBreadcrumbDemo() {
       label: 'Environments',
       href: '/environments',
       children: [
-        { label: 'Production', href: '/production', isActive: true },
+        { label: 'Production', href: '/production' },
         { label: 'Staging', href: '/staging' },
         { label: 'Preview', href: '/preview' },
         { label: 'Development', href: '/development' },
@@ -101,39 +102,271 @@ export default function HierarchicalBreadcrumbDemo() {
   // Example 3: Workspace and service types
   const workspaceItems = [
     {
-      label: 'Workspaces',
-      href: '/workspaces',
+      label: 'Personal',
+      href: '/personal',
       children: [
-        { label: 'Personal', href: '/personal', isActive: true },
-        { label: 'Team Alpha', href: '/team-alpha' },
-        { label: 'Team Beta', href: '/team-beta' },
-        { label: 'Enterprise', href: '/enterprise' },
-        { label: 'Consultancy', href: '/consultancy' },
-        { label: 'Open Source', href: '/opensource' },
-        { label: 'Freelance', href: '/freelance' },
-        { label: 'Learning', href: '/learning' },
-        { label: 'Experiments', href: '/experiments' },
+        {
+          label: 'Web Application',
+          href: '/personal/webapp',
+          children: [
+            {
+              label: 'React',
+              href: '/personal/webapp/react',
+              children: [
+                {
+                  label: 'Create React App',
+                  href: '/personal/webapp/react/cra',
+                },
+                { label: 'Vite', href: '/personal/webapp/react/vite' },
+                { label: 'Next.js', href: '/personal/webapp/react/nextjs' }, // /personal/webapp/react/nextjs
+                { label: 'Remix', href: '/personal/webapp/react/remix' },
+              ],
+            },
+            {
+              label: 'Vue',
+              href: '/personal/webapp/vue',
+              children: [
+                { label: 'Vue CLI', href: '/personal/webapp/vue/cli' },
+                { label: 'Nuxt', href: '/personal/webapp/vue/nuxt' },
+                { label: 'Vite', href: '/personal/webapp/vue/vite' },
+              ],
+            },
+            {
+              label: 'Angular',
+              href: '/personal/webapp/angular',
+              children: [
+                { label: 'Angular CLI', href: '/personal/webapp/angular/cli' },
+                { label: 'Ionic', href: '/personal/webapp/angular/ionic' },
+              ],
+            },
+            {
+              label: 'Next.js',
+              href: '/personal/webapp/nextjs',
+              children: [
+                {
+                  label: 'Pages Router',
+                  href: '/personal/webapp/nextjs/pages',
+                },
+                { label: 'App Router', href: '/personal/webapp/nextjs/app' },
+              ],
+            },
+            {
+              label: 'Svelte',
+              href: '/personal/webapp/svelte',
+              children: [
+                { label: 'SvelteKit', href: '/personal/webapp/svelte/kit' },
+                { label: 'Vite', href: '/personal/webapp/svelte/vite' },
+              ],
+            },
+          ],
+        },
+        {
+          label: 'Mobile App',
+          href: '/personal/mobile',
+          children: [
+            { label: 'React Native', href: '/personal/mobile/react-native' },
+            { label: 'Flutter', href: '/personal/mobile/flutter' },
+            { label: 'Swift', href: '/personal/mobile/swift' },
+            { label: 'Kotlin', href: '/personal/mobile/kotlin' },
+          ],
+        },
+        {
+          label: 'API Service',
+          href: '/personal/api',
+          children: [
+            { label: 'Node.js', href: '/personal/api/nodejs' },
+            { label: 'Python', href: '/personal/api/python' },
+            { label: 'Go', href: '/personal/api/go' },
+            { label: 'Rust', href: '/personal/api/rust' },
+          ],
+        },
+        { label: 'Static Site', href: '/personal/static' },
+        { label: 'Documentation', href: '/personal/docs' },
       ],
     },
     {
-      label: 'Services',
-      href: '/services',
+      label: 'Team Alpha',
+      href: '/team-alpha',
       children: [
-        { label: 'Web Application', href: '/webapp', isActive: true },
-        { label: 'Mobile App (iOS)', href: '/mobile-ios' },
-        { label: 'Mobile App (Android)', href: '/mobile-android' },
-        { label: 'API Service', href: '/api' },
-        { label: 'Static Site', href: '/static' },
-        { label: 'Documentation', href: '/docs' },
-        { label: 'E-commerce', href: '/ecommerce' },
-        { label: 'Blog', href: '/blog' },
-        { label: 'Portfolio', href: '/portfolio' },
-        { label: 'Landing Page', href: '/landing' },
+        {
+          label: 'Frontend',
+          href: '/team-alpha/frontend',
+          children: [
+            { label: 'React', href: '/team-alpha/frontend/react' },
+            { label: 'TypeScript', href: '/team-alpha/frontend/typescript' },
+            { label: 'Tailwind', href: '/team-alpha/frontend/tailwind' },
+          ],
+        },
+        {
+          label: 'Backend',
+          href: '/team-alpha/backend',
+          children: [
+            { label: 'Node.js', href: '/team-alpha/backend/nodejs' },
+            { label: 'PostgreSQL', href: '/team-alpha/backend/postgresql' },
+            { label: 'Redis', href: '/team-alpha/backend/redis' },
+          ],
+        },
+        {
+          label: 'DevOps',
+          href: '/team-alpha/devops',
+          children: [
+            { label: 'Docker', href: '/team-alpha/devops/docker' },
+            { label: 'AWS', href: '/team-alpha/devops/aws' },
+            { label: 'Terraform', href: '/team-alpha/devops/terraform' },
+          ],
+        },
       ],
     },
     {
-      label: 'Deployments',
-      href: '/deployments',
+      label: 'Enterprise',
+      href: '/enterprise',
+      children: [
+        {
+          label: 'Core Services',
+          href: '/enterprise/core',
+          children: [
+            { label: 'Microservices', href: '/enterprise/core/microservices' },
+            { label: 'Event Streaming', href: '/enterprise/core/events' },
+            { label: 'Authentication', href: '/enterprise/core/auth' },
+          ],
+        },
+        {
+          label: 'Infrastructure',
+          href: '/enterprise/infra',
+          children: [
+            { label: 'Kubernetes', href: '/enterprise/infra/k8s' },
+            { label: 'Service Mesh', href: '/enterprise/infra/mesh' },
+            { label: 'Monitoring', href: '/enterprise/infra/monitoring' },
+          ],
+        },
+        {
+          label: 'Security',
+          href: '/enterprise/security',
+          children: [
+            {
+              label: 'Identity Management',
+              href: '/enterprise/security/identity',
+            },
+            { label: 'Zero Trust', href: '/enterprise/security/zerotrust' },
+            { label: 'Compliance', href: '/enterprise/security/compliance' },
+          ],
+        },
+      ],
+    },
+    {
+      label: 'Open Source',
+      href: '/opensource',
+      children: [
+        {
+          label: 'Libraries',
+          href: '/opensource/libraries',
+          children: [
+            { label: 'UI Components', href: '/opensource/libraries/ui' },
+            { label: 'Utilities', href: '/opensource/libraries/utils' },
+            { label: 'Hooks', href: '/opensource/libraries/hooks' },
+          ],
+        },
+        {
+          label: 'Tools',
+          href: '/opensource/tools',
+          children: [
+            { label: 'CLI Tools', href: '/opensource/tools/cli' },
+            { label: 'Build Tools', href: '/opensource/tools/build' },
+            { label: 'Dev Tools', href: '/opensource/tools/dev' },
+          ],
+        },
+      ],
+    },
+    {
+      label: 'Learning',
+      href: '/learning',
+      children: [
+        {
+          label: 'Tutorials',
+          href: '/learning/tutorials',
+          children: [
+            { label: 'React Basics', href: '/learning/tutorials/react' },
+            { label: 'TypeScript', href: '/learning/tutorials/typescript' },
+            { label: 'Testing', href: '/learning/tutorials/testing' },
+          ],
+        },
+        {
+          label: 'Experiments',
+          href: '/learning/experiments',
+          children: [
+            { label: 'WebGL', href: '/learning/experiments/webgl' },
+            { label: 'WebAssembly', href: '/learning/experiments/wasm' },
+            { label: 'AI/ML', href: '/learning/experiments/ai' },
+          ],
+        },
+      ],
+    },
+  ]
+
+  // Example usage with your data structure
+  const exampleData = [
+    {
+      label: 'jonator',
+      href: '/jonator',
+      children: [
+        {
+          label: '.github',
+          href: '/jonator/.github',
+        },
+        {
+          label: 'ACM-Practice',
+          href: '/jonator/ACM-Practice',
+        },
+        {
+          label: 'AddressBook',
+          href: '/jonator/AddressBook',
+        },
+        {
+          label: 'swarm',
+          href: '/jonator/swarm',
+        },
+        // ... more repositories
+      ],
+    },
+  ]
+
+  // Example with multiple owners/organizations
+  const multiOwnerData = [
+    {
+      label: 'jonator',
+      href: '/jonator',
+      children: [
+        {
+          label: 'swarm',
+          href: '/jonator/swarm',
+        },
+        {
+          label: 'homepage',
+          href: '/jonator/homepage',
+        },
+      ],
+    },
+    {
+      label: 'acme-corp',
+      href: '/acme-corp',
+      children: [
+        {
+          label: 'website',
+          href: '/acme-corp/website',
+        },
+        {
+          label: 'api',
+          href: '/acme-corp/api',
+        },
+        {
+          label: 'ddd',
+          href: '/acme-corp/ddd',
+        },
+        {
+          label: 'aaa',
+          href: '/acme-corp/aaa',
+        },
+      ],
     },
   ]
 
@@ -160,7 +393,15 @@ export default function HierarchicalBreadcrumbDemo() {
               GitHub
             </p>
             <div className='p-6 border border-border rounded-lg bg-card'>
-              <HierarchicalBreadcrumb items={githubStyleItems} />
+              <HierarchicalBreadcrumb
+                items={githubStyleItems}
+                pathname='/jonator/swarm/swarm-frontend'
+                hierarchy={[
+                  { label: 'Organizations' },
+                  { label: 'Repositories' },
+                  { label: 'Projects' },
+                ]}
+              />
             </div>
           </div>
 
@@ -173,7 +414,24 @@ export default function HierarchicalBreadcrumbDemo() {
               new items
             </p>
             <div className='p-6 border border-border rounded-lg bg-card'>
-              <HierarchicalBreadcrumb items={vercelStyleItems} />
+              <HierarchicalBreadcrumb
+                items={vercelStyleItems}
+                pathname='/jonator-team/homepage/production'
+                hierarchy={[
+                  {
+                    label: 'Teams',
+                    onCreateClick: () => console.log('Create new team'),
+                  },
+                  {
+                    label: 'Projects',
+                    onCreateClick: () => console.log('Create new project'),
+                  },
+                  {
+                    label: 'Environments',
+                    onCreateClick: () => console.log('Create new environment'),
+                  },
+                ]}
+              />
             </div>
           </div>
 
@@ -186,7 +444,68 @@ export default function HierarchicalBreadcrumbDemo() {
               types
             </p>
             <div className='p-6 border border-border rounded-lg bg-card'>
-              <HierarchicalBreadcrumb items={workspaceItems} />
+              <HierarchicalBreadcrumb
+                items={workspaceItems}
+                pathname='/personal/webapp/react/nextjs'
+                hierarchy={[
+                  {
+                    label: 'Workspaces',
+                    onCreateClick: () => console.log('Create new workspace'),
+                  },
+                  {
+                    label: 'Project Types',
+                    onCreateClick: () => console.log('Create new project type'),
+                  },
+                  {
+                    label: 'Technologies',
+                    onCreateClick: () => console.log('Create new technology'),
+                  },
+                ]}
+              />
+            </div>
+          </div>
+          <div className='space-y-4'>
+            <div className='space-y-8 p-8'>
+              <div>
+                <h3 className='text-lg font-semibold mb-4'>
+                  Single Owner Example
+                </h3>
+                <HierarchicalBreadcrumb
+                  items={exampleData}
+                  pathname='/jonator/swarm'
+                  hierarchy={[
+                    {
+                      label: 'Owners',
+                      onCreateClick: () => console.log('Create new owner'),
+                    },
+                    {
+                      label: 'Repositories',
+                      onCreateClick: () => console.log('Create new repository'),
+                    },
+                  ]}
+                />
+              </div>
+
+              <div>
+                <h3 className='text-lg font-semibold mb-4'>
+                  Multiple Owners Example
+                </h3>
+                <HierarchicalBreadcrumb
+                  items={multiOwnerData}
+                  pathname='/jonator/swarm'
+                  hierarchy={[
+                    {
+                      label: 'Organizations',
+                      onCreateClick: () =>
+                        console.log('Create new organization'),
+                    },
+                    {
+                      label: 'Repositories',
+                      onCreateClick: () => console.log('Create new repository'),
+                    },
+                  ]}
+                />
+              </div>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@
 import { apiClientWithAuth } from '@/lib/client/authed'
 import type { Project } from './projects'
 
-type Repository = {
+export type Repository = {
   id: number
   name: string
   owner: string

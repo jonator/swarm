@@ -19,50 +19,69 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils/shadcn'
+import { useMemo } from 'react'
 
-interface HierarchicalItem {
+export interface HierarchicalItem {
   label: string
-  href?: string
-  isActive?: boolean
+  href: string
   children?: HierarchicalItem[]
+}
+
+export interface HierarchyLevel {
+  label: string
+  onCreateClick?: () => void
+  createCta?: string
 }
 
 interface HierarchicalBreadcrumbProps {
   items: HierarchicalItem[]
+  pathname: string
+  hierarchy: HierarchyLevel[]
   className?: string
 }
 
 function HierarchicalBreadcrumbPopover({
+  selectedItemLabel,
   items,
-  levelIndex,
-  onSelect,
+  pathname,
+  hierarchy,
 }: {
+  selectedItemLabel: string
   items: HierarchicalItem[]
-  levelIndex: number
-  onSelect?: (selectedItem: HierarchicalItem, levelIndex: number) => void
+  pathname: string
+  hierarchy: HierarchyLevel[]
 }) {
-  const [searchTerms, setSearchTerms] = React.useState<string[]>(['', ''])
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [parentSearchTerm, setParentSearchTerm] = React.useState('')
+  const [hoveredParent, setHoveredParent] = React.useState<string | null>(null)
 
-  // Get the two levels to display based on current position
-  const currentLevel = items[levelIndex]
-  const nextLevel = levelIndex < items.length - 1 ? items[levelIndex + 1] : null
+  // Parse pathname to determine active states
+  const pathSegments = pathname.split('/').filter(Boolean)
+  const currentParent = pathSegments[0] || ''
+  const currentChild = pathSegments[1] || ''
 
-  // Only include levels that have children
-  const levelsToShow = [currentLevel, nextLevel].filter(
-    (level) => level && level.children && level.children.length > 0,
+  const selectedItem = items.find((item) => item.label === selectedItemLabel)
+
+  // For the parent level, we want to show:
+  // 1. A column for selecting different parents (always show, even with single parent)
+  // 2. A column for the children under the current parent or hovered parent
+  const targetParent = hoveredParent || currentParent
+  const targetParentItem = items.find((item) => item.label === targetParent)
+  const children = targetParentItem?.children || selectedItem?.children || []
+
+  // Get hierarchy labels and callbacks
+  const parentLevel = hierarchy[0]
+  const childLevel = hierarchy[1]
+
+  // Filter parents based on search term
+  const filteredParents = items.filter((parent) =>
+    parent.label.toLowerCase().includes(parentSearchTerm.toLowerCase()),
   )
 
-  // Filter items based on search terms
-  const getFilteredChildren = (
-    level: HierarchicalItem,
-    searchIndex: number,
-  ) => {
-    if (!level.children) return []
-    const searchTerm = searchTerms[searchIndex]?.toLowerCase() || ''
-    return level.children.filter((child) =>
-      child.label.toLowerCase().includes(searchTerm),
-    )
-  }
+  // Filter children based on search term
+  const filteredChildren = children.filter((child) =>
+    child.label.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   return (
     <Popover>
@@ -74,7 +93,6 @@ function HierarchicalBreadcrumbPopover({
             'flex items-center justify-center px-1 py-1.5 transition-colors',
             'hover:bg-accent hover:text-accent-foreground',
             'text-muted-foreground hover:text-foreground',
-            // "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
             'h-auto',
           )}
         >
@@ -83,78 +101,143 @@ function HierarchicalBreadcrumbPopover({
       </PopoverTrigger>
       <PopoverContent className='p-3 w-fit' align='start' sideOffset={8}>
         <div className='flex gap-3'>
-          {levelsToShow.map((levelItem, columnIndex) => {
-            if (!levelItem?.children || levelItem.children.length === 0)
-              return null
+          {/* Parents column (always show to allow creating new parents) */}
+          <div className='space-y-3 w-52'>
+            <div className='space-y-2'>
+              <h4 className='text-xs font-medium text-muted-foreground uppercase tracking-wider truncate'>
+                {parentLevel.label}
+              </h4>
 
-            const filteredChildren = getFilteredChildren(levelItem, columnIndex)
-            const actualLevelIndex = levelIndex + columnIndex
+              {/* Search box for parents */}
+              <div className='relative'>
+                <Search className='absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+                <Input
+                  placeholder={`Search ${parentLevel.label.toLowerCase()}...`}
+                  value={parentSearchTerm}
+                  onChange={(e) => setParentSearchTerm(e.target.value)}
+                  className='pl-8 h-8 text-sm'
+                />
+              </div>
+            </div>
 
-            return (
-              <div
-                key={`level-${actualLevelIndex}`}
-                className='space-y-3 max-w-xs'
-              >
-                {/* Header */}
-                <div className='space-y-2'>
-                  <h4 className='text-xs font-medium text-muted-foreground uppercase tracking-wider truncate'>
-                    {levelItem.label}
-                  </h4>
+            <div className='space-y-0'>
+              <div className='space-y-0.5 max-h-64 overflow-y-auto'>
+                {filteredParents.map((parent, parentIndex) => (
+                  <Button
+                    key={`${parent.label}-${parentIndex}`}
+                    variant='ghost'
+                    size='sm'
+                    className={cn(
+                      'w-full justify-between px-2 py-1.5 h-auto text-sm font-normal',
+                      'hover:bg-accent/50 focus:bg-accent/50',
+                      parent.label === currentParent &&
+                        'bg-accent text-accent-foreground',
+                      'transition-colors',
+                    )}
+                    onClick={() => {
+                      window.location.href = parent.href
+                    }}
+                    onMouseEnter={() => setHoveredParent(parent.label)}
+                    onMouseLeave={() => setHoveredParent(null)}
+                  >
+                    <span className='truncate'>{parent.label}</span>
+                    {parent.label === currentParent && (
+                      <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
+                    )}
+                  </Button>
+                ))}
 
-                  {/* Search box */}
-                  <div className='relative'>
-                    <Search className='absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
-                    <Input
-                      placeholder={`Search...`}
-                      value={searchTerms[columnIndex] || ''}
-                      onChange={(e) => {
-                        const newSearchTerms = [...searchTerms]
-                        newSearchTerms[columnIndex] = e.target.value
-                        setSearchTerms(newSearchTerms)
-                      }}
-                      className='pl-8 h-8 text-sm'
-                    />
+                {filteredParents.length === 0 && parentSearchTerm && (
+                  <div className='px-2 py-4 text-sm text-muted-foreground text-center'>
+                    No {parentLevel.label.toLowerCase()} found
                   </div>
+                )}
+              </div>
+
+              {/* Create parent button */}
+              {parentLevel.onCreateClick && (
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className={cn(
+                    'w-full justify-start px-2 py-1.5 h-auto text-sm font-normal',
+                    'text-muted-foreground hover:text-foreground',
+                    'border-t border-border/50 rounded-none rounded-b-sm pt-2',
+                  )}
+                  onClick={() => {
+                    parentLevel.onCreateClick?.()
+                  }}
+                >
+                  <CirclePlus className='h-3.5 w-3.5 mr-2 flex-shrink-0' />
+                  <span className='truncate'>
+                    {parentLevel.createCta ||
+                      `Create ${parentLevel.label.slice(0, -1)}`}
+                  </span>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Children column */}
+          {children.length > 0 && (
+            <div className='space-y-3 w-52'>
+              <div className='space-y-2'>
+                <h4 className='text-xs font-medium text-muted-foreground uppercase tracking-wider truncate'>
+                  {childLevel.label}
+                  {hoveredParent && hoveredParent !== currentParent && (
+                    <span className='text-xs normal-case ml-1 text-muted-foreground/70'>
+                      for {hoveredParent}
+                    </span>
+                  )}
+                </h4>
+
+                {/* Search box */}
+                <div className='relative'>
+                  <Search className='absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground' />
+                  <Input
+                    placeholder={`Search ${childLevel.label.toLowerCase()}...`}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className='pl-8 h-8 text-sm'
+                  />
+                </div>
+              </div>
+
+              <div className='space-y-0'>
+                {/* Child list */}
+                <div className='space-y-0.5 max-h-64 overflow-y-auto'>
+                  {filteredChildren.map((child, childIndex) => (
+                    <Button
+                      key={`${child.label}-${childIndex}`}
+                      variant='ghost'
+                      size='sm'
+                      className={cn(
+                        'w-full justify-between px-2 py-1.5 h-auto text-sm font-normal',
+                        'hover:bg-accent/50 focus:bg-accent/50',
+                        child.label === currentChild &&
+                          'bg-accent text-accent-foreground',
+                        'transition-colors',
+                      )}
+                      onClick={() => {
+                        window.location.href = child.href
+                      }}
+                    >
+                      <span className='truncate'>{child.label}</span>
+                      {child.label === currentChild && (
+                        <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
+                      )}
+                    </Button>
+                  ))}
+
+                  {filteredChildren.length === 0 && searchTerm && (
+                    <div className='px-2 py-4 text-sm text-muted-foreground text-center'>
+                      No {childLevel.label.toLowerCase()} found
+                    </div>
+                  )}
                 </div>
 
-                {/* Items list and create button grouped together */}
-                <div className='space-y-0'>
-                  {/* Items list */}
-                  <div className='space-y-0.5 max-h-64 overflow-y-auto'>
-                    {filteredChildren.map((child, childIndex) => (
-                      <Button
-                        key={`${child.label}-${childIndex}`}
-                        variant='ghost'
-                        size='sm'
-                        className={cn(
-                          'w-full justify-between px-2 py-1.5 h-auto text-sm font-normal',
-                          'hover:bg-accent/50 focus:bg-accent/50',
-                          child.isActive && 'bg-accent text-accent-foreground',
-                          'transition-colors',
-                        )}
-                        onClick={() => {
-                          if (child.href) {
-                            window.location.href = child.href
-                          }
-                          onSelect?.(child, actualLevelIndex)
-                        }}
-                      >
-                        <span className='truncate'>{child.label}</span>
-                        {child.isActive && (
-                          <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
-                        )}
-                      </Button>
-                    ))}
-
-                    {filteredChildren.length === 0 &&
-                      searchTerms[columnIndex] && (
-                        <div className='px-2 py-4 text-sm text-muted-foreground text-center'>
-                          No results found
-                        </div>
-                      )}
-                  </div>
-
-                  {/* Create button */}
+                {/* Create child button */}
+                {childLevel?.onCreateClick && (
                   <Button
                     variant='ghost'
                     size='sm'
@@ -164,17 +247,19 @@ function HierarchicalBreadcrumbPopover({
                       'border-t border-border/50 rounded-none rounded-b-sm pt-2',
                     )}
                     onClick={() => {
-                      // Handle create action
-                      console.log(`Create new ${levelItem.label.toLowerCase()}`)
+                      childLevel.onCreateClick?.()
                     }}
                   >
                     <CirclePlus className='h-3.5 w-3.5 mr-2 flex-shrink-0' />
-                    <span className='truncate'>Create</span>
+                    <span className='truncate'>
+                      {childLevel.createCta ||
+                        `Create ${childLevel.label.slice(0, -1)}`}
+                    </span>
                   </Button>
-                </div>
+                )}
               </div>
-            )
-          })}
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -184,38 +269,23 @@ function HierarchicalBreadcrumbPopover({
 function HierarchicalBreadcrumbDropdown({
   item,
   allItems,
-  levelIndex,
-  selectedItems,
-  onSelect,
+  pathname,
+  hierarchy,
 }: {
   item: HierarchicalItem
   allItems: HierarchicalItem[]
-  levelIndex: number
-  selectedItems: HierarchicalItem[]
-  onSelect?: (selectedItem: HierarchicalItem, levelIndex: number) => void
+  pathname: string
+  hierarchy: HierarchyLevel[]
 }) {
-  // If no children, just show as a simple link
-  if (!item.children || item.children.length === 0) {
-    return <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-  }
-
-  // Get the current selection for this level
-  const currentSelection =
-    selectedItems[levelIndex] ||
-    item.children.find((child) => child.isActive) ||
-    item.children[0]
-
   return (
     <div className='flex items-center gap-1'>
-      {/* Current selection navigation button */}
-      <BreadcrumbLink href={currentSelection.href}>
-        {currentSelection.label}
-      </BreadcrumbLink>
+      <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
 
       <HierarchicalBreadcrumbPopover
+        selectedItemLabel={item.label}
         items={allItems}
-        levelIndex={levelIndex}
-        onSelect={onSelect}
+        pathname={pathname}
+        hierarchy={hierarchy}
       />
     </div>
   )
@@ -223,50 +293,71 @@ function HierarchicalBreadcrumbDropdown({
 
 export function HierarchicalBreadcrumb({
   items,
+  pathname,
+  hierarchy,
   className,
 }: HierarchicalBreadcrumbProps) {
-  const [selectedItems, setSelectedItems] = React.useState<HierarchicalItem[]>(
-    [],
-  )
+  // Parse pathname to build breadcrumb path recursively
+  const breadcrumbPath = useMemo(() => {
+    const pathSegments = pathname.split('/').filter(Boolean)
+    const path: HierarchicalItem[] = []
 
-  const handleSelect = React.useCallback(
-    (item: HierarchicalItem, levelIndex: number) => {
-      setSelectedItems((prev) => {
-        const newSelected = [...prev]
-        newSelected[levelIndex] = item
-        // Clear any selections after this level
-        return newSelected.slice(0, levelIndex + 1)
-      })
-    },
-    [items],
-  )
+    // Helper function to recursively find items in the hierarchy
+    const findPath = (
+      items: HierarchicalItem[],
+      segments: string[],
+      currentIndex: number = 0,
+    ) => {
+      if (currentIndex >= segments.length) return true
+
+      const currentSegment = segments[currentIndex]
+      const currentItem = items.find((item) => item.label === currentSegment)
+
+      if (!currentItem) return false
+
+      path.push(currentItem)
+
+      if (currentItem.children && currentIndex < segments.length - 1) {
+        return findPath(currentItem.children, segments, currentIndex + 1)
+      }
+
+      return true
+    }
+
+    // Start recursive search from root items
+    findPath(items, pathSegments)
+
+    // If no path was found, return root items
+    return path.length > 0 ? path : items
+  }, [items, pathname])
 
   return (
     <Breadcrumb className={className}>
       <BreadcrumbList className='flex items-center gap-1'>
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1
-          const selectedItem = selectedItems[index] || item
+        {breadcrumbPath.map((item, index) => {
+          const isLast = index === breadcrumbPath.length - 1
+          const isFirst = index === 0
 
           return (
             <React.Fragment key={`${item.label}-${index}`}>
               <BreadcrumbItem>
-                {isLast && !item.children ? (
+                {isLast && !isFirst ? (
+                  // Show child as final breadcrumb page
                   <BreadcrumbPage
                     className={cn(
                       'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium',
                       'text-foreground',
                     )}
                   >
-                    {selectedItem.label}
+                    {item.label}
                   </BreadcrumbPage>
                 ) : (
+                  // Show parent level with dropdown
                   <HierarchicalBreadcrumbDropdown
                     item={item}
-                    allItems={items}
-                    levelIndex={index}
-                    selectedItems={selectedItems}
-                    onSelect={(selected) => handleSelect(selected, index)}
+                    allItems={isFirst ? items : item.children || []}
+                    pathname={pathname}
+                    hierarchy={hierarchy}
                   />
                 )}
               </BreadcrumbItem>
