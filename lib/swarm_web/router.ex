@@ -37,6 +37,7 @@ defmodule SwarmWeb.Router do
 
       get "/", UserController, :show
       resources "/repositories", RepositoryController, only: [:index, :create]
+      post "/repositories/migrate", RepositoryController, :migrate
       get "/github/installations", GitHubController, :installations
       get "/github/repositories", GitHubController, :repositories
       get "/github/repositories/git/trees", GitHubController, :trees

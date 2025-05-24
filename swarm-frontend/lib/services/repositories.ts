@@ -42,3 +42,9 @@ export async function createRepository(params: CreateRepositoryParams) {
     .post('users/repositories', { json: { repository: params } })
     .json<{ repository: Repository }>()
 }
+
+export async function migrateRepositories() {
+  return apiClientWithAuth
+    .post('users/repositories/migrate')
+    .json<RepositoriesResponse>()
+}

@@ -27,10 +27,10 @@ defmodule Swarm.Repositories.Repository do
       message: "must be in format 'provider:id' (e.g., 'github:1234556')"
     )
     |> unique_constraint(:external_id)
-    |> unique_constraint([:name, :owner])
     |> validate_length(:name, min: 3, max: 100)
-    |> validate_format(:name, ~r/^[a-zA-Z0-9 _\-\/]+$/,
-      message: "can only contain letters, numbers, spaces, underscores, hyphens, and slashes"
+    |> validate_format(:name, ~r/^[a-zA-Z0-9 _\-\/\.]+$/,
+      message:
+        "can only contain letters, numbers, spaces, underscores, hyphens, slashes, and periods"
     )
     |> validate_exclusion(:name, ["admin", "system", "root"], message: "is reserved")
   end

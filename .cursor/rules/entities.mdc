@@ -1,6 +1,6 @@
 ---
 description: Diagram of resources users have access to for viewing the activity of Swarm AI coding agents and their connected GitHub organizations, repositories, and pull requests
-globs:
+globs: 
 alwaysApply: false
 ---
 erDiagram

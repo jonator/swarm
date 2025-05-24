@@ -25,19 +25,25 @@ defmodule Swarm.Services do
   """
   def detect_github_repository_frameworks(%User{} = user, owner, repo, branch) do
     with {:ok, trees} <- GitHub.repository_trees(user, owner, repo, branch) do
-      frameworks = Framework.detect(trees) |> Enum.reduce([], fn framework, acc ->
-        case framework do
-          %{type: "nextjs", path: dir} ->
-            with {:ok, package_json_content} <- GitHub.repository_file_content(user, owner, repo, dir <> "/package.json"),
-                 {:ok, package_json} <- Jason.decode(package_json_content),
-                 {:ok, name} <- Map.fetch(package_json, "name") do
-                  [%{type: "nextjs", path: dir, name: name} | acc]
-            else
-              _ -> acc
-            end
-          _ -> acc
-        end
-      end)
+      frameworks =
+        Framework.detect(trees)
+        |> Enum.reduce([], fn framework, acc ->
+          case framework do
+            %{type: "nextjs", path: dir} ->
+              with {:ok, package_json_content} <-
+                     GitHub.repository_file_content(user, owner, repo, dir <> "/package.json"),
+                   {:ok, package_json} <- Jason.decode(package_json_content),
+                   {:ok, name} <- Map.fetch(package_json, "name") do
+                [%{type: "nextjs", path: dir, name: name} | acc]
+              else
+                _ -> acc
+              end
+
+            _ ->
+              acc
+          end
+        end)
+
       {:ok, frameworks}
     end
   end
@@ -79,10 +85,13 @@ defmodule Swarm.Services do
       iex> Services.create_repository_from_github(user, "111111")
       {:error, "Repository owner 'otheruser' does not match user 'myuser'"}
   """
-  def create_repository_from_github(%User{username: username} = user, github_repo_id, projects \\ [%{}]) do
+  def create_repository_from_github(
+        %User{username: username} = user,
+        github_repo_id,
+        projects \\ [%{}]
+      ) do
     with {:ok, github_repo} <- fetch_github_repository(user, github_repo_id),
          :ok <- validate_repository_ownership(github_repo, username) do
-
       # Filter to only valid projects
       valid_projects = Enum.filter(projects, &has_required_project_fields?/1)
 
@@ -93,13 +102,66 @@ defmodule Swarm.Services do
       }
 
       # Add projects to repo_attrs only if we have valid projects
-      repo_attrs_with_projects = if length(valid_projects) > 0 do
-        Map.put(repo_attrs, :projects, valid_projects)
-      else
-        repo_attrs
-      end
+      repo_attrs_with_projects =
+        if length(valid_projects) > 0 do
+          Map.put(repo_attrs, :projects, valid_projects)
+        else
+          repo_attrs
+        end
 
       Repositories.create_repository(user, repo_attrs_with_projects)
+    end
+  end
+
+  @doc """
+  Migrates all accessible GitHub repositories for a user to the local database.
+
+  This function fetches all repositories that the user has access to through the GitHub
+  app installation and creates them in bulk using the new create_repositories/2 function.
+  Only repositories owned by the user are included (excluding organization repositories).
+
+  ## Parameters
+    - user: The authenticated user record with valid GitHub tokens
+
+  ## Returns
+    - `{:ok, repositories}` - List of successfully created repositories
+    - `{:error, reason}` - If the migration failed
+
+  ## Examples
+
+      iex> Services.migrate_github_repositories(user)
+      {:ok, [%Repository{external_id: "github:123456", name: "repo1"}, ...]}
+
+      iex> Services.migrate_github_repositories(user)
+      {:error, "Failed to fetch repositories from GitHub: invalid_token"}
+  """
+  def migrate_github_repositories(%User{username: username} = user) do
+    case GitHub.installation_repositories(user) do
+      {:ok, %{"repositories" => github_repositories}} ->
+        # Filter to only repositories owned by the user (not organization repos)
+        user_repositories =
+          Enum.filter(github_repositories, fn repo ->
+            repo["owner"]["login"] == username
+          end)
+
+        # Transform GitHub repository data into local repository attributes
+        repository_attrs =
+          Enum.map(user_repositories, fn github_repo ->
+            %{
+              external_id: "github:#{github_repo["id"]}",
+              name: github_repo["name"],
+              owner: username
+            }
+          end)
+
+        # Use the new bulk create function
+        Repositories.create_repositories(user, repository_attrs)
+
+      {:error, reason} ->
+        {:error, "Failed to fetch repositories from GitHub: #{reason}"}
+
+      error ->
+        error
     end
   end
 
@@ -132,18 +194,23 @@ defmodule Swarm.Services do
       {:error, "Repository with ID 999999 not found in user's accessible repositories"}
   """
   def fetch_github_repository(%User{} = user, github_repo_id) do
-    repo_id = if is_binary(github_repo_id), do: String.to_integer(github_repo_id), else: github_repo_id
+    repo_id =
+      if is_binary(github_repo_id), do: String.to_integer(github_repo_id), else: github_repo_id
 
     case GitHub.installation_repositories(user) do
       {:ok, %{"repositories" => repositories}} ->
         case Enum.find(repositories, &(&1["id"] == repo_id)) do
           nil ->
-            {:error, "Repository with ID #{github_repo_id} not found in user's accessible repositories"}
+            {:error,
+             "Repository with ID #{github_repo_id} not found in user's accessible repositories"}
+
           repository ->
             {:ok, repository}
         end
+
       {:error, reason} ->
         {:error, "Failed to fetch repositories from GitHub: #{reason}"}
+
       error ->
         error
     end
@@ -153,6 +220,7 @@ defmodule Swarm.Services do
     case github_repo["owner"]["login"] do
       ^username ->
         :ok
+
       other_owner ->
         {:error, "Repository owner '#{other_owner}' does not match user '#{username}'"}
     end

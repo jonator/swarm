@@ -68,11 +68,12 @@ defmodule SwarmWeb.RepositoryControllerTest do
 
   describe "create repository from GitHub" do
     test "returns error when GitHub API is not accessible", %{conn: conn} do
-      conn = post(conn, ~p"/api/users/repositories", %{
-        github_repo_id: "789012",
-        project: %{name: "github-repo"}
-      })
-      
+      conn =
+        post(conn, ~p"/api/users/repositories", %{
+          github_repo_id: "789012",
+          projects: [%{name: "github-repo"}]
+        })
+
       # Without real GitHub integration, this should return an error
       assert json_response(conn, 401)["message"] != nil
     end
@@ -80,6 +81,15 @@ defmodule SwarmWeb.RepositoryControllerTest do
     test "renders errors when neither repository nor github_repo_id is provided", %{conn: conn} do
       conn = post(conn, ~p"/api/users/repositories", %{})
       assert json_response(conn, 422)["errors"] != %{}
+    end
+  end
+
+  describe "migrate repositories" do
+    test "returns error when GitHub API is not accessible", %{conn: conn} do
+      conn = post(conn, ~p"/api/users/repositories/migrate")
+
+      # Without real GitHub integration, this should return an error
+      assert json_response(conn, 401)["message"] != nil
     end
   end
 end

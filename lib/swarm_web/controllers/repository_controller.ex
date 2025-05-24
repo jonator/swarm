@@ -21,7 +21,8 @@ defmodule SwarmWeb.RepositoryController do
   end
 
   def create(conn, %{"github_repo_id" => github_repo_id, "projects" => project_attrs}, user) do
-    with {:ok, repository} <- Services.create_repository_from_github(user, github_repo_id, project_attrs) do
+    with {:ok, repository} <-
+           Services.create_repository_from_github(user, github_repo_id, project_attrs) do
       conn
       |> put_status(:created)
       |> render(:show, repository: repository)
@@ -32,5 +33,13 @@ defmodule SwarmWeb.RepositoryController do
     conn
     |> put_status(:unprocessable_entity)
     |> json(%{errors: %{params: ["repository or github_repo_id is required"]}})
+  end
+
+  def migrate(conn, _params, user) do
+    with {:ok, repositories} <- Services.migrate_github_repositories(user) do
+      conn
+      |> put_status(:created)
+      |> render(:index, repositories: repositories)
+    end
   end
 end

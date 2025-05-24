@@ -2,12 +2,15 @@
 
 import { getRepositoryFrameworks } from '@/lib/services/github'
 import type { Repositories, Repository } from '@/lib/services/github'
-import { createRepository } from '@/lib/services/repositories'
+import {
+  createRepository,
+  migrateRepositories,
+} from '@/lib/services/repositories'
 import type { CreateRepositoryParams } from '@/lib/services/repositories'
 import { cn } from '@/lib/utils/shadcn'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { BookIcon, Info } from 'lucide-react'
+import { BookIcon, Download, Info } from 'lucide-react'
 import Image from 'next/image'
 import { redirect } from 'next/navigation'
 import { useState } from 'react'
@@ -44,6 +47,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip'
+import { routeEntry } from '@/actions/routing'
 
 export const ChooseRepo = ({
   repositories,
@@ -99,6 +103,20 @@ const ChooseGitHubRepo = ({
   // id
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
 
+  const migrationMutation = useMutation({
+    mutationFn: migrateRepositories,
+    onSuccess: () => {
+      toast.success('Repositories migrated!', {
+        description: 'All your accessible repositories have been imported.',
+      })
+      routeEntry()
+    },
+    onError: (error) => {
+      console.error(error.message)
+      toast.error(`Error migrating repositories: ${error.message}`)
+    },
+  })
+
   return (
     <Card className='w-96'>
       <CardHeader>
@@ -108,34 +126,68 @@ const ChooseGitHubRepo = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className='py-4'>
-          <Select onValueChange={setSelectedRepo}>
-            <SelectTrigger className='w-full'>
-              <SelectValue placeholder='Select a repository' />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {repositories.map((repo) => (
-                  <SelectItem key={repo.id} value={repo.id.toString()}>
-                    {repo.full_name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
+        <div className='space-y-4'>
+          <div className='p-4 border rounded-lg bg-muted/50'>
+            <div className='flex items-center justify-between mb-3'>
+              <div>
+                <h4 className='font-medium'>Import all repositories</h4>
+                <p className='text-sm text-muted-foreground'>
+                  Import all your accessible GitHub repositories at once
+                </p>
+              </div>
+            </div>
+            <Button
+              variant='outline'
+              type='button'
+              className='w-full'
+              disabled={migrationMutation.isPending}
+              onClick={() => migrationMutation.mutate()}
+            >
+              <Download className='mr-2 h-4 w-4' />
+              {migrationMutation.isPending ? 'Importing...' : 'Import All'}
+            </Button>
+          </div>
 
-        <Button
-          variant='outline'
-          type='button'
-          className='w-full'
-          disabled={!selectedRepo}
-          onClick={() => {
-            onSelectRepo(selectedRepo!)
-          }}
-        >
-          Continue
-        </Button>
+          <div className='relative'>
+            <div className='absolute inset-0 flex items-center'>
+              <span className='w-full border-t' />
+            </div>
+            <div className='relative flex justify-center text-xs uppercase'>
+              <span className='bg-background px-2 text-muted-foreground'>
+                Or select individually
+              </span>
+            </div>
+          </div>
+
+          <div className='py-2'>
+            <Select onValueChange={setSelectedRepo}>
+              <SelectTrigger className='w-full'>
+                <SelectValue placeholder='Select a repository' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {repositories.map((repo) => (
+                    <SelectItem key={repo.id} value={repo.id.toString()}>
+                      {repo.full_name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button
+            variant='outline'
+            type='button'
+            className='w-full'
+            disabled={!selectedRepo}
+            onClick={() => {
+              onSelectRepo(selectedRepo!)
+            }}
+          >
+            Continue
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

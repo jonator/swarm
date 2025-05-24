@@ -134,6 +134,71 @@ defmodule Swarm.Repositories do
   end
 
   @doc """
+  Creates a list of repositories for a given user.
+  If a repository already exists, it will be updated with the appropriate new values.
+
+  ## Examples
+
+      iex> create_repositories(user, [%{field: value}, %{field: value}])
+      {:ok, [%Repository{}, ...]}
+
+  """
+  def create_repositories(user, attrs_list) when is_list(attrs_list) do
+    timestamp =
+      NaiveDateTime.utc_now()
+      |> NaiveDateTime.truncate(:second)
+
+    attrs_list_timestamped =
+      Enum.map(attrs_list, fn attrs ->
+        Map.put(attrs, :inserted_at, timestamp) |> Map.put(:updated_at, timestamp)
+      end)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.insert_all(:insert_repositories, Repository, attrs_list_timestamped,
+      conflict_target: [:external_id],
+      on_conflict: {:replace, [:name, :owner, :updated_at]}
+    )
+    |> Ecto.Multi.run(:check_insert_count, fn
+      _repo, %{insert_repositories: {count, _}} ->
+        if count == length(attrs_list) do
+          {:ok, nil}
+        else
+          {:error,
+           {:failed_insert,
+            "Expected to insert #{length(attrs_list)} repositories but inserted #{count}"}}
+        end
+    end)
+    # Postgres does not support RETURNING in INSERT
+    |> Ecto.Multi.run(:associate_user, fn repo, %{insert_repositories: {_count, nil}} ->
+      new_repositories =
+        Repo.all(
+          from r in Repository,
+            where:
+              fragment(
+                "(name, owner) IN (SELECT * FROM unnest(?::text[], ?::text[]))",
+                ^Enum.map(attrs_list, & &1.name),
+                ^Enum.map(attrs_list, & &1.owner)
+              )
+        )
+
+      user
+      |> Repo.preload(:repositories)
+      |> Ecto.Changeset.change()
+      |> Ecto.Changeset.put_assoc(:repositories, new_repositories)
+      |> repo.update()
+      |> case do
+        {:ok, %User{}} -> {:ok, new_repositories}
+        {:error, _} = error -> error
+      end
+    end)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{associate_user: repositories}} -> {:ok, repositories}
+      {:error, _failed_operation, _failed_value, _changes_so_far} = error -> error
+    end
+  end
+
+  @doc """
   Updates a repository.
 
   ## Examples
