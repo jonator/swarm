@@ -55,6 +55,7 @@ function HierarchicalBreadcrumbPopover({
   const [searchTerm, setSearchTerm] = React.useState('')
   const [parentSearchTerm, setParentSearchTerm] = React.useState('')
   const [hoveredParent, setHoveredParent] = React.useState<string | null>(null)
+  const [open, setOpen] = React.useState(false)
 
   // Parse pathname to determine active states
   const pathSegments = pathname.split('/').filter(Boolean)
@@ -85,7 +86,7 @@ function HierarchicalBreadcrumbPopover({
   )
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant='ghost'
@@ -167,6 +168,7 @@ function HierarchicalBreadcrumbPopover({
                   )}
                   onClick={() => {
                     parentLevel.onCreateClick?.()
+                    setOpen(false)
                   }}
                 >
                   <CirclePlus className='h-3.5 w-3.5 mr-2 flex-shrink-0' />
@@ -249,6 +251,7 @@ function HierarchicalBreadcrumbPopover({
                     )}
                     onClick={() => {
                       childLevel.onCreateClick?.()
+                      setOpen(false)
                     }}
                   >
                     <CirclePlus className='h-3.5 w-3.5 mr-2 flex-shrink-0' />
