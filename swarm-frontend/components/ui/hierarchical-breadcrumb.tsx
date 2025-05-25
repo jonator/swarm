@@ -2,6 +2,7 @@
 
 import { Check, ChevronsUpDown, CirclePlus, Search, Slash } from 'lucide-react'
 import * as React from 'react'
+import Link from 'next/link'
 
 import {
   Breadcrumb,
@@ -134,16 +135,16 @@ function HierarchicalBreadcrumbPopover({
                         'bg-accent text-accent-foreground',
                       'transition-colors',
                     )}
-                    onClick={() => {
-                      window.location.href = parent.href
-                    }}
+                    asChild
                     onMouseEnter={() => setHoveredParent(parent.label)}
                     onMouseLeave={() => setHoveredParent(null)}
                   >
-                    <span className='truncate'>{parent.label}</span>
-                    {parent.label === currentParent && (
-                      <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
-                    )}
+                    <Link href={parent.href}>
+                      <span className='truncate'>{parent.label}</span>
+                      {parent.label === currentParent && (
+                        <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
+                      )}
+                    </Link>
                   </Button>
                 ))}
 
@@ -218,14 +219,14 @@ function HierarchicalBreadcrumbPopover({
                           'bg-accent text-accent-foreground',
                         'transition-colors',
                       )}
-                      onClick={() => {
-                        window.location.href = child.href
-                      }}
+                      asChild
                     >
-                      <span className='truncate'>{child.label}</span>
-                      {child.label === currentChild && (
-                        <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
-                      )}
+                      <Link href={child.href}>
+                        <span className='truncate'>{child.label}</span>
+                        {child.label === currentChild && (
+                          <Check className='h-3.5 w-3.5 text-primary flex-shrink-0' />
+                        )}
+                      </Link>
                     </Button>
                   ))}
 
@@ -266,40 +267,16 @@ function HierarchicalBreadcrumbPopover({
   )
 }
 
-function HierarchicalBreadcrumbDropdown({
-  item,
-  allItems,
-  pathname,
-  hierarchy,
-}: {
-  item: HierarchicalItem
-  allItems: HierarchicalItem[]
-  pathname: string
-  hierarchy: HierarchyLevel[]
-}) {
-  return (
-    <div className='flex items-center gap-1'>
-      <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-
-      <HierarchicalBreadcrumbPopover
-        selectedItemLabel={item.label}
-        items={allItems}
-        pathname={pathname}
-        hierarchy={hierarchy}
-      />
-    </div>
-  )
-}
-
 export function HierarchicalBreadcrumb({
   items,
   pathname,
   hierarchy,
   className,
 }: HierarchicalBreadcrumbProps) {
+  const pathSegments = pathname.split('/').filter(Boolean)
+
   // Parse pathname to build breadcrumb path recursively
   const breadcrumbPath = useMemo(() => {
-    const pathSegments = pathname.split('/').filter(Boolean)
     const path: HierarchicalItem[] = []
 
     // Helper function to recursively find items in the hierarchy
@@ -329,7 +306,7 @@ export function HierarchicalBreadcrumb({
 
     // If no path was found, return root items
     return path.length > 0 ? path : items
-  }, [items, pathname])
+  }, [items, pathSegments])
 
   return (
     <Breadcrumb className={className}>
@@ -345,20 +322,36 @@ export function HierarchicalBreadcrumb({
                   // Show child as final breadcrumb page
                   <BreadcrumbPage
                     className={cn(
-                      'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm font-medium',
+                      'flex items-center gap-1.5 rounded-md text-sm font-medium',
                       'text-foreground',
                     )}
                   >
                     {item.label}
                   </BreadcrumbPage>
                 ) : (
-                  // Show parent level with dropdown
-                  <HierarchicalBreadcrumbDropdown
-                    item={item}
-                    allItems={isFirst ? items : item.children || []}
-                    pathname={pathname}
-                    hierarchy={hierarchy}
-                  />
+                  <div className='flex items-center gap-1'>
+                    {pathSegments.length === 1 ? (
+                      <BreadcrumbPage
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-md text-sm font-medium',
+                          'text-foreground',
+                        )}
+                      >
+                        {item.label}
+                      </BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink href={item.href}>
+                        {item.label}
+                      </BreadcrumbLink>
+                    )}
+
+                    <HierarchicalBreadcrumbPopover
+                      selectedItemLabel={item.label}
+                      items={isFirst ? items : item.children || []}
+                      pathname={pathname}
+                      hierarchy={hierarchy}
+                    />
+                  </div>
                 )}
               </BreadcrumbItem>
               {!isLast && (

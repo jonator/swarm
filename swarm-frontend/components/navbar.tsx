@@ -4,7 +4,6 @@ import { logout } from '@/actions/auth'
 import type { User } from '@/lib/services/users'
 import { LogOut, Settings } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { ModeToggleGroup } from './mode'
 import SwarmLogo from './swarm-logo'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
@@ -36,10 +35,14 @@ import { useRepositories } from '@/lib/queries/hooks/repositories'
 type Tab = {
   label: string
   href: string
+  active?: boolean
 }
 
-export default function Navbar({ user, tabs }: { user: User; tabs: Tab[] }) {
-  const pathname = usePathname()
+export default function Navbar({
+  user,
+  tabs,
+  pathname,
+}: { user: User; tabs: Tab[]; pathname: string }) {
   const { data: repositories } = useRepositories()
 
   const hierarchy = useMemo(() => {
@@ -110,7 +113,10 @@ export default function Navbar({ user, tabs }: { user: User; tabs: Tab[] }) {
                 className={navigationMenuTriggerStyle()}
                 asChild
               >
-                <Link data-active={pathname === tab.href} href={tab.href}>
+                <Link
+                  data-active={tab.active || pathname === tab.href}
+                  href={tab.href}
+                >
                   {tab.label}
                 </Link>
               </NavigationMenuLink>
