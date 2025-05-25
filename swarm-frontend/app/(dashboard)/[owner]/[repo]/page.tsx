@@ -11,13 +11,14 @@ export default async function RepoPage({
     <>
       <Navbar
         user={user}
+        pathname={`/${owner}/${repo}`}
         tabs={[
-          { label: 'Overview', href: `/${owner}/${repo}` },
-          { label: 'Settings', href: `/${owner}/${repo}/~/settings` },
+          { label: 'Overview', href: `/${owner}/${repo}`, active: true },
+          { label: 'Settings', href: `/${owner}/${repo}/settings` },
         ]}
       />
 
-      <div className='w-full max-w-6xl space-y-6'>
+      <div className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-2xl font-bold'>{repo}</h1>

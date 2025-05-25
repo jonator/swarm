@@ -11,8 +11,9 @@ export default async function OwnerPage({
     <>
       <Navbar
         user={user}
+        pathname={`/${owner}`}
         tabs={[
-          { label: 'Overview', href: `/${owner}` },
+          { label: 'Overview', href: `/${owner}`, active: true },
           { label: 'Agents', href: `/${owner}/~/agents` },
           { label: 'Settings', href: `/${owner}/~/settings` },
         ]}

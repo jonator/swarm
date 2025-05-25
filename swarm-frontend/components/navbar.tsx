@@ -72,8 +72,6 @@ export default function Navbar({
     }, [] as HierarchicalItem[])
   }, [repositories])
 
-  console.log(hierarchy)
-
   return (
     <header className='fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 pt-4'>
       <div className='flex items-center justify-between mb-3'>
@@ -113,10 +111,7 @@ export default function Navbar({
                 className={navigationMenuTriggerStyle()}
                 asChild
               >
-                <Link
-                  data-active={tab.active || pathname === tab.href}
-                  href={tab.href}
-                >
+                <Link data-active={tab.active} href={tab.href}>
                   {tab.label}
                 </Link>
               </NavigationMenuLink>

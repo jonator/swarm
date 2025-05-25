@@ -1,23 +1,22 @@
 import Navbar from '@/components/navbar'
 import { getUser } from '@/lib/services/users'
 
-export default async function ProjectSettingsPage({
+export default async function RepoSettingsPage({
   params,
-}: { params: Promise<{ owner: string; repo: string; project: string }> }) {
-  const { owner, repo, project } = await params
+}: { params: Promise<{ owner: string; repo: string }> }) {
+  const { owner, repo } = await params
   const { data: user } = await getUser()
 
   return (
     <>
       <Navbar
         user={user}
+        pathname={`/${owner}/${repo}`}
         tabs={[
-          { label: 'Overview', href: `/${owner}/${repo}/${project}` },
-          { label: 'Agents', href: `/${owner}/${repo}/${project}/agents` },
-          { label: 'Messages', href: `/${owner}/${repo}/${project}/messages` },
+          { label: 'Overview', href: `/${owner}/${repo}` },
           {
             label: 'Settings',
-            href: `/${owner}/${repo}/${project}/settings`,
+            href: `/${owner}/${repo}/settings`,
             active: true,
           },
         ]}
@@ -26,9 +25,9 @@ export default async function ProjectSettingsPage({
       <div className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <div>
-            <h1 className='text-2xl font-bold'>Project Settings</h1>
+            <h1 className='text-2xl font-bold'>Repository Settings</h1>
             <p className='text-muted-foreground'>
-              Manage settings for {project} in {owner}/{repo}
+              Manage settings for {owner}/{repo}
             </p>
           </div>
         </div>
