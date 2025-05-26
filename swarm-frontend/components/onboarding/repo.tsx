@@ -12,8 +12,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { BookIcon, Download, Info } from 'lucide-react'
 import Image from 'next/image'
-import { redirect } from 'next/navigation'
-import { useState } from 'react'
+import { redirect, useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -47,7 +47,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '../ui/tooltip'
-import { routeEntry } from '@/actions/routing'
 
 export const ChooseRepo = ({
   repositories,
@@ -89,7 +88,7 @@ export const ChooseRepo = ({
           toast('Project created!', {
             description: 'Your project has been successfully created.',
           })
-          redirect(`/${repository.owner.login}/${repository.name}`)
+          redirect('/onboarding/linear')
         }}
       />
     </div>
@@ -100,6 +99,9 @@ const ChooseGitHubRepo = ({
   repositories: { repositories },
   onSelectRepo,
 }: { repositories: Repositories; onSelectRepo: (repoId: string) => void }) => {
+  const [isTransitioning, startTransition] = useTransition()
+  const router = useRouter()
+
   // id
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
 
@@ -109,7 +111,9 @@ const ChooseGitHubRepo = ({
       toast.success('Repositories migrated!', {
         description: 'All your accessible repositories have been imported.',
       })
-      routeEntry()
+      startTransition(() => {
+        router.push('/onboarding/linear')
+      })
     },
     onError: (error) => {
       console.error(error.message)
@@ -122,7 +126,7 @@ const ChooseGitHubRepo = ({
       <CardHeader>
         <CardTitle className='flex items-center'>Choose repository</CardTitle>
         <CardDescription>
-          Select the first repository you want to use with Swarm.
+          Select the repositories you want to use with Swarm
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -160,7 +164,10 @@ const ChooseGitHubRepo = ({
           </div>
 
           <div className='py-2'>
-            <Select onValueChange={setSelectedRepo}>
+            <Select
+              onValueChange={setSelectedRepo}
+              disabled={migrationMutation.isPending || isTransitioning}
+            >
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder='Select a repository' />
               </SelectTrigger>
@@ -180,7 +187,9 @@ const ChooseGitHubRepo = ({
             variant='outline'
             type='button'
             className='w-full'
-            disabled={!selectedRepo}
+            disabled={
+              !selectedRepo || migrationMutation.isPending || isTransitioning
+            }
             onClick={() => {
               onSelectRepo(selectedRepo!)
             }}
@@ -261,8 +270,7 @@ const ChooseRepoProject = ({
       <CardHeader>
         <CardTitle className='flex items-center'>Choose Project</CardTitle>
         <CardDescription>
-          Projects provide a space to provide additional context to Swarm
-          agents.
+          Projects provide a space to provide additional context to Swarm agents
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -284,7 +292,7 @@ const ChooseRepoProject = ({
                           <p>
                             Framework or language used by the project. This
                             helps Swarm agents understand the project's
-                            architecture, conventions, and dependencies.
+                            architecture, conventions, and dependencies
                           </p>
                         </TooltipContent>
                       </Tooltip>

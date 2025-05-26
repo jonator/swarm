@@ -27,6 +27,12 @@ defmodule SwarmWeb.Router do
     plug Guardian.Permissions, ensure: %{default: [:admin]}
   end
 
+  scope "/events", SwarmWeb do
+    pipe_through [:api]
+
+    post "/", EventController, :receive_event
+  end
+
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
@@ -42,6 +48,9 @@ defmodule SwarmWeb.Router do
       get "/github/repositories", GitHubController, :repositories
       get "/github/repositories/git/trees", GitHubController, :trees
       get "/github/repositories/frameworks", GitHubController, :frameworks
+
+      post "/auth/linear", LinearController, :exchange_code
+      get "/auth/linear", LinearController, :has_access
     end
 
     scope "/admin" do

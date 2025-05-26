@@ -1,7 +1,6 @@
 'use client'
 
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Button } from '../ui/button'
 import {
@@ -11,9 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card'
+import { routeEntry } from '@/actions/routing'
 
 export const InstallGithub = () => {
-  const router = useRouter()
   const [isInstalling, setIsInstalling] = useState(false)
 
   return (
@@ -43,7 +42,7 @@ export const InstallGithub = () => {
                 if (popupWindow.closed) {
                   setIsInstalling(false)
                   clearInterval(timer)
-                  router.push('/onboarding/repo')
+                  routeEntry()
                 }
               }, 100)
             }

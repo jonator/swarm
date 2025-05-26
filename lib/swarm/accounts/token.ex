@@ -5,7 +5,7 @@ defmodule Swarm.Accounts.Token do
 
   schema "tokens" do
     field :token, :string
-    field :context, Ecto.Enum, values: [:github]
+    field :context, Ecto.Enum, values: [:github, :linear]
     field :type, Ecto.Enum, values: [:access, :refresh]
     field :expires, :utc_datetime
 

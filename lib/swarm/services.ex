@@ -5,10 +5,12 @@ defmodule Swarm.Services do
 
   alias Swarm.Accounts.User
   alias Swarm.Services.GitHub
+  alias Swarm.Services.Linear
   alias Swarm.Framework
   alias Swarm.Repositories
 
   defdelegate github(user), to: GitHub, as: :new
+  defdelegate linear(user), to: Linear, as: :new
 
   @doc """
   Detects the frameworks used in a GitHub repository by analyzing its file structure.

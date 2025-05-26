@@ -1,31 +1,43 @@
 'use client'
 
-import { submitGithubAuthCode } from '@/actions/auth'
+import { submitLinearAuthCode } from '@/actions/auth'
 import SwarmLogo from '@/components/swarm-logo'
 import { cn } from '@/lib/utils/shadcn'
 import { type PropsWithChildren, useEffect, useState } from 'react'
 
-export default function GithubCallbackPage() {
+export default function LinearCallbackPage() {
   const [isError, setIsError] = useState(false)
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('code')
+    const searchParams = new URLSearchParams(window.location.search)
+
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+
+    if (state !== localStorage.getItem('linear_auth_state')) {
+      setIsError(true)
+      setTimeout(() => {
+        window.close()
+      }, 3_000)
+      return
+    }
+
     if (!code) {
       return window.close()
     }
 
-    submitGithubAuthCode(code)
+    submitLinearAuthCode(code)
       .then(() => {
         window.close()
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         console.error('Authentication failed:', error)
         setIsError(true)
       })
   }, [])
 
   if (isError) {
-    return <SwarmDisplay>Error authenticating with GitHub</SwarmDisplay>
+    return <SwarmDisplay>Error authenticating with Linear</SwarmDisplay>
   }
 
   return <SwarmDisplay loading>Authenticating...</SwarmDisplay>
