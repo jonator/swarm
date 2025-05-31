@@ -1,0 +1,139 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+flowchart TD
+    A[Event Received] --> B{Event Source?}
+    
+    B -->|GitHub| C[GitHub Event Handler]
+    B -->|Linear| D[Linear Event Handler]
+    B -->|Slack| E[Slack Event Handler]
+    B -->|Manual| F[Manual Trigger Handler]
+    
+    C --> C1{GitHub Event Type?}
+    C1 -->|Pull Request| C2[PR Event Processing]
+    C1 -->|Issue| C3[Issue Event Processing]
+    C1 -->|Push| C4[Push Event Processing]
+    C1 -->|Repository| C5[Repo Event Processing]
+    
+    D --> D1{Linear Event Type?}
+    D1 -->|Issue Assigned to @swarm| D2[Linear Issue Assignment]
+    D1 -->|@swarm mentioned in comment| D3[Linear Comment Mention]
+    D1 -->|@swarm mentioned in description| D4[Linear Description Mention]
+    D1 -->|Document mention| D5[Linear Document Mention]
+    
+    E --> E1{Slack Event Type?}
+    E1 -->|@swarm thread mention| E2[Slack Thread Processing]
+    E1 -->|Direct message| E3[Slack DM Processing]
+    
+    F --> F1[Manual Agent Spawn Request]
+    
+    C2 --> G[Validate User Permissions]
+    C3 --> G
+    C4 --> G
+    C5 --> G
+    D2 --> G
+    D3 --> G
+    D4 --> G
+    D5 --> G
+    E2 --> G
+    E3 --> G
+    F1 --> G
+    
+    G --> H{User Has Access?}
+    H -->|No| I[Reject Event - Log Error]
+    H -->|Yes| H1[Create Agent Record]
+    H1 --> H2[Set Agent Status: 'pending']
+    H2 --> J[Extract Context & Requirements]
+    
+    J --> K{Valid Implementation Plan?}
+    K -->|No| K1[Deploy Research Agent]
+    K -->|Yes| M[Determine Target Repository]
+    
+    K1 --> K2[Update Agent Type: 'research']
+    K2 --> K3[Queue Research Agent Job]
+    K3 --> K4[Research Agent Processing]
+    
+    K4 --> K5[Analyze Issue Context]
+    K5 --> K6[Research Codebase Structure]
+    K6 --> K7[Generate Implementation Plan]
+    K7 --> K8[Update Linear Issue with Plan]
+    K8 --> K9{Plan Generated Successfully?}
+    
+    K9 -->|No| L1{Original Trigger Source?}
+    
+    L1 -->|Linear| L2[Request Clarification in Linear Issue]
+    L1 -->|Slack| L3[Request Clarification in Slack Thread] 
+    L1 -->|GitHub| L4[Request Clarification in GitHub Issue/PR]
+    L1 -->|Manual| L5[Request Clarification via Platform]
+    
+    L2 --> Z1
+    L3 --> Z1
+    L4 --> Z1
+    L5 --> Z1
+    K9 -->|Yes| K10[Update Agent Status: 'completed']
+    K10 --> K11{Original Trigger Source?}
+    
+    K11 -->|Linear| V1[Update Linear Issue with Plan]
+    K11 -->|Slack| W1[Reply to Slack Thread with Plan]
+    K11 -->|GitHub| X1[Comment on GitHub Issue/PR with Plan]
+    K11 -->|Manual| Y1[Notify User via Platform with Plan]
+    
+    V1 --> Z1[End Process - Awaiting User Input]
+    W1 --> Z1
+    X1 --> Z1
+    Y1 --> Z1
+    
+    M --> N{Repository Accessible?}
+    N -->|No| O[Notify User - Access Required]
+    N -->|Yes| P[Identify/Create Project Scope]
+    
+    P --> Q[Update Agent Status: 'active']
+    Q --> R[Queue Agent Job in Oban]
+    
+    R --> S[Agent Processing Pipeline]
+    S --> T1[Clone Repository]
+    T1 --> T2[Create Feature Branch]
+    T2 --> T3[Index Codebase]
+    T3 --> T4[Generate Code Changes]
+    T4 --> T5[Run Build/Lint/Format]
+    T5 --> T6{Tests Pass?}
+    
+    T6 -->|No| T7[Fix Issues & Retry]
+    T7 --> T5
+    T6 -->|Yes| T8[Push Branch to GitHub]
+    T8 --> T9[Create Pull Request]
+    T9 --> T10[Update Agent Status: 'completed']
+    T10 --> T11[Send Notifications]
+    
+    T11 --> U{Original Trigger Source?}
+    U -->|Linear| V[Update Linear Issue]
+    U -->|Slack| W[Reply to Slack Thread]
+    U -->|GitHub| X[Comment on GitHub Issue/PR]
+    U -->|Manual| Y[Notify User via Platform]
+    
+
+    O --> Z1
+    V --> Z1
+    W --> Z1
+    X --> Z1
+    Y --> Z1
+    
+    I --> Z[End Process]
+    
+    style A fill:#e1f5fe
+    style S fill:#f3e5f5
+    style I fill:#ffebee
+    style O fill:#ffebee
+    style Z1 fill:#e3f2fd
+    
+    style A fill:#e1f5fe
+    style T fill:#f3e5f5
+    style Q fill:#e8f5e8
+    style H1 fill:#e8f5e8
+    style H2 fill:#e8f5e8
+    style K2 fill:#e8f5e8
+    style K10 fill:#e8f5e8
+    style Q fill:#e8f5e8
+    style T10 fill:#e8f5e8
