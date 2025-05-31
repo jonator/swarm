@@ -29,8 +29,8 @@ erDiagram
         string Name
         text Context
         string Status
-        string Trigger
-        string TriggerSourceId
+        string Source
+        string SourceExternalId
         string GithubPullRequestId
         string GithubIssueId
         string LinearIssueId

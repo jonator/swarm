@@ -77,7 +77,9 @@ export default function Navbar({
       <div className='flex items-center justify-between mb-3'>
         {/* Logo */}
         <div className='flex items-center gap-2'>
-          <SwarmLogo size={32} className='mr-2' />
+          <Link href='/home'>
+            <SwarmLogo size={32} className='mr-2' />
+          </Link>
           <HierarchicalBreadcrumb
             items={hierarchy}
             pathname={pathname}

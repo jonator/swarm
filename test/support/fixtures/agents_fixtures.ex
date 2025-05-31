@@ -20,8 +20,8 @@ defmodule Swarm.AgentsFixtures do
         slack_thread_id: "some slack_thread_id",
         started_at: ~N[2025-05-26 01:07:00],
         status: :pending,
-        trigger: :frontend,
-        trigger_source_id: "some trigger_source_id",
+        source: :frontend,
+        source_external_id: "some source_external_id",
         type: :researcher
       })
       |> Swarm.Agents.create_agent()
