@@ -53,6 +53,9 @@ defmodule SwarmWeb.Router do
       get "/auth/linear", LinearController, :has_access
 
       get "/linear/organization", LinearController, :organization
+
+      # Agent management
+      post "/agents/spawn", EventController, :spawn_agent
     end
 
     scope "/admin" do

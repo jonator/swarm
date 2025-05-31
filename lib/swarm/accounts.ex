@@ -61,14 +61,24 @@ defmodule Swarm.Accounts do
   def get_user_by_username(username), do: Repo.get_by(User, username: username)
 
   @doc """
+  Gets a single user by email.
+
+  Returns `nil` if the User does not exist.
+  """
+  def get_user_by_email(email), do: Repo.get_by(User, email: email)
+
+  @doc """
   Gets a single user by username and email or creates a new user if they don't exist.
 
   Returns the existing user if they exist, or a new user if they don't.
   """
   def get_or_create_user(email, username, avatar_url) do
     case get_user_by_username(username) do
-      nil -> create_user(%{email: email, username: username, role: "user", avatar_url: avatar_url})
-      user -> {:ok, user}
+      nil ->
+        create_user(%{email: email, username: username, role: "user", avatar_url: avatar_url})
+
+      user ->
+        {:ok, user}
     end
   end
 

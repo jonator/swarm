@@ -1,0 +1,250 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Example web hooks:
+
+Linear issue status change:
+%{
+  "action" => "update",
+  "actor" => %{
+    "avatarUrl" => "https://public.linear.app/f15f0e68-9424-4add-b7c6-1d318e455719/79589ad0-a8cf-4250-829c-807be084c051",
+    "email" => "jonathanator0@gmail.com",
+    "id" => "f15f0e68-9424-4add-b7c6-1d318e455719",
+    "name" => "Jonathan Ator",
+    "type" => "user",
+    "url" => "https://linear.app/swarmai/profiles/jonathanator0"
+  },
+  "createdAt" => "2025-05-31T14:55:37.934Z",
+  "data" => %{
+    "addedToTeamAt" => "2025-05-25T23:50:08.250Z",
+    "boardOrder" => 0,
+    "botActor" => nil,
+    "createdAt" => "2025-05-25T23:50:08.219Z",
+    "creatorId" => "f15f0e68-9424-4add-b7c6-1d318e455719",
+    "description" => "Hey thanks for the great description! Great. Greaasdl;kjf;alsjkdft. Thanks",
+    "descriptionData" => "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Hey thanks for the great description! Great. Greaasdl;kjf;alsjkdft. Thanks\"}]}]}",
+    "id" => "71ee683d-74e4-4668-95f7-537af7734054",
+    "identifier" => "SW-10",
+    "labelIds" => [],
+    "labels" => [],
+    "number" => 10,
+    "previousIdentifiers" => [],
+    "priority" => 0,
+    "priorityLabel" => "No priority",
+    "prioritySortOrder" => 70.22,
+    "reactionData" => [],
+    "slaType" => "all",
+    "sortOrder" => -72.95,
+    "state" => %{
+      "color" => "#bec2c8",
+      "id" => "8465b3fa-f520-4d2e-be35-137ed91eb9e3",
+      "name" => "Backlog",
+      "type" => "backlog"
+    },
+    "stateId" => "8465b3fa-f520-4d2e-be35-137ed91eb9e3",
+    "subscriberIds" => ["f15f0e68-9424-4add-b7c6-1d318e455719",
+     "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"],
+    "team" => %{
+      "id" => "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2",
+      "key" => "SW",
+      "name" => "Swarm"
+    },
+    "teamId" => "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2",
+    "title" => "Improve README",
+    "updatedAt" => "2025-05-31T14:55:37.960Z",
+    "url" => "https://linear.app/swarmai/issue/SW-10/improve-readme"
+  },
+  "organizationId" => "4fde7f37-de48-4d5c-93fb-473c8f24d4cb",
+  "type" => "Issue",
+  "updatedFrom" => %{
+    "sortOrder" => 29,
+    "stateId" => "301ecd99-d62c-4a68-b6f2-cc1a4fe776aa",
+    "updatedAt" => "2025-05-28T01:01:55.395Z"
+  },
+  "url" => "https://linear.app/swarmai/issue/SW-10/improve-readme",
+  "webhookId" => "d86e55d2-acb2-4ba5-bdc5-78368417c3a8",
+  "webhookTimestamp" => 1748703338148
+}
+
+Github pull request opened:
+%{
+  "action" => "opened",
+  "installation" => %{
+    "id" => 67232095,
+    "node_id" => "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNjcyMzIwOTU="
+  },
+  "number" => 2,
+  "pull_request" => %{
+    "draft" => false,
+    "merged_at" => nil,
+    "merged" => false,
+    "_links" => %{
+      "comments" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/issues/2/comments"
+      },
+      "commits" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/pulls/2/commits"
+      },
+      "html" => %{"href" => "https://github.com/jonator/swarm/pull/2"},
+      "issue" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/issues/2"
+      },
+      "review_comment" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/pulls/comments{/number}"
+      },
+      "review_comments" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/pulls/2/comments"
+      },
+      "self" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/pulls/2"
+      },
+      "statuses" => %{
+        "href" => "https://api.github.com/repos/jonator/swarm/statuses/f1bd80e88b63b1119a7116a28435016cce3ea96d"
+      }
+    },
+    "merge_commit_sha" => nil,
+    "statuses_url" => "https://api.github.com/repos/jonator/swarm/statuses/f1bd80e88b63b1119a7116a28435016cce3ea96d",
+    "merged_by" => nil,
+    "assignee" => nil,
+    "mergeable" => nil,
+    "review_comments" => 0,
+    "assignees" => [],
+    "mergeable_state" => "unknown",
+    "locked" => false,
+    "commits_url" => "https://api.github.com/repos/jonator/swarm/pulls/2/commits",
+    "diff_url" => "https://github.com/jonator/swarm/pull/2.diff",
+    "comments_url" => "https://api.github.com/repos/jonator/swarm/issues/2/comments",
+    "requested_reviewers" => [],
+    "updated_at" => "2025-05-31T15:34:31Z",
+    "id" => 2556877418,
+    "changed_files" => 36,
+    "number" => 2,
+    "review_comments_url" => "https://api.github.com/repos/jonator/swarm/pulls/2/comments",
+    "user" => %{
+      "avatar_url" => "https://avatars.githubusercontent.com/u/4606373?v=4",
+      "events_url" => "https://api.github.com/users/jonator/events{/privacy}",
+      "followers_url" => "https://api.github.com/users/jonator/followers",
+      "following_url" => "https://api.github.com/users/jonator/following{/other_user}",
+      "gists_url" => "https://api.github.com/users/jonator/gists{/gist_id}",
+      "gravatar_id" => "",
+      "html_url" => "https://github.com/jonator",
+      "id" => 4606373,
+      "login" => "jonator",
+      "node_id" => "MDQ6VXNlcjQ2MDYzNzM=",
+      "organizations_url" => "https://api.github.com/users/jonator/orgs",
+      "received_events_url" => "https://api.github.com/users/jonator/received_events",
+      "repos_url" => "https://api.github.com/users/jonator/repos",
+      "site_admin" => false,
+      "starred_url" => "https://api.github.com/users/jonator/starred{/owner}{/repo}",
+      "subscriptions_url" => "https://api.github.com/users/jonator/subscriptions",
+      "type" => "User",
+      "url" => "https://api.github.com/users/jonator",
+      "user_view_type" => "public"
+    },
+    "auto_merge" => nil,
+    "comments" => 0,
+    "base" => %{
+      "label" => "jonator:main",
+      "ref" => "main",
+      "repo" => %{
+        "delete_branch_on_merge" => false,
+        "mirror_url" => nil,
+        "pushed_at" => "2025-05-31T14:42:12Z",
+        "allow_update_branch" => false,
+        "svn_url" => "https://github.com/jonator/swarm",
+        "open_issues_count" => 2,
+        "forks_url" => "https://api.github.com/repos/jonator/swarm/forks",
+        "watchers_count" => 0,
+        "issues_url" => "https://api.github.com/repos/jonator/swarm/issues{/number}",
+        "disabled" => false,
+        "collaborators_url" => "https://api.github.com/repos/jonator/swarm/collaborators{/collaborator}",
+        "has_wiki" => false,
+        "statuses_url" => "https://api.github.com/repos/jonator/swarm/statuses/{sha}",
+        "merge_commit_title" => "MERGE_MESSAGE",
+        "homepage" => nil,
+        "allow_auto_merge" => false,
+        "full_name" => "jonator/swarm",
+        ...
+      },
+      "sha" => "60cbd84ce7de43278a36fcae00685d19ba7bec19",
+      "user" => %{
+        "avatar_url" => "https://avatars.githubusercontent.com/u/4606373?v=4",
+        "events_url" => "https://api.github.com/users/jonator/events{/privacy}",
+        "followers_url" => "https://api.github.com/users/jonator/followers",
+        "following_url" => "https://api.github.com/users/jonator/following{/other_user}",
+        "gists_url" => "https://api.github.com/users/jonator/gists{/gist_id}",
+        "gravatar_id" => "",
+        "html_url" => "https://github.com/jonator",
+        "id" => 4606373,
+        "login" => "jonator",
+        "node_id" => "MDQ6VXNlcjQ2MDYzNzM=",
+        "organizations_url" => "https://api.github.com/users/jonator/orgs",
+        "received_events_url" => "https://api.github.com/users/jonator/received_events",
+        "repos_url" => "https://api.github.com/users/jonator/repos",
+        "site_admin" => false,
+        "starred_url" => "https://api.github.com/users/jonator/starred{/owner}{/repo}",
+        ...
+      }
+    },
+    "url" => "https://api.github.com/repos/jonator/swarm/pulls/2",
+    "milestone" => nil,
+    "closed_at" => nil,
+    "issue_url" => "https://api.github.com/repos/jonator/swarm/issues/2",
+    "labels" => [],
+    "commits" => 4,
+    "html_url" => "https://github.com/jonator/swarm/pull/2",
+    "node_id" => "PR_kwDOOSfB686YZtpq",
+    "review_comment_url" => "https://api.github.com/repos/jonator/swarm/pulls/comments{/number}",
+    "state" => "open",
+    "active_lock_reason" => nil,
+    "additions" => 1252,
+    "deletions" => 283,
+    "body" => nil,
+    "requested_teams" => [],
+    "rebaseable" => nil,
+    "author_association" => "OWNER",
+    "title" => "Agent",
+    "patch_url" => "https://github.com/jonator/swarm/pull/2.patch",
+    "maintainer_can_modify" => false,
+    ...
+  },
+  "repository" => %{
+    "mirror_url" => nil,
+    "pushed_at" => "2025-05-31T14:42:12Z",
+    "svn_url" => "https://github.com/jonator/swarm",
+    "open_issues_count" => 2,
+    "forks_url" => "https://api.github.com/repos/jonator/swarm/forks",
+    "watchers_count" => 0,
+    "issues_url" => "https://api.github.com/repos/jonator/swarm/issues{/number}",
+    "disabled" => false,
+    "collaborators_url" => "https://api.github.com/repos/jonator/swarm/collaborators{/collaborator}",
+    "has_wiki" => false,
+    "statuses_url" => "https://api.github.com/repos/jonator/swarm/statuses/{sha}",
+    "homepage" => nil,
+    "full_name" => "jonator/swarm",
+    "stargazers_count" => 0,
+    "subscription_url" => "https://api.github.com/repos/jonator/swarm/subscription",
+    "stargazers_url" => "https://api.github.com/repos/jonator/swarm/stargazers",
+    "events_url" => "https://api.github.com/repos/jonator/swarm/events",
+    "has_projects" => true,
+    "archive_url" => "https://api.github.com/repos/jonator/swarm/{archive_format}{/ref}",
+    "commits_url" => "https://api.github.com/repos/jonator/swarm/commits{/sha}",
+    "merges_url" => "https://api.github.com/repos/jonator/swarm/merges",
+    "downloads_url" => "https://api.github.com/repos/jonator/swarm/downloads",
+    "blobs_url" => "https://api.github.com/repos/jonator/swarm/git/blobs{/sha}",
+    "comments_url" => "https://api.github.com/repos/jonator/swarm/comments{/number}",
+    "contributors_url" => "https://api.github.com/repos/jonator/swarm/contributors",
+    "subscribers_url" => "https://api.github.com/repos/jonator/swarm/subscribers",
+    "git_tags_url" => "https://api.github.com/repos/jonator/swarm/git/tags{/sha}",
+    "updated_at" => "2025-05-26T13:22:28Z",
+    "issue_events_url" => "https://api.github.com/repos/jonator/swarm/issues/events{/number}",
+    "visibility" => "private",
+    "description" => nil,
+    "name" => "swarm",
+    "id" => 958906859,
+    "labels_url" => "https://api.github.com/repos/jonator/swarm/labels{/name}",
+    "branches_url" => "https://api.github.com/repos/jonator/swarm/branches{/branch}",
+    "private" => true,
+    "issue_comment_url"  (truncated)

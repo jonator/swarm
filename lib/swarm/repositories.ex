@@ -53,39 +53,34 @@ defmodule Swarm.Repositories do
   def get_repository!(id), do: Repo.get!(Repository, id)
 
   @doc """
-  Gets a single repository by external_id.
+  Gets a single repository for a user by repository ID or external ID.
 
-  Raises `Ecto.NoResultsError` if the Repository does not exist.
-
-  ## Examples
-
-      iex> get_repository_by_external_id!("github:123456")
-      %Repository{}
-
-      iex> get_repository_by_external_id!("github:999999")
-      ** (Ecto.NoResultsError)
-
-  """
-  def get_repository_by_external_id!(external_id) do
-    Repo.get_by!(Repository, external_id: external_id)
-  end
-
-  @doc """
-  Gets a single repository by external_id.
-
-  Returns `nil` if the Repository does not exist.
+  This function ensures the user has access to the repository.
 
   ## Examples
 
-      iex> get_repository_by_external_id("github:123456")
+      iex> get_user_repository(user, "123")
       %Repository{}
 
-      iex> get_repository_by_external_id("github:999999")
+      iex> get_user_repository(user, "github:123456")
+      %Repository{}
+
+      iex> get_user_repository(user, "nonexistent")
       nil
 
   """
-  def get_repository_by_external_id(external_id) do
-    Repo.get_by(Repository, external_id: external_id)
+  def get_user_repository(%User{} = user, repository_identifier) do
+    user_repositories = list_repositories(user)
+
+    # Try to find by ID first (if it's a numeric string)
+    case Integer.parse(repository_identifier) do
+      {id, ""} ->
+        Enum.find(user_repositories, &(&1.id == id))
+
+      _ ->
+        # Try to find by external_id
+        Enum.find(user_repositories, &(&1.external_id == repository_identifier))
+    end
   end
 
   @doc """
