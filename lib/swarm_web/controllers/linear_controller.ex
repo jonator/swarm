@@ -22,4 +22,12 @@ defmodule SwarmWeb.LinearController do
       |> json(%{has_access: has_access})
     end
   end
+
+  def organization(conn, _params, user) do
+    with {:ok, organization} <- Linear.organization(user) do
+      conn
+      |> put_status(:ok)
+      |> json(organization)
+    end
+  end
 end

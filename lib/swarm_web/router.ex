@@ -42,7 +42,7 @@ defmodule SwarmWeb.Router do
       pipe_through [:ensure_auth]
 
       get "/", UserController, :show
-      resources "/repositories", RepositoryController, only: [:index, :create]
+      resources "/repositories", RepositoryController, only: [:index, :create, :update]
       post "/repositories/migrate", RepositoryController, :migrate
       get "/github/installations", GitHubController, :installations
       get "/github/repositories", GitHubController, :repositories
@@ -51,6 +51,8 @@ defmodule SwarmWeb.Router do
 
       post "/auth/linear", LinearController, :exchange_code
       get "/auth/linear", LinearController, :has_access
+
+      get "/linear/organization", LinearController, :organization
     end
 
     scope "/admin" do

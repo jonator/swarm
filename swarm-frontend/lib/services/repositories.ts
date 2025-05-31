@@ -7,6 +7,7 @@ export type Repository = {
   id: number
   name: string
   owner: string
+  linear_team_external_ids: string[]
   created_at: string
   updated_at: string
 }
@@ -40,6 +41,14 @@ export async function createRepository(params: CreateRepositoryParams) {
   }
   return apiClientWithAuth
     .post('users/repositories', { json: { repository: params } })
+    .json<{ repository: Repository }>()
+}
+
+export async function updateRepository(
+  params: Partial<Repository> & { id: number },
+) {
+  return apiClientWithAuth
+    .patch(`users/repositories/${params.id}`, { json: params })
     .json<{ repository: Repository }>()
 }
 

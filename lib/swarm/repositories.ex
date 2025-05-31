@@ -156,7 +156,7 @@ defmodule Swarm.Repositories do
     Ecto.Multi.new()
     |> Ecto.Multi.insert_all(:insert_repositories, Repository, attrs_list_timestamped,
       conflict_target: [:external_id],
-      on_conflict: {:replace, [:name, :owner, :updated_at]}
+      on_conflict: {:replace, [:name, :owner, :linear_team_external_ids, :updated_at]}
     )
     |> Ecto.Multi.run(:check_insert_count, fn
       _repo, %{insert_repositories: {count, _}} ->
@@ -195,6 +195,29 @@ defmodule Swarm.Repositories do
     |> case do
       {:ok, %{associate_user: repositories}} -> {:ok, repositories}
       {:error, _failed_operation, _failed_value, _changes_so_far} = error -> error
+    end
+  end
+
+  @doc """
+  Updates a repository for a given user. Returns the updated repository if found, otherwise returns {:error, :not_found}.
+
+  ## Examples
+
+      iex> update_repository(repository, %{field: new_value})
+      {:ok, %Repository{}}
+
+      iex> update_repository(repository, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_repository(user, id, attrs) do
+    user
+    |> Repo.preload(:repositories)
+    |> Map.get(:repositories)
+    |> Enum.find(&(&1.id == String.to_integer(id)))
+    |> case do
+      nil -> {:error, :not_found}
+      repository -> update_repository(repository, attrs)
     end
   end
 

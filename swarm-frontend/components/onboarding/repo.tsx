@@ -2,21 +2,15 @@
 
 import { getRepositoryFrameworks } from '@/lib/services/github'
 import type { Repositories, Repository } from '@/lib/services/github'
-import {
-  createRepository,
-  migrateRepositories,
-} from '@/lib/services/repositories'
+import { createRepository } from '@/lib/services/repositories'
 import type { CreateRepositoryParams } from '@/lib/services/repositories'
 import { cn } from '@/lib/utils/shadcn'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { BookIcon, Download, Info } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { BookIcon, Info } from 'lucide-react'
 import Image from 'next/image'
-import { redirect, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
-import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { Button } from '../ui/button'
 import {
   Card,
@@ -25,14 +19,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '../ui/form'
+import { Label } from '../ui/label'
 import {
   Select,
   SelectContent,
@@ -52,6 +39,7 @@ export const ChooseRepo = ({
   repositories,
 }: { repositories: Repositories }) => {
   const [repository, setRepository] = useState<Repository | null>(null)
+  const router = useRouter()
 
   if (!repository) {
     return (
@@ -85,10 +73,10 @@ export const ChooseRepo = ({
       <ChooseRepoProject
         repository={repository}
         onDone={() => {
-          toast('Project created!', {
-            description: 'Your project has been successfully created.',
+          toast('Repository added!', {
+            description: 'Repository successfully added to Swarm.',
           })
-          redirect('/onboarding/linear')
+          router.push('/onboarding/linear')
         }}
       />
     </div>
@@ -99,27 +87,8 @@ const ChooseGitHubRepo = ({
   repositories: { repositories },
   onSelectRepo,
 }: { repositories: Repositories; onSelectRepo: (repoId: string) => void }) => {
-  const [isTransitioning, startTransition] = useTransition()
-  const router = useRouter()
-
   // id
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
-
-  const migrationMutation = useMutation({
-    mutationFn: migrateRepositories,
-    onSuccess: () => {
-      toast.success('Repositories migrated!', {
-        description: 'All your accessible repositories have been imported.',
-      })
-      startTransition(() => {
-        router.push('/onboarding/linear')
-      })
-    },
-    onError: (error) => {
-      console.error(error.message)
-      toast.error(`Error migrating repositories: ${error.message}`)
-    },
-  })
 
   return (
     <Card className='w-96'>
@@ -131,43 +100,8 @@ const ChooseGitHubRepo = ({
       </CardHeader>
       <CardContent>
         <div className='space-y-4'>
-          <div className='p-4 border rounded-lg bg-muted/50'>
-            <div className='flex items-center justify-between mb-3'>
-              <div>
-                <h4 className='font-medium'>Import all repositories</h4>
-                <p className='text-sm text-muted-foreground'>
-                  Import all your accessible GitHub repositories at once
-                </p>
-              </div>
-            </div>
-            <Button
-              variant='outline'
-              type='button'
-              className='w-full'
-              disabled={migrationMutation.isPending}
-              onClick={() => migrationMutation.mutate()}
-            >
-              <Download className='mr-2 h-4 w-4' />
-              {migrationMutation.isPending ? 'Importing...' : 'Import All'}
-            </Button>
-          </div>
-
-          <div className='relative'>
-            <div className='absolute inset-0 flex items-center'>
-              <span className='w-full border-t' />
-            </div>
-            <div className='relative flex justify-center text-xs uppercase'>
-              <span className='bg-background px-2 text-muted-foreground'>
-                Or select individually
-              </span>
-            </div>
-          </div>
-
           <div className='py-2'>
-            <Select
-              onValueChange={setSelectedRepo}
-              disabled={migrationMutation.isPending || isTransitioning}
-            >
+            <Select onValueChange={setSelectedRepo}>
               <SelectTrigger className='w-full'>
                 <SelectValue placeholder='Select a repository' />
               </SelectTrigger>
@@ -175,7 +109,11 @@ const ChooseGitHubRepo = ({
                 <SelectGroup>
                   {repositories.map((repo) => (
                     <SelectItem key={repo.id} value={repo.id.toString()}>
-                      {repo.full_name}
+                      <span className='text-muted-foreground'>
+                        {repo.owner.login}
+                      </span>
+                      <span>/</span>
+                      <span>{repo.name}</span>
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -187,9 +125,7 @@ const ChooseGitHubRepo = ({
             variant='outline'
             type='button'
             className='w-full'
-            disabled={
-              !selectedRepo || migrationMutation.isPending || isTransitioning
-            }
+            disabled={!selectedRepo}
             onClick={() => {
               onSelectRepo(selectedRepo!)
             }}
@@ -202,13 +138,6 @@ const ChooseGitHubRepo = ({
   )
 }
 
-const projectFormSchema = z.object({
-  projectType: z.string({
-    required_error: 'Please select a project type.',
-  }),
-})
-type ProjectForm = z.infer<typeof projectFormSchema>
-
 const ChooseRepoProject = ({
   repository,
   onDone,
@@ -216,6 +145,10 @@ const ChooseRepoProject = ({
   repository: Repository
   onDone: () => void
 }) => {
+  const [isPending, startTransition] = useTransition()
+  const [selectedProjectType, setSelectedProjectType] = useState<
+    string | undefined
+  >(undefined)
   const { data: frameworks, isLoading } = useQuery({
     queryKey: ['repo-frameworks', repository.id],
     queryFn: () =>
@@ -225,40 +158,42 @@ const ChooseRepoProject = ({
         repository.default_branch,
       ),
   })
-  const form = useForm<ProjectForm>({
-    resolver: zodResolver(projectFormSchema),
-  })
 
-  const mutation = useMutation({
-    mutationFn: (params: CreateRepositoryParams) => createRepository(params),
-    onError: (error) => {
-      console.error(error.message)
-      toast.error(`Error creating repository: ${error.message}`)
-    },
-  })
+  const handleCreate = () => {
+    startTransition(async () => {
+      try {
+        const selectedFramework = selectedProjectType
+          ? frameworks?.find(
+              (framework) => framework.type === selectedProjectType,
+            )
+          : undefined
 
-  function onSubmit(project: ProjectForm) {
-    const selectedFramework = frameworks?.find(
-      (framework) => framework.type === project.projectType,
-    )
+        const params: CreateRepositoryParams = selectedFramework
+          ? {
+              github_repo_id: repository.id,
+              projects: [
+                {
+                  type: selectedFramework.type,
+                  root_dir: selectedFramework.path,
+                  name: selectedFramework.name,
+                },
+              ],
+            }
+          : {
+              github_repo_id: repository.id,
+            }
 
-    if (!selectedFramework) {
-      console.error('Invalid project type')
-      return
-    }
+        await createRepository(params)
+      } catch (error) {
+        console.error(error)
+        toast.error(
+          `Error creating repository: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        )
+        return
+      }
 
-    mutation.mutate({
-      github_repo_id: repository.id,
-      projects: [
-        {
-          type: selectedFramework.type,
-          root_dir: selectedFramework.path,
-          name: selectedFramework.name,
-        },
-      ],
+      onDone()
     })
-
-    onDone()
   }
 
   const selectPlaceholder = frameworks?.length
@@ -274,78 +209,72 @@ const ChooseRepoProject = ({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
-            <FormField
-              control={form.control}
-              name='projectType'
-              render={({ field }) => (
-                <FormItem>
-                  <div className='flex items-center animate-in fade-in'>
-                    <FormLabel>Type</FormLabel>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Info className='ml-2 size-4' />
-                        </TooltipTrigger>
-                        <TooltipContent className='max-w-xs'>
-                          <p>
-                            Framework or language used by the project. This
-                            helps Swarm agents understand the project's
-                            architecture, conventions, and dependencies
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger
-                        className={cn('w-full', isLoading && 'animate-pulse')}
-                      >
-                        <SelectValue placeholder={selectPlaceholder} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {frameworks?.map(
-                        ({ type, icon, name, typeName, path }) => (
-                          <SelectItem key={type} value={type}>
-                            <Image
-                              src={icon}
-                              alt={name}
-                              width={20}
-                              height={20}
-                            />
-                            {typeName}
-                            <span className='ml-2 text-secondary-foreground'>
-                              {name}
-                            </span>
-                            {path !== name && (
-                              <span className='ml-2 text-secondary-foreground/80'>
-                                {path}
-                              </span>
-                            )}
-                          </SelectItem>
-                        ),
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <div className='space-y-6'>
+          <div>
+            <div className='flex items-center animate-in fade-in'>
+              <Label>Type</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className='ml-2 size-4' />
+                  </TooltipTrigger>
+                  <TooltipContent className='max-w-xs'>
+                    <p>
+                      Framework or language used by the project. This helps
+                      Swarm agents understand the project's architecture,
+                      conventions, and dependencies
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Select
+              onValueChange={setSelectedProjectType}
+              value={selectedProjectType}
+            >
+              <SelectTrigger
+                className={cn('w-full', isLoading && 'animate-pulse')}
+              >
+                <SelectValue placeholder={selectPlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {frameworks?.map(({ type, icon, name, typeName, path }) => (
+                  <SelectItem key={type} value={type}>
+                    <Image src={icon} alt={name} width={20} height={20} />
+                    {typeName}
+                    <span className='ml-2 text-secondary-foreground'>
+                      {name}
+                    </span>
+                    {path !== name && (
+                      <span className='ml-2 text-secondary-foreground/80'>
+                        {path}
+                      </span>
+                    )}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className='space-y-2'>
             <Button
-              type='submit'
+              type='button'
               className='w-full'
-              disabled={mutation.isPending}
+              disabled={isPending}
+              onClick={handleCreate}
             >
               Create
             </Button>
-          </form>
-        </Form>
+            <Button
+              type='button'
+              variant='link'
+              className='w-full'
+              disabled={isPending}
+              onClick={handleCreate}
+            >
+              Skip
+            </Button>
+          </div>
+        </div>
       </CardContent>
     </Card>
   )

@@ -1,16 +1,20 @@
-import { routeEntry } from '@/actions/routing'
 import { InstallLinear } from '@/components/onboarding/linear'
 import { authGuard } from '@/lib/client/authed'
 import { hasLinearAccess } from '@/lib/services/linear'
+import { getRepositories } from '@/lib/services/repositories'
+import { redirect } from 'next/navigation'
 
 export default async function LinearOnboardingPage() {
   await authGuard()
 
-  const { has_access } = await hasLinearAccess()
+  const [{ has_access }, { repositories }] = await Promise.all([
+    hasLinearAccess(),
+    getRepositories(),
+  ])
 
-  if (has_access) {
-    routeEntry()
+  if (repositories.length === 0) {
+    return redirect('/onboarding/repo')
   }
 
-  return <InstallLinear />
+  return <InstallLinear hasAccess={has_access} repositories={repositories} />
 }

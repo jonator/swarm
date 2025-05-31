@@ -7,4 +7,4 @@ An Elixir Phoenix app called "Swarm" that allows users to spawn AI coding agents
 
 With GitHub, users can authorize a Swarm GitHub OAuth app to expose their repositories, organizations, and pull requests.
 
-With Linear, users can authorize a Swarm Linear OAuth app to assign issues to Swarm as a starting point for Swarm to spawn AI coding agents to attempt to implement the described solution in the Linear issue description. The description is expected to contain a specific implementation plan with a step by step solution and mention of specific filenames.
+With Linear, users can authorize a Swarm Linear OAuth app to assign issues to Swarm as a starting point for Swarm to spawn AI coding agents to attempt to implement the described solution in the Linear issue description. The description is expected to contain a specific implementation plan with a step by step solution and mention of specific filenames. Also, they can tag @swarm in documents, project and issue descriptions, and comments to trigger agents to respond to the request with document drafts, new issues, edits, create PRs etc. 

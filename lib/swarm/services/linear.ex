@@ -40,11 +40,42 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  def organization(%User{} = user) do
+    with {:ok, linear} <- new(user) do
+      organization(linear)
+    end
+  end
+
+  def organization(%__MODULE__{} = linear) do
+    query(linear, """
+      organization {
+        id
+        name
+        teams {
+          nodes {
+            id
+            name
+          }
+        }
+      }
+    """)
+  end
+
   def has_access?(%User{} = user) do
     with {:ok, %Token{token: _access_token}} <- access_token(user) do
       {:ok, true}
     else
       {:unauthorized, _reason} -> {:ok, false}
+    end
+  end
+
+  defp query(%__MODULE__{access_token: %Token{token: access_token}}, query) do
+    with {:ok, %Req.Response{status: 200, body: %{"data" => data}}} <-
+           Req.new(base_url: "https://api.linear.app/graphql")
+           |> Req.Request.put_header("Authorization", "Bearer #{access_token}")
+           |> AbsintheClient.attach()
+           |> Req.post(graphql: "query { #{query} }") do
+      {:ok, data}
     end
   end
 

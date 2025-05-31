@@ -257,5 +257,75 @@ defmodule Swarm.RepositoriesTest do
 
       assert repository.name == "trimmed_name"
     end
+
+    test "create_repository/1 with linear_team_external_ids creates a repository" do
+      valid_attrs = %{
+        external_id: "github:123464",
+        name: "name",
+        owner: "some_owner",
+        linear_team_external_ids: ["team1", "team2"]
+      }
+
+      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
+      assert repository.linear_team_external_ids == ["team1", "team2"]
+    end
+
+    test "create_repository/1 with empty linear_team_external_ids creates a repository" do
+      valid_attrs = %{
+        external_id: "github:123465",
+        name: "name",
+        owner: "some_owner",
+        linear_team_external_ids: []
+      }
+
+      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
+      assert repository.linear_team_external_ids == []
+    end
+
+    test "create_repository/1 without linear_team_external_ids defaults to empty list" do
+      valid_attrs = %{external_id: "github:123466", name: "name", owner: "some_owner"}
+
+      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
+      assert repository.linear_team_external_ids == []
+    end
+
+    test "update_repository/2 can update linear_team_external_ids" do
+      repository = repository_fixture()
+      update_attrs = %{linear_team_external_ids: ["updated_team1", "updated_team2"]}
+
+      assert {:ok, %Repository{} = updated_repository} =
+               Repositories.update_repository(repository, update_attrs)
+
+      assert updated_repository.linear_team_external_ids == ["updated_team1", "updated_team2"]
+    end
+
+    test "create_repositories/2 updates existing repository linear_team_external_ids" do
+      user = Swarm.AccountsFixtures.user_fixture()
+
+      initial_attrs = [
+        %{
+          external_id: "github:123467",
+          name: "initial_name",
+          owner: "initial_owner",
+          linear_team_external_ids: ["initial_team"]
+        }
+      ]
+
+      {:ok, [initial_repo]} = Repositories.create_repositories(user, initial_attrs)
+
+      update_attrs = [
+        %{
+          external_id: "github:123467",
+          name: "updated_name",
+          owner: "updated_owner",
+          linear_team_external_ids: ["updated_team1", "updated_team2"]
+        }
+      ]
+
+      {:ok, [updated_repo]} = Repositories.create_repositories(user, update_attrs)
+
+      assert updated_repo.id == initial_repo.id
+      assert updated_repo.linear_team_external_ids == ["updated_team1", "updated_team2"]
+    end
   end
 end

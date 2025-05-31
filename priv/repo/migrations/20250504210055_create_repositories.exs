@@ -6,6 +6,7 @@ defmodule Swarm.Repo.Migrations.CreateRepositories do
       add :external_id, :string, null: false, unique: true
       add :name, :string, null: false
       add :owner, :string, null: false
+      add :linear_team_external_ids, {:array, :string}
 
       timestamps()
     end

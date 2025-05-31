@@ -24,6 +24,36 @@ erDiagram
         string Name
         string Type
     }
+    Agent {
+        int ID PK
+        string Name
+        text Context
+        string Status
+        string Trigger
+        string TriggerSourceId
+        string GithubPullRequestId
+        string GithubIssueId
+        string LinearIssueId
+        string SlackThreadId
+        datetime StartedAt
+        datetime CompletedAt
+        int ObanJobId FK
+        int UserId FK
+        int RepositoryId FK
+        int ProjectId FK
+        datetime InsertedAt
+        datetime UpdatedAt
+    }
+
+    AgentMessage {
+        int ID PK
+        int AgentId FK
+        string MessageType
+        text Content
+        json Metadata
+        datetime CreatedAt
+        int SequenceNumber
+    }
     UsersRepositories {
         int UserId FK
         int RepositoryId FK
@@ -44,3 +74,8 @@ erDiagram
     Organization ||--o{ OrganizationsRepositories : has
     Repository ||--o{ OrganizationsRepositories : has
     Project }o--|| Repository : belongs_to
+    
+    User ||--o{ Agent : owns
+    Repository ||--o{ Agent : contains
+    Project ||--o{ Agent : scoped_to
+    Agent ||--o{ AgentMessage : generates

@@ -70,7 +70,8 @@ defmodule Swarm.MixProject do
       {:cors_plug, "~> 3.0"},
       {:req, "~> 0.5.10"},
       {:tentacat, "~> 2.5.0"},
-      {:joken, "~> 2.6.2"}
+      {:joken, "~> 2.6.2"},
+      {:absinthe_client, "~> 0.1.1"}
     ]
   end
 

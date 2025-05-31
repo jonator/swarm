@@ -50,6 +50,40 @@ Module.create(
         ]
       }
     end
+
+    alias LangChain.Message
+    alias LangChain.MessageDelta
+    alias LangChain.Chains.LLMChain
+    alias LangChain.ChatModels.ChatAnthropic
+
+    def c do
+      handler = %{
+        on_llm_new_delta: fn _model, %MessageDelta{} = data ->
+          # we received a piece of data
+          IO.write(data.content)
+        end,
+        on_message_processed: fn _chain, %Message{} = data ->
+          # the message was assembled and is processed
+          IO.puts("")
+          IO.puts("")
+          IO.inspect(data.content, label: "COMPLETED MESSAGE")
+        end
+      }
+
+      {:ok, updated_chain} =
+        %{
+          # llm config for streaming and the deltas callback
+          llm: ChatAnthropic.new!(%{model: "claude-3-5-sonnet-20241022", stream: true})
+        }
+        |> LLMChain.new!()
+        |> LLMChain.add_messages([
+          Message.new_system!("You are a helpful assistant."),
+          Message.new_user!("Write a haiku about the capital of the United States")
+        ])
+        # register the callbacks
+        |> LLMChain.add_callback(handler)
+        |> LLMChain.run()
+    end
   end,
   Macro.Env.location(__ENV__)
 )

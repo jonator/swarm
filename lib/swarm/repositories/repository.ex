@@ -10,6 +10,7 @@ defmodule Swarm.Repositories.Repository do
     field :external_id, :string
     field :name, :string
     field :owner, :string
+    field :linear_team_external_ids, {:array, :string}, default: []
     many_to_many :users, User, join_through: "users_repositories"
     many_to_many :organizations, Organization, join_through: "organizations_repositories"
     has_many :projects, Project
@@ -20,7 +21,7 @@ defmodule Swarm.Repositories.Repository do
   @doc false
   def changeset(repository, attrs) do
     repository
-    |> cast(attrs, [:external_id, :name, :owner])
+    |> cast(attrs, [:external_id, :name, :owner, :linear_team_external_ids])
     |> validate_required([:external_id, :name, :owner])
     |> update_change(:name, &String.trim/1)
     |> validate_format(:external_id, ~r/^[a-zA-Z0-9_-]+:[0-9]+$/,

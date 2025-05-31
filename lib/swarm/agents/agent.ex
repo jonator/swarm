@@ -5,6 +5,7 @@ defmodule Swarm.Agents.Agent do
   alias Swarm.Accounts.User
   alias Swarm.Repositories.Repository
   alias Swarm.Projects.Project
+  alias Swarm.Agents.Message
 
   schema "agents" do
     field :name, :string
@@ -23,6 +24,7 @@ defmodule Swarm.Agents.Agent do
     belongs_to :user, User
     belongs_to :repository, Repository
     belongs_to :project, Project
+    has_many :messages, Message
 
     timestamps()
   end

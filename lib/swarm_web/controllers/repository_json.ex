@@ -21,6 +21,7 @@ defmodule SwarmWeb.RepositoryJSON do
       external_id: repository.external_id,
       name: repository.name,
       owner: repository.owner,
+      linear_team_external_ids: repository.linear_team_external_ids,
       created_at: repository.inserted_at,
       updated_at: repository.updated_at
     }
