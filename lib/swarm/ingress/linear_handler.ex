@@ -30,17 +30,22 @@ defmodule Swarm.Ingress.LinearHandler do
   def handle(%Event{source: :linear} = event) do
     Logger.info("Processing Linear event: #{event.type}")
 
-    with {:ok, user} <- Permissions.validate_user_access(event),
-         {:ok, repository} <- find_repository_for_linear_event(user, event),
-         {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
-      case should_spawn_agent?(event) do
-        true -> spawn_agent(agent_attrs)
-        false -> {:ok, :ignored}
-      end
+    # Check if event is relevant first
+    if not is_relevant_event?(event) do
+      {:ok, :ignored}
     else
-      {:error, reason} = error ->
-        Logger.warning("Linear event processing failed: #{reason}")
-        error
+      with {:ok, user} <- Permissions.validate_user_access(event),
+           {:ok, repository} <- find_repository_for_linear_event(user, event),
+           {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
+        case should_spawn_agent?(event) do
+          true -> spawn_agent(agent_attrs)
+          false -> {:ok, :ignored}
+        end
+      else
+        {:error, reason} = error ->
+          Logger.warning("Linear event processing failed: #{reason}")
+          error
+      end
     end
   end
 
@@ -48,36 +53,41 @@ defmodule Swarm.Ingress.LinearHandler do
     {:error, "LinearHandler received non-Linear event: #{other_source}"}
   end
 
+  def is_relevant_event?(%Event{type: "issueAssignedToYou"}), do: true
+  def is_relevant_event?(%Event{type: "issueCommentMention"}), do: true
+  def is_relevant_event?(%Event{type: "issueMention"}), do: true
+  def is_relevant_event?(%Event{type: "documentMention"}), do: true
+  def is_relevant_event?(_), do: false
+
   @doc """
   Determines if an agent should be spawned for this Linear event.
   """
-  def should_spawn_agent?(%Event{type: "issue_assigned", context: context}) do
-    issue = get_in(context, [:data, "issue"])
-    assignee = get_in(issue, ["assignee"])
-
-    # Check if assigned to Swarm
-    is_swarm_assignee?(assignee)
+  def should_spawn_agent?(%Event{type: "issueAssignedToYou", context: _context}) do
+    # For the new notification format, if we receive an "issueAssignedToYou" action,
+    # it means it was assigned to the app user (which should be Swarm)
+    true
   end
 
-  def should_spawn_agent?(%Event{type: "comment_mention", context: context}) do
-    comment = get_in(context, [:data, "comment"])
+  def should_spawn_agent?(%Event{type: "issueCommentMention", context: context}) do
+    # Handle both new notification format and legacy format
+    comment = get_comment_from_context(context)
 
     # Always spawn for @swarm mentions in comments
     mentions_swarm?(comment["body"])
   end
 
-  def should_spawn_agent?(%Event{type: "description_mention", context: context}) do
-    issue = get_in(context, [:data, "issue"])
+  def should_spawn_agent?(%Event{type: "issueMention", context: context}) do
+    # Handle both new notification format and legacy format
+    issue = get_issue_from_context(context)
 
     # Always spawn for @swarm mentions in descriptions
     mentions_swarm?(issue["description"])
   end
 
-  def should_spawn_agent?(%Event{type: "document_mention", context: context}) do
-    document = get_in(context, [:data, "document"])
-
-    # Always spawn for @swarm mentions in documents
-    mentions_swarm?(document["content"])
+  def should_spawn_agent?(%Event{type: "documentMention", context: _context}) do
+    # For documentMention events, the fact that we received this webhook
+    # means @swarm was mentioned in the document, so always spawn
+    true
   end
 
   def should_spawn_agent?(_event) do
@@ -93,13 +103,11 @@ defmodule Swarm.Ingress.LinearHandler do
   3. Manual configuration
   """
   def find_repository_for_linear_event(user, %Event{context: context}) do
-    issue = get_in(context, [:data, "issue"])
-    team = get_in(issue, ["team"])
+    team = get_team_from_context(context)
 
     case team do
       nil ->
-        # Try to find a default repository for the user
-        find_default_repository(user)
+        {:error, "No team information found in Linear event"}
 
       %{"id" => team_id} ->
         find_repository_by_team_id(user, team_id)
@@ -120,21 +128,11 @@ defmodule Swarm.Ingress.LinearHandler do
 
         case matching_repo do
           nil ->
-            # If no specific mapping, use the first repository
-            {:ok, List.first(repositories)}
+            {:error, "No repository found with Linear team ID: #{team_id}"}
 
           repository ->
             {:ok, repository}
         end
-    end
-  end
-
-  defp find_default_repository(user) do
-    case Repositories.list_repositories(user) do
-      [] -> {:error, "No repositories found for user"}
-      [repository] -> {:ok, repository}
-      # Use first as default
-      repositories -> {:ok, List.first(repositories)}
     end
   end
 
@@ -145,20 +143,32 @@ defmodule Swarm.Ingress.LinearHandler do
     base_attrs = %{
       user_id: user.id,
       repository_id: repository.id,
+      repository: repository,
       source: :linear,
-      status: :pending
+      status: :pending,
+      name: build_agent_name(event),
+      type: determine_agent_type(event)
     }
 
     type_specific_attrs =
       case event.type do
-        "issue_assigned" -> build_issue_assigned_attrs(event)
-        "comment_mention" -> build_comment_mention_attrs(event)
-        "description_mention" -> build_description_mention_attrs(event)
-        "document_mention" -> build_document_mention_attrs(event)
-        _ -> build_default_agent_attrs(event)
+        "issueAssignedToYou" -> build_issue_assigned_attrs(event)
+        "issueCommentMention" -> build_comment_mention_attrs(event)
+        "issueMention" -> build_description_mention_attrs(event)
+        "documentMention" -> build_document_mention_attrs(event)
+        _ -> %{}
       end
 
-    external_ids = Map.take(event.external_ids, [:linear_issue_id])
+    # Extract linear_issue_id from the context
+    issue = get_issue_from_context(event.context)
+    linear_issue_id = issue["id"]
+
+    external_ids = Map.take(event.external_ids, [:linear_comment_id])
+
+    external_ids =
+      if linear_issue_id,
+        do: Map.put(external_ids, :linear_issue_id, linear_issue_id),
+        else: external_ids
 
     attrs = Map.merge(base_attrs, type_specific_attrs)
     attrs = Map.merge(attrs, external_ids)
@@ -167,28 +177,17 @@ defmodule Swarm.Ingress.LinearHandler do
   end
 
   defp build_issue_assigned_attrs(%Event{context: context}) do
-    issue = get_in(context, [:data, "issue"])
-
-    {agent_type, agent_name} =
-      if has_implementation_plan?(issue) do
-        {:coder, "Linear Issue Implementation: #{issue["title"]}"}
-      else
-        {:researcher, "Linear Issue Research: #{issue["title"]}"}
-      end
-
+    issue = get_issue_from_context(context)
     context_text = build_issue_context(issue, "assigned")
 
     %{
-      type: agent_type,
-      name: agent_name,
-      context: context_text,
-      source_external_id: "linear:issue:#{issue["id"]}"
+      context: context_text
     }
   end
 
   defp build_comment_mention_attrs(%Event{context: context}) do
-    comment = get_in(context, [:data, "comment"])
-    issue = get_in(context, [:data, "issue"])
+    comment = get_comment_from_context(context)
+    issue = get_issue_from_context(context)
 
     context_text = """
     Linear Comment Mention in Issue: #{issue["title"]}
@@ -202,58 +201,33 @@ defmodule Swarm.Ingress.LinearHandler do
     """
 
     %{
-      type: :researcher,
-      name: "Linear Comment Response: #{issue["title"]}",
-      context: context_text,
-      source_external_id: "linear:comment:#{comment["id"]}"
+      context: context_text
     }
   end
 
   defp build_description_mention_attrs(%Event{context: context}) do
-    issue = get_in(context, [:data, "issue"])
-
-    {agent_type, agent_name} =
-      if has_implementation_plan?(issue) do
-        {:coder, "Linear Issue Implementation: #{issue["title"]}"}
-      else
-        {:researcher, "Linear Issue Analysis: #{issue["title"]}"}
-      end
+    issue = get_issue_from_context(context)
 
     context_text = build_issue_context(issue, "mentioned in description")
 
     %{
-      type: agent_type,
-      name: agent_name,
-      context: context_text,
-      source_external_id: "linear:issue:#{issue["id"]}"
+      context: context_text
     }
   end
 
   defp build_document_mention_attrs(%Event{context: context}) do
-    document = get_in(context, [:data, "document"])
+    document = get_in(context, [:notification, "document"])
 
     context_text = """
     Linear Document Mention: #{document["title"]}
 
-    Content excerpt with @swarm mention:
-    #{extract_mention_context(document["content"])}
+    @swarm was mentioned in this document.
 
-    Document URL: #{document["url"]}
+    Document URL: #{document["url"] || "No URL available"}
     """
 
     %{
-      type: :researcher,
-      name: "Linear Document Response: #{document["title"]}",
-      context: context_text,
-      source_external_id: "linear:document:#{document["id"]}"
-    }
-  end
-
-  defp build_default_agent_attrs(_event) do
-    %{
-      type: :researcher,
-      name: "Linear Event Analysis",
-      context: "Analyze Linear event and determine next steps"
+      context: context_text
     }
   end
 
@@ -275,41 +249,43 @@ defmodule Swarm.Ingress.LinearHandler do
 
   # Helper functions for event analysis
 
-  defp has_implementation_plan?(issue) do
-    description = issue["description"] || ""
-    title = issue["title"] || ""
+  defp get_issue_from_context(context) do
+    cond do
+      # New notification format
+      context[:notification] && context[:notification]["issue"] ->
+        context[:notification]["issue"]
 
-    # Check for implementation indicators
-    implementation_keywords = [
-      "implementation",
-      "implement",
-      "steps:",
-      "todo:",
-      "file:",
-      "function:",
-      "method:",
-      "class:",
-      "component:",
-      "endpoint:",
-      "api:",
-      "database",
-      "step 1",
-      "step 2",
-      "step by step"
-    ]
+      # Direct issue data format
+      context[:data] && is_map(context[:data]) && context[:data]["id"] ->
+        context[:data]
 
-    text = String.downcase("#{title} #{description}")
-    Enum.any?(implementation_keywords, &String.contains?(text, &1))
+      # Legacy format
+      context[:data] && context[:data]["issue"] ->
+        context[:data]["issue"]
+
+      true ->
+        %{}
+    end
   end
 
-  defp is_swarm_assignee?(nil), do: false
+  defp get_comment_from_context(context) do
+    cond do
+      # New notification format
+      context[:notification] && context[:notification]["comment"] ->
+        context[:notification]["comment"]
 
-  defp is_swarm_assignee?(assignee) do
-    name = assignee["name"] || ""
-    email = assignee["email"] || ""
+      # Legacy format
+      context[:data] && context[:data]["comment"] ->
+        context[:data]["comment"]
 
-    String.contains?(String.downcase(name), "swarm") ||
-      String.contains?(String.downcase(email), "swarm")
+      true ->
+        %{}
+    end
+  end
+
+  defp get_team_from_context(context) do
+    issue = get_issue_from_context(context)
+    get_in(issue, ["team"])
   end
 
   defp mentions_swarm?(nil), do: false
@@ -332,31 +308,46 @@ defmodule Swarm.Ingress.LinearHandler do
     """
   end
 
-  defp extract_mention_context(content) when is_binary(content) do
-    # Find the paragraph containing @swarm and return some context
-    lines = String.split(content, "\n")
+  defp build_agent_name(%Event{type: type, context: context}) do
+    issue = get_issue_from_context(context)
+    title = issue["title"] || "Linear Event"
 
-    mention_line =
-      Enum.find(lines, fn line ->
-        String.contains?(String.downcase(line), "@swarm")
-      end)
+    case type do
+      "issueAssignedToYou" ->
+        if has_implementation_plan?(context) do
+          "Linear Issue Implementation: #{title}"
+        else
+          "Linear Issue Research: #{title}"
+        end
 
-    case mention_line do
-      # First 500 chars if no specific mention found
-      nil ->
-        String.slice(content, 0, 500)
+      "issueCommentMention" ->
+        "Linear Comment Response: #{title}"
 
-      line ->
-        # Return the mention line plus some surrounding context
-        line_index = Enum.find_index(lines, &(&1 == line))
-        start_index = max(0, line_index - 1)
-        end_index = min(length(lines) - 1, line_index + 1)
+      "issueMention" ->
+        "Linear Issue Analysis: #{title}"
 
-        lines
-        |> Enum.slice(start_index..end_index)
-        |> Enum.join("\n")
+      "documentMention" ->
+        document = get_in(context, [:notification, "document"])
+        "Linear Document Response: #{document["title"] || "Unknown document"}"
+
+      _ ->
+        "Linear: #{title}"
     end
   end
 
-  defp extract_mention_context(_content), do: "Unable to extract content"
+  defp determine_agent_type(%Event{context: context}) do
+    if has_implementation_plan?(context) do
+      :coder
+    else
+      :researcher
+    end
+  end
+
+  defp has_implementation_plan?(context) do
+    issue = get_issue_from_context(context)
+    description = issue["description"] || ""
+
+    # Check if the description contains implementation plan keywords
+    String.contains?(String.downcase(description), ["implementation plan", "step 1", "step 2"])
+  end
 end

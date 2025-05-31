@@ -8,7 +8,6 @@ defmodule Swarm.Repo.Migrations.CreateAgents do
       add :status, :string, null: false
       add :source, :string, null: false
       add :type, :string, null: false
-      add :source_external_id, :string
       add :github_pull_request_id, :string
       add :github_issue_id, :string
       add :linear_issue_id, :string

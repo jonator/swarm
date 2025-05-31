@@ -14,6 +14,10 @@ defmodule SwarmWeb.EventController do
   def receive_event(conn, params) do
     Logger.info("Received webhook event: #{inspect(params, pretty: true)}")
 
+    temp_file = Path.join(System.tmp_dir!(), "webhook_event_#{:rand.uniform(1_000_000)}.json")
+    File.write!(temp_file, Jason.encode!(params, pretty: true))
+    Logger.info("Wrote webhook event to temp file: #{temp_file}")
+
     with {:ok, source} <- determine_event_source(conn, params),
          {:ok, result} <- Ingress.process_event(params, source) do
       case result do
@@ -98,7 +102,7 @@ defmodule SwarmWeb.EventController do
         {:ok, :github}
 
       # Linear webhooks include specific structure or headers
-      get_req_header(conn, "linear-event") != [] or has_linear_structure?(params) ->
+      get_req_header(conn, "linear-event") != [] ->
         {:ok, :linear}
 
       # Slack webhooks include Slack-Signature header
@@ -113,15 +117,6 @@ defmodule SwarmWeb.EventController do
       true ->
         infer_source_from_payload(params)
     end
-  end
-
-  defp has_linear_structure?(params) do
-    # Check for Linear-specific payload structure
-    is_map(params) and
-      (Map.has_key?(params, "data") and Map.has_key?(params, "action")) and
-      (get_in(params, ["data", "issue"]) != nil or
-         get_in(params, ["data", "comment"]) != nil or
-         get_in(params, ["data", "document"]) != nil)
   end
 
   defp infer_source_from_payload(params) do

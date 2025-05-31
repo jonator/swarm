@@ -7,6 +7,7 @@ defmodule Swarm.Repositories.Repository do
   alias Swarm.Projects.Project
 
   schema "repositories" do
+    # format: provider:id (e.g., github:1234556)
     field :external_id, :string
     field :name, :string
     field :owner, :string

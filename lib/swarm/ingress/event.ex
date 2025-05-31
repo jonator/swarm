@@ -68,23 +68,10 @@ defmodule Swarm.Ingress.Event do
   end
 
   defp extract_event_type(data, :linear) do
-    cond do
-      data["data"]["issue"] && data["data"]["issue"]["assignee"] ->
-        {:ok, "issue_assigned"}
-
-      data["data"]["comment"] && String.contains?(data["data"]["comment"]["body"] || "", "@swarm") ->
-        {:ok, "comment_mention"}
-
-      data["data"]["issue"] &&
-          String.contains?(data["data"]["issue"]["description"] || "", "@swarm") ->
-        {:ok, "description_mention"}
-
-      data["data"]["document"] &&
-          String.contains?(data["data"]["document"]["content"] || "", "@swarm") ->
-        {:ok, "document_mention"}
-
-      true ->
-        {:error, "Unknown Linear event type"}
+    case data["action"] do
+      nil -> {:error, "Missing action field in Linear event"}
+      action when is_binary(action) -> {:ok, action}
+      _ -> {:error, "Invalid action field in Linear event"}
     end
   end
 
@@ -118,7 +105,12 @@ defmodule Swarm.Ingress.Event do
     case Keyword.get(opts, :repository_external_id) do
       nil ->
         repo_id = get_in(data, ["repository", "id"])
-        {:ok, "github:#{repo_id}"}
+
+        if repo_id do
+          {:ok, "github:#{repo_id}"}
+        else
+          {:ok, nil}
+        end
 
       repo_id ->
         case repo_id do
@@ -157,10 +149,35 @@ defmodule Swarm.Ingress.Event do
     external_ids = %{}
 
     external_ids =
-      if data["data"]["issue"] do
-        Map.put(external_ids, :linear_issue_id, data["data"]["issue"]["id"])
-      else
-        external_ids
+      cond do
+        # New notification-based format
+        data["notification"]["issue"] ->
+          Map.put(external_ids, :linear_issue_id, data["notification"]["issue"]["id"])
+
+        # Direct issue format
+        data["data"] && data["type"] == "Issue" ->
+          Map.put(external_ids, :linear_issue_id, data["data"]["id"])
+
+        # Legacy format
+        data["data"]["issue"] ->
+          Map.put(external_ids, :linear_issue_id, data["data"]["issue"]["id"])
+
+        true ->
+          external_ids
+      end
+
+    external_ids =
+      cond do
+        # New notification-based comment format
+        data["notification"]["comment"] ->
+          Map.put(external_ids, :linear_comment_id, data["notification"]["comment"]["id"])
+
+        # Legacy comment format
+        data["data"]["comment"] ->
+          Map.put(external_ids, :linear_comment_id, data["data"]["comment"]["id"])
+
+        true ->
+          external_ids
       end
 
     {:ok, external_ids}
@@ -207,11 +224,26 @@ defmodule Swarm.Ingress.Event do
   end
 
   defp extract_linear_context(data) do
-    %{
+    base_context = %{
       action: data["action"],
       actor: data["actor"],
       data: data["data"]
     }
+
+    # Add notification data if present (new webhook format)
+    context_with_notification =
+      if data["notification"] do
+        Map.put(base_context, :notification, data["notification"])
+        |> Map.put(:actor, data["notification"]["actor"])
+      else
+        base_context
+      end
+
+    # Add organization and webhook metadata
+    context_with_notification
+    |> Map.put(:organization_id, data["organizationId"])
+    |> Map.put(:webhook_id, data["webhookId"])
+    |> Map.put(:webhook_timestamp, data["webhookTimestamp"])
   end
 
   defp extract_slack_context(data) do

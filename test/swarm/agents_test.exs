@@ -15,7 +15,6 @@ defmodule Swarm.AgentsTest do
       context: nil,
       started_at: nil,
       source: nil,
-      source_external_id: nil,
       github_pull_request_id: nil,
       github_issue_id: nil,
       linear_issue_id: nil,
@@ -41,7 +40,6 @@ defmodule Swarm.AgentsTest do
         context: "some context",
         started_at: ~N[2025-05-26 01:07:00],
         source: :frontend,
-        source_external_id: "some source_external_id",
         github_pull_request_id: "some github_pull_request_id",
         github_issue_id: "some github_issue_id",
         linear_issue_id: "some linear_issue_id",
@@ -56,7 +54,6 @@ defmodule Swarm.AgentsTest do
       assert agent.context == "some context"
       assert agent.started_at == ~N[2025-05-26 01:07:00]
       assert agent.source == :frontend
-      assert agent.source_external_id == "some source_external_id"
       assert agent.github_pull_request_id == "some github_pull_request_id"
       assert agent.github_issue_id == "some github_issue_id"
       assert agent.linear_issue_id == "some linear_issue_id"
@@ -78,7 +75,6 @@ defmodule Swarm.AgentsTest do
         context: "some updated context",
         started_at: ~N[2025-05-27 01:07:00],
         source: :linear,
-        source_external_id: "some updated source_external_id",
         github_pull_request_id: "some updated github_pull_request_id",
         github_issue_id: "some updated github_issue_id",
         linear_issue_id: "some updated linear_issue_id",
@@ -93,7 +89,6 @@ defmodule Swarm.AgentsTest do
       assert agent.context == "some updated context"
       assert agent.started_at == ~N[2025-05-27 01:07:00]
       assert agent.source == :linear
-      assert agent.source_external_id == "some updated source_external_id"
       assert agent.github_pull_request_id == "some updated github_pull_request_id"
       assert agent.github_issue_id == "some updated github_issue_id"
       assert agent.linear_issue_id == "some updated linear_issue_id"

@@ -71,20 +71,17 @@ defmodule Swarm.Ingress.GitHubHandler do
     action = context[:action]
 
     # Spawn agent for:
-    # 1. PR opened that needs review
     # 2. PR ready for review after draft
     cond do
-      action == "opened" -> true
+      # action == "opened" -> true
       action == "ready_for_review" -> true
       true -> false
     end
   end
 
-  def should_spawn_agent?(%Event{type: "push", context: context}) do
-    ref = get_in(context, [:data, "ref"])
-
-    # Spawn agent for pushes to main/master branches for automated tasks
-    ref in ["refs/heads/main", "refs/heads/master"]
+  def should_spawn_agent?(%Event{type: "push"}) do
+    # TODO: Implement push event handling
+    false
   end
 
   def should_spawn_agent?(%Event{type: "repository"}) do
@@ -174,8 +171,7 @@ defmodule Swarm.Ingress.GitHubHandler do
     %{
       type: agent_type,
       name: agent_name,
-      context: context_text,
-      source_external_id: "github:issue:#{issue["id"]}"
+      context: context_text
     }
   end
 
@@ -186,8 +182,7 @@ defmodule Swarm.Ingress.GitHubHandler do
       type: :code_reviewer,
       name: "GitHub PR Review: #{pr["title"]}",
       context:
-        "Review pull request: #{pr["title"]}\n\nDescription: #{pr["body"] || "No description provided"}",
-      source_external_id: "github:pr:#{pr["id"]}"
+        "Review pull request: #{pr["title"]}\n\nDescription: #{pr["body"] || "No description provided"}"
     }
   end
 
@@ -198,8 +193,7 @@ defmodule Swarm.Ingress.GitHubHandler do
     %{
       type: :coder,
       name: "GitHub Push Analysis",
-      context: "Analyze recent commits and suggest improvements:\n\n#{commit_messages}",
-      source_external_id: "github:push:#{get_in(context, [:data, "after"])}"
+      context: "Analyze recent commits and suggest improvements:\n\n#{commit_messages}"
     }
   end
 

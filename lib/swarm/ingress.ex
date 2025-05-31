@@ -48,8 +48,4 @@ defmodule Swarm.Ingress do
   defp route_event(%Event{source: :manual} = event) do
     ManualHandler.handle(event)
   end
-
-  defp route_event(%Event{source: unknown_source}) do
-    {:error, "Unknown event source: #{unknown_source}"}
-  end
 end

@@ -237,9 +237,6 @@ const LinkLinearOrganization = ({
       id: repositories[0].id,
       linear_team_external_ids: selectedTeams,
     })
-    toast('Teams linked!', {
-      description: 'Your teams have been successfully linked.',
-    })
     onDone()
   }
 

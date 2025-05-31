@@ -107,8 +107,7 @@ defmodule Swarm.Ingress.ManualHandler do
     manual_attrs = %{
       type: determine_agent_type(context),
       name: determine_agent_name(context),
-      context: determine_agent_context(context),
-      source_external_id: "manual:#{System.system_time(:second)}"
+      context: determine_agent_context(context)
     }
 
     # Merge project ID if specified

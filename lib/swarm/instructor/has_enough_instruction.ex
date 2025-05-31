@@ -15,6 +15,21 @@ defmodule Swarm.Instructor.HasEnoughInstruction do
   end
 
   def check(instruction) do
+    implementation_keywords = [
+      "implementation",
+      "implement",
+      "steps",
+      "todo",
+      "file",
+      "function",
+      "method",
+      "class",
+      "component",
+      "endpoint",
+      "api",
+      "database"
+    ]
+
     Instructor.chat_completion(
       [
         model: "gpt-4o-mini",
@@ -31,6 +46,9 @@ defmodule Swarm.Instructor.HasEnoughInstruction do
             Evaluate if this instruction provides enough context and specificity to begin implementation.
             Return true if the instruction is clear and detailed enough, or false if it's too vague or lacks critical information.
             Look for specific files, functions, and code blocks to implement.
+
+            Implementation Keywords:
+            #{Enum.join(implementation_keywords, ", ")}
             """
           }
         ]

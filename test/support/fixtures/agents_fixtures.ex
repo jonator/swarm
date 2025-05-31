@@ -21,7 +21,6 @@ defmodule Swarm.AgentsFixtures do
         started_at: ~N[2025-05-26 01:07:00],
         status: :pending,
         source: :frontend,
-        source_external_id: "some source_external_id",
         type: :researcher
       })
       |> Swarm.Agents.create_agent()

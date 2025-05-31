@@ -34,9 +34,19 @@ defmodule Swarm.Ingress.Permissions do
   @doc """
   Finds the user associated with an event.
 
+  TODO: when organization support is added, we may want to check authorization
+  as an app installation instead of a user.
+
   For webhook events, this may involve looking up users by external identifiers.
   For manual events, the user should be provided in the event context.
   """
+  def find_user(%Event{user_id: user_id}) when not is_nil(user_id) do
+    case Accounts.get_user(user_id) do
+      nil -> {:error, "User not found: #{user_id}"}
+      %User{} = user -> {:ok, user}
+    end
+  end
+
   def find_user(%Event{source: :manual, user_id: user_id}) when not is_nil(user_id) do
     case Accounts.get_user(user_id) do
       nil -> {:error, "User not found: #{user_id}"}
@@ -68,13 +78,6 @@ defmodule Swarm.Ingress.Permissions do
     case user_id do
       nil -> {:error, "No user ID found in Slack event"}
       slack_user_id -> find_user_by_slack_id(slack_user_id)
-    end
-  end
-
-  def find_user(%Event{user_id: user_id}) when not is_nil(user_id) do
-    case Accounts.get_user(user_id) do
-      nil -> {:error, "User not found: #{user_id}"}
-      %User{} = user -> {:ok, user}
     end
   end
 

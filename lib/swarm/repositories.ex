@@ -53,6 +53,42 @@ defmodule Swarm.Repositories do
   def get_repository!(id), do: Repo.get!(Repository, id)
 
   @doc """
+  Gets a single repository by external_id.
+
+  Returns the repository if found, otherwise returns nil.
+
+  ## Examples
+
+      iex> get_repository_by_external_id("github:123456")
+      %Repository{}
+
+      iex> get_repository_by_external_id("nonexistent")
+      nil
+
+  """
+  def get_repository_by_external_id(external_id) do
+    Repo.get_by(Repository, external_id: external_id)
+  end
+
+  @doc """
+  Gets a single repository by external_id.
+
+  Raises `Ecto.NoResultsError` if the Repository does not exist.
+
+  ## Examples
+
+      iex> get_repository_by_external_id!("github:123456")
+      %Repository{}
+
+      iex> get_repository_by_external_id!("nonexistent")
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_repository_by_external_id!(external_id) do
+    Repo.get_by!(Repository, external_id: external_id)
+  end
+
+  @doc """
   Gets a single repository for a user by repository ID or external ID.
 
   This function ensures the user has access to the repository.
