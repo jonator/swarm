@@ -180,6 +180,53 @@ defmodule Swarm.Ingress.Event do
           external_ids
       end
 
+    # Extract document ID
+    external_ids =
+      cond do
+        # New notification-based document format
+        data["notification"]["document"] ->
+          Map.put(external_ids, :linear_document_id, data["notification"]["document"]["id"])
+
+        # Alternative document ID format
+        data["notification"]["documentId"] ->
+          Map.put(external_ids, :linear_document_id, data["notification"]["documentId"])
+
+        true ->
+          external_ids
+      end
+
+    # Extract team ID
+    external_ids =
+      if data["notification"] && data["notification"]["teamId"] do
+        Map.put(external_ids, :linear_team_id, data["notification"]["teamId"])
+      else
+        external_ids
+      end
+
+    external_ids =
+      if data["notification"] && data["notification"]["issue"]["teamId"] do
+        Map.put(external_ids, :linear_team_id, data["notification"]["issue"]["teamId"])
+      else
+        external_ids
+      end
+
+    # Extract project ID
+    external_ids =
+      if data["notification"] && data["notification"]["document"] &&
+           data["notification"]["document"]["projectId"] do
+        Map.put(external_ids, :linear_project_id, data["notification"]["document"]["projectId"])
+      else
+        external_ids
+      end
+
+    # Extract app user ID
+    external_ids =
+      if data["appUserId"] do
+        Map.put(external_ids, :linear_app_user_id, data["appUserId"])
+      else
+        external_ids
+      end
+
     {:ok, external_ids}
   end
 
@@ -227,8 +274,7 @@ defmodule Swarm.Ingress.Event do
     base_context = %{
       action: data["action"],
       actor: data["actor"],
-      data: data["data"],
-      app_user_id: data["appUserId"]
+      data: data["data"]
     }
 
     # Add notification data if present (new webhook format)

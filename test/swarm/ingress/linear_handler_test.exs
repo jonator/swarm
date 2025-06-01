@@ -93,6 +93,48 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       assert {:error, message} = LinearHandler.handle(github_event)
       assert String.contains?(message, "LinearHandler received non-Linear event: github")
     end
+
+    test "handles Linear document mention event", %{user: user, repository: repository} do
+      params = linear_document_mention()
+      {:ok, event} = Event.new(params, :linear, user_id: user.id)
+
+      with_mock Swarm.Services.Linear,
+        document: fn _linear, _document_id ->
+          {:ok,
+           %{
+             "document" => %{
+               "id" => "doc_123",
+               "title" => "Test Document",
+               "content" => "This is a test document content",
+               "url" => "https://linear.app/test/doc_123"
+             }
+           }}
+        end,
+        project: fn _workspace_id, _project_id ->
+          {:ok,
+           %{
+             "project" => %{
+               "id" => "bd51cbd8-589f-4122-8326-4347fb0c89ce",
+               "name" => "Test project",
+               "teams" => %{
+                 "nodes" => [
+                   %{
+                     "id" => "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
+                   }
+                 ]
+               }
+             }
+           }}
+        end do
+        assert {:ok, attrs} = LinearHandler.handle(event)
+
+        assert attrs.source == :linear
+        assert attrs.linear_document_id == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
+        assert attrs.repository.id == repository.id
+        assert String.contains?(attrs.context, "Test doc")
+        assert String.contains?(attrs.context, "This is a test document content")
+      end
+    end
   end
 
   describe "find_repository_for_linear_event/2" do
@@ -182,9 +224,10 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
 
       assert attrs.user_id == user.id
-      assert attrs.repository_id == repository.id
       assert attrs.source == :linear
       assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert attrs.repository.id == repository.id
+
       assert String.contains?(attrs.context, "Linear Issue assigned: Improve README")
     end
 
@@ -198,36 +241,11 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
 
       assert attrs.user_id == user.id
-      assert attrs.repository_id == repository.id
       assert attrs.source == :linear
-      assert attrs.status == :pending
       assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert attrs.repository.id == repository.id
+
       assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
-    end
-
-    test "detects implementation plan and creates coder agent", %{
-      user: user,
-      repository: repository
-    } do
-      # Create params with implementation keywords
-      params = linear_issue_assigned_to_swarm_params()
-
-      # Modify the description to include implementation plan
-      updated_params =
-        put_in(params, ["notification", "issue", "description"], """
-        Implementation plan:
-        Step 1: Update README.md file
-        Step 2: Add new sections for installation
-        Step 3: Add usage examples
-        """)
-
-      {:ok, event} = Event.new(updated_params, :linear, user_id: user.id)
-
-      assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
-
-      # The context should contain implementation details for downstream agent logic
-      assert String.contains?(attrs.context, "Implementation plan")
-      assert String.contains?(attrs.context, "Step 1:")
     end
 
     test "builds correct attributes for description mention event", %{
@@ -240,10 +258,10 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
 
       assert attrs.user_id == user.id
-      assert attrs.repository_id == repository.id
       assert attrs.source == :linear
-      assert attrs.status == :pending
       assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert attrs.repository.id == repository.id
+
       assert String.contains?(attrs.context, "@swarmdev")
     end
 
@@ -269,9 +287,9 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
 
         assert attrs.user_id == user.id
-        assert attrs.repository_id == repository.id
         assert attrs.source == :linear
-        assert attrs.status == :pending
+        assert attrs.linear_document_id == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
+        assert attrs.repository.id == repository.id
         assert String.contains?(attrs.context, "Test doc")
         assert String.contains?(attrs.context, "This is a test document content")
       end

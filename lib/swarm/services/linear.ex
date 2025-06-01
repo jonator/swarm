@@ -90,6 +90,26 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  def project(%__MODULE__{access_token: %Token{token: access_token}}, project_id) do
+    query(access_token, """
+      project(id: "#{project_id}") {
+        id
+        name
+        teams {
+          nodes {
+            id
+          }
+        }
+      }
+    """)
+  end
+
+  def project(workspace_id, project_id) do
+    with {:ok, linear} <- new(workspace_id) do
+      project(linear, project_id)
+    end
+  end
+
   def has_access?(%User{} = user) do
     case access_token(user) do
       {:ok, %Token{token: _access_token}} ->

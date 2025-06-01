@@ -1,6 +1,6 @@
 defmodule Swarm.Ingress.GitHubHandler do
   @moduledoc """
-  Handles GitHub webhook events and determines when to spawn agents.
+  Handles GitHub webhook events and generates agent attributes.
 
   This handler processes various GitHub event types:
   - Pull Request events (opened, closed, etc.)
@@ -16,13 +16,13 @@ defmodule Swarm.Ingress.GitHubHandler do
   alias Swarm.Repositories
 
   @doc """
-  Handles a GitHub event and determines if an agent should be spawned.
+  Handles a GitHub event and generates agent attributes.
 
   ## Parameters
     - event: Standardized event struct from GitHub webhook
 
   ## Returns
-    - `{:ok, agent_attrs}` - Successfully built agent attributes for spawning
+    - `{:ok, agent_attrs}` - Successfully built agent attributes
     - `{:ok, :ignored}` - Event was valid but not actionable
     - `{:error, reason}` - Event processing failed
   """

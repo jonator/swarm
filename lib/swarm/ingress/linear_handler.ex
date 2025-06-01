@@ -1,6 +1,6 @@
 defmodule Swarm.Ingress.LinearHandler do
   @moduledoc """
-  Handles Linear webhook events and determines when to spawn agents.
+  Handles Linear webhook events and generates agent attributes.
 
   This handler processes various Linear event types:
   - Issue assigned to @swarm
@@ -17,13 +17,13 @@ defmodule Swarm.Ingress.LinearHandler do
   alias Swarm.Services.Linear
 
   @doc """
-  Handles a Linear event and determines if an agent should be spawned.
+  Handles a Linear event and generates agent attributes.
 
   ## Parameters
     - event: Standardized event struct from Linear webhook
 
   ## Returns
-    - `{:ok, agent}` - Successfully created and queued agent
+    - `{:ok, agent_attrs}` - Successfully created agent attributes
     - `{:ok, :ignored}` - Event was valid but not actionable
     - `{:error, reason}` - Event processing failed
   """
@@ -36,10 +36,6 @@ defmodule Swarm.Ingress.LinearHandler do
            {:ok, repository} <- find_repository_for_linear_event(user, event),
            {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
         {:ok, agent_attrs}
-      else
-        {:error, reason} = error ->
-          Logger.warning("Linear event processing failed: #{reason}")
-          error
       end
     else
       {:ok, :ignored}
@@ -64,14 +60,20 @@ defmodule Swarm.Ingress.LinearHandler do
   2. Project associations
   3. Manual configuration
   """
-  def find_repository_for_linear_event(user, %Event{context: context}) do
-    team = get_team_from_context(context)
-
-    case team do
+  def find_repository_for_linear_event(user, %Event{type: type, external_ids: external_ids}) do
+    case external_ids[:linear_team_id] do
       nil ->
-        {:error, "No team information found in Linear event"}
+        if type == "documentMention" && external_ids[:linear_project_id] do
+          find_repository_by_project_id(
+            user,
+            external_ids[:linear_app_user_id],
+            external_ids[:linear_project_id]
+          )
+        else
+          {:error, "No team information found in Linear event"}
+        end
 
-      %{"id" => team_id} ->
+      team_id ->
         find_repository_by_team_id(user, team_id)
     end
   end
@@ -98,37 +100,52 @@ defmodule Swarm.Ingress.LinearHandler do
     end
   end
 
+  defp find_repository_by_project_id(user, workspace_id, project_id) do
+    case Linear.project(workspace_id, project_id) do
+      {:ok, %{"project" => %{"teams" => %{"nodes" => teams}}}} ->
+        case teams do
+          [] ->
+            {:error,
+             "No teams available for finding repository with Linear project ID: #{project_id}"}
+
+          [team] ->
+            find_repository_by_team_id(user, team["id"])
+
+          [team | _] ->
+            Logger.warning(
+              "Multiple teams available for finding repository with Linear project ID: #{project_id}, using first team: #{team["id"]}"
+            )
+
+            find_repository_by_team_id(user, team["id"])
+        end
+
+      {:error, _reason} ->
+        {:error, "No repository found with Linear project ID: #{project_id}"}
+    end
+  end
+
   @doc """
   Builds agent attributes from the Linear event data.
   """
-  def build_agent_attributes(%Event{} = event, user, repository) do
+  def build_agent_attributes(
+        %Event{type: type, external_ids: external_ids} = event,
+        user,
+        repository
+      ) do
     base_attrs = %{
       user_id: user.id,
-      repository_id: repository.id,
       repository: repository,
-      source: :linear,
-      status: :pending
+      source: :linear
     }
 
     type_specific_attrs =
-      case event.type do
+      case type do
         "issueAssignedToYou" -> build_issue_assigned_attrs(event)
         "issueCommentMention" -> build_comment_mention_attrs(event)
         "issueMention" -> build_description_mention_attrs(event)
         "documentMention" -> build_document_mention_attrs(event)
         _ -> %{}
       end
-
-    # Extract linear_issue_id from the context
-    issue = get_issue_from_context(event.context)
-    linear_issue_id = issue["id"]
-
-    external_ids = Map.take(event.external_ids, [:linear_comment_id])
-
-    external_ids =
-      if linear_issue_id,
-        do: Map.put(external_ids, :linear_issue_id, linear_issue_id),
-        else: external_ids
 
     attrs = Map.merge(base_attrs, type_specific_attrs)
     attrs = Map.merge(attrs, external_ids)
@@ -174,10 +191,10 @@ defmodule Swarm.Ingress.LinearHandler do
     }
   end
 
-  defp build_document_mention_attrs(%Event{context: context}) do
+  defp build_document_mention_attrs(%Event{context: context, external_ids: external_ids}) do
     document = get_in(context, [:notification, "document"])
-    document_id = document["id"]
-    app_user_id = context[:app_user_id]
+    document_id = external_ids[:linear_document_id]
+    app_user_id = external_ids[:linear_app_user_id]
 
     # Fetch document content from Linear if we have the necessary IDs
     document_content =
@@ -252,11 +269,6 @@ defmodule Swarm.Ingress.LinearHandler do
       true ->
         %{}
     end
-  end
-
-  defp get_team_from_context(context) do
-    issue = get_issue_from_context(context)
-    get_in(issue, ["team"])
   end
 
   defp build_issue_context(issue, action) do
