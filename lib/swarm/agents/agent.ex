@@ -27,6 +27,7 @@ defmodule Swarm.Agents.Agent do
     field :github_pull_request_id, :string
     field :github_issue_id, :string
     field :linear_issue_id, :string
+    field :linear_document_id, :string
     field :slack_thread_id, :string
     field :started_at, :naive_datetime
     field :completed_at, :naive_datetime
@@ -51,6 +52,7 @@ defmodule Swarm.Agents.Agent do
       :github_pull_request_id,
       :github_issue_id,
       :linear_issue_id,
+      :linear_document_id,
       :slack_thread_id,
       :started_at,
       :completed_at

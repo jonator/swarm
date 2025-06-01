@@ -18,6 +18,7 @@ defmodule Swarm.AgentsTest do
       github_pull_request_id: nil,
       github_issue_id: nil,
       linear_issue_id: nil,
+      linear_document_id: nil,
       slack_thread_id: nil,
       completed_at: nil
     }
@@ -43,6 +44,7 @@ defmodule Swarm.AgentsTest do
         github_pull_request_id: "some github_pull_request_id",
         github_issue_id: "some github_issue_id",
         linear_issue_id: "some linear_issue_id",
+        linear_document_id: "some linear_document_id",
         slack_thread_id: "some slack_thread_id",
         completed_at: ~N[2025-05-26 01:07:00]
       }
@@ -57,6 +59,7 @@ defmodule Swarm.AgentsTest do
       assert agent.github_pull_request_id == "some github_pull_request_id"
       assert agent.github_issue_id == "some github_issue_id"
       assert agent.linear_issue_id == "some linear_issue_id"
+      assert agent.linear_document_id == "some linear_document_id"
       assert agent.slack_thread_id == "some slack_thread_id"
       assert agent.completed_at == ~N[2025-05-26 01:07:00]
     end
@@ -78,6 +81,7 @@ defmodule Swarm.AgentsTest do
         github_pull_request_id: "some updated github_pull_request_id",
         github_issue_id: "some updated github_issue_id",
         linear_issue_id: "some updated linear_issue_id",
+        linear_document_id: "some updated linear_document_id",
         slack_thread_id: "some updated slack_thread_id",
         completed_at: ~N[2025-05-27 01:07:00]
       }
@@ -92,6 +96,7 @@ defmodule Swarm.AgentsTest do
       assert agent.github_pull_request_id == "some updated github_pull_request_id"
       assert agent.github_issue_id == "some updated github_issue_id"
       assert agent.linear_issue_id == "some updated linear_issue_id"
+      assert agent.linear_document_id == "some updated linear_document_id"
       assert agent.slack_thread_id == "some updated slack_thread_id"
       assert agent.completed_at == ~N[2025-05-27 01:07:00]
     end

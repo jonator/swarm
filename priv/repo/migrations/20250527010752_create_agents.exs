@@ -11,6 +11,7 @@ defmodule Swarm.Repo.Migrations.CreateAgents do
       add :github_pull_request_id, :string
       add :github_issue_id, :string
       add :linear_issue_id, :string
+      add :linear_document_id, :string
       add :slack_thread_id, :string
       add :started_at, :naive_datetime
       add :completed_at, :naive_datetime
