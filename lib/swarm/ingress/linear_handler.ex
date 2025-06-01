@@ -31,9 +31,7 @@ defmodule Swarm.Ingress.LinearHandler do
     Logger.info("Processing Linear event: #{event.type}")
 
     # Check if event is relevant first
-    if not is_relevant_event?(event) do
-      {:ok, :ignored}
-    else
+    if relevant_event?(event) do
       with {:ok, user} <- Permissions.validate_user_access(event),
            {:ok, repository} <- find_repository_for_linear_event(user, event),
            {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
@@ -46,6 +44,8 @@ defmodule Swarm.Ingress.LinearHandler do
           Logger.warning("Linear event processing failed: #{reason}")
           error
       end
+    else
+      {:ok, :ignored}
     end
   end
 
@@ -53,11 +53,11 @@ defmodule Swarm.Ingress.LinearHandler do
     {:error, "LinearHandler received non-Linear event: #{other_source}"}
   end
 
-  def is_relevant_event?(%Event{type: "issueAssignedToYou"}), do: true
-  def is_relevant_event?(%Event{type: "issueCommentMention"}), do: true
-  def is_relevant_event?(%Event{type: "issueMention"}), do: true
-  def is_relevant_event?(%Event{type: "documentMention"}), do: true
-  def is_relevant_event?(_), do: false
+  def relevant_event?(%Event{type: "issueAssignedToYou"}), do: true
+  def relevant_event?(%Event{type: "issueCommentMention"}), do: true
+  def relevant_event?(%Event{type: "issueMention"}), do: true
+  def relevant_event?(%Event{type: "documentMention"}), do: true
+  def relevant_event?(_), do: false
 
   @doc """
   Determines if an agent should be spawned for this Linear event.

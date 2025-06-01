@@ -1,4 +1,10 @@
 defmodule Swarm.Agents.Message do
+  @moduledoc """
+  Schema for agent messages that represent communication during agent execution.
+
+  Messages follow the LangChain message format with types for system, user, assistant, and tool messages.
+  Each message belongs to an agent and contains content and metadata for conversation tracking.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

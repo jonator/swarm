@@ -16,10 +16,12 @@ defmodule Swarm.Services.Linear do
   Creates a new Linear service instance for the given user with user access token.
   """
   def new(%User{} = user) do
-    with {:ok, %Token{token: _access_token} = token} <- access_token(user) do
-      {:ok, %__MODULE__{access_token: token}}
-    else
-      {:unauthorized, reason} -> {:unauthorized, "Unauthorized with Linear: #{reason}"}
+    case access_token(user) do
+      {:ok, %Token{token: _access_token} = token} ->
+        {:ok, %__MODULE__{access_token: token}}
+
+      {:unauthorized, reason} ->
+        {:unauthorized, "Unauthorized with Linear: #{reason}"}
     end
   end
 
@@ -62,10 +64,12 @@ defmodule Swarm.Services.Linear do
   end
 
   def has_access?(%User{} = user) do
-    with {:ok, %Token{token: _access_token}} <- access_token(user) do
-      {:ok, true}
-    else
-      {:unauthorized, _reason} -> {:ok, false}
+    case access_token(user) do
+      {:ok, %Token{token: _access_token}} ->
+        {:ok, true}
+
+      {:unauthorized, _reason} ->
+        {:ok, false}
     end
   end
 

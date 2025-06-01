@@ -45,8 +45,6 @@ defmodule SwarmWeb.RepositoryController do
   end
 
   def update(conn, %{"id" => id} = attrs, user) do
-    IO.inspect(attrs)
-
     with {:ok, repository} <- Repositories.update_repository(user, id, attrs) do
       conn
       |> put_status(:ok)

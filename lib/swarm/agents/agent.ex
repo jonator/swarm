@@ -1,4 +1,15 @@
 defmodule Swarm.Agents.Agent do
+  @moduledoc """
+  Schema for AI coding agents that can be spawned to work on repositories.
+
+  Agents represent autonomous AI workers that can perform different types of tasks:
+  - Researcher: Analyze code and provide insights
+  - Coder: Implement features and fix bugs
+  - Code Reviewer: Review pull requests and provide feedback
+
+  Agents are triggered from various sources (Linear, GitHub, Slack, manual) and work
+  within the context of specific repositories and projects.
+  """
   use Ecto.Schema
   import Ecto.Changeset
 

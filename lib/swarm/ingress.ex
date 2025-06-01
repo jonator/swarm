@@ -26,9 +26,8 @@ defmodule Swarm.Ingress do
     - `{:error, reason}` - Event processing failed
   """
   def process_event(event_data, source, opts \\ []) do
-    with {:ok, event} <- Event.new(event_data, source, opts),
-         {:ok, result} <- route_event(event) do
-      {:ok, result}
+    with {:ok, event} <- Event.new(event_data, source, opts) do
+      route_event(event)
     end
   end
 

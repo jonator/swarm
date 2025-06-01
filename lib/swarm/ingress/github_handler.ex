@@ -72,10 +72,10 @@ defmodule Swarm.Ingress.GitHubHandler do
 
     # Spawn agent for:
     # 2. PR ready for review after draft
-    cond do
-      # action == "opened" -> true
-      action == "ready_for_review" -> true
-      true -> false
+    if action == "ready_for_review" do
+      true
+    else
+      false
     end
   end
 
@@ -188,7 +188,7 @@ defmodule Swarm.Ingress.GitHubHandler do
 
   defp build_push_agent_attrs(%Event{context: context}) do
     commits = get_in(context, [:data, "commits"]) || []
-    commit_messages = Enum.map(commits, & &1["message"]) |> Enum.join("\n")
+    commit_messages = Enum.map_join(commits, "\n", & &1["message"])
 
     %{
       type: :coder,

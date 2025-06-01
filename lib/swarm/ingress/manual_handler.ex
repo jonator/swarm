@@ -180,29 +180,40 @@ defmodule Swarm.Ingress.ManualHandler do
     requirements = context[:requirements] || context["requirements"] || ""
     files = context[:files] || context["files"] || []
 
-    context_parts = []
-
     context_parts =
-      if description != "",
-        do: ["Description:\n#{description}" | context_parts],
-        else: context_parts
-
-    context_parts =
-      if requirements != "",
-        do: ["Requirements:\n#{requirements}" | context_parts],
-        else: context_parts
-
-    context_parts =
-      if length(files) > 0 do
-        files_text = files |> Enum.join(", ")
-        ["Files to focus on: #{files_text}" | context_parts]
-      else
-        context_parts
-      end
+      []
+      |> add_description_part(description)
+      |> add_requirements_part(requirements)
+      |> add_files_part(files)
 
     case context_parts do
       [] -> "Manual agent request - no specific context provided"
       parts -> Enum.reverse(parts) |> Enum.join("\n\n")
+    end
+  end
+
+  defp add_description_part(context_parts, description) do
+    if description != "" do
+      ["Description:\n#{description}" | context_parts]
+    else
+      context_parts
+    end
+  end
+
+  defp add_requirements_part(context_parts, requirements) do
+    if requirements != "" do
+      ["Requirements:\n#{requirements}" | context_parts]
+    else
+      context_parts
+    end
+  end
+
+  defp add_files_part(context_parts, files) do
+    if length(files) > 0 do
+      files_text = files |> Enum.join(", ")
+      ["Files to focus on: #{files_text}" | context_parts]
+    else
+      context_parts
     end
   end
 
