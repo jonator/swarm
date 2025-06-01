@@ -13,10 +13,20 @@ defmodule Swarm.Services.Linear do
   end
 
   @doc """
-  Creates a new Linear service instance for the given user with user access token.
+  Creates a new Linear service instance for the given user or app user id.
   """
   def new(%User{} = user) do
     case access_token(user) do
+      {:ok, %Token{token: _access_token} = token} ->
+        {:ok, %__MODULE__{access_token: token}}
+
+      {:unauthorized, reason} ->
+        {:unauthorized, "Unauthorized with Linear: #{reason}"}
+    end
+  end
+
+  def new(app_user_id) do
+    case access_token(app_user_id) do
       {:ok, %Token{token: _access_token} = token} ->
         {:ok, %__MODULE__{access_token: token}}
 
@@ -48,8 +58,8 @@ defmodule Swarm.Services.Linear do
     end
   end
 
-  def organization(%__MODULE__{} = linear) do
-    query(linear, """
+  def organization(%__MODULE__{access_token: %Token{token: access_token}}) do
+    query(access_token, """
       organization {
         id
         name
@@ -63,6 +73,23 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
+  def document(%__MODULE__{access_token: %Token{token: access_token}}, document_id) do
+    query(access_token, """
+      document(id: "#{document_id}") {
+        id
+        title
+        url
+        content
+      }
+    """)
+  end
+
+  def document(workspace_id, document_id) do
+    with {:ok, linear} <- new(workspace_id) do
+      document(linear, document_id)
+    end
+  end
+
   def has_access?(%User{} = user) do
     case access_token(user) do
       {:ok, %Token{token: _access_token}} ->
@@ -73,7 +100,7 @@ defmodule Swarm.Services.Linear do
     end
   end
 
-  defp query(%__MODULE__{access_token: %Token{token: access_token}}, query) do
+  defp query(access_token, query) do
     with {:ok, %Req.Response{status: 200, body: %{"data" => data}}} <-
            Req.new(base_url: "https://api.linear.app/graphql")
            |> Req.Request.put_header("Authorization", "Bearer #{access_token}")
@@ -98,6 +125,16 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  defp access_token(app_user_id) do
+    case Accounts.get_token_by_linear_workspace_external_id(app_user_id) do
+      nil ->
+        {:unauthorized, "No access token found for app user #{app_user_id}"}
+
+      %Token{} = token ->
+        {:ok, token}
+    end
+  end
+
   defp linear_login(%User{} = user, params) do
     form =
       [
@@ -117,11 +154,18 @@ defmodule Swarm.Services.Linear do
            "expires_in" => expires_in,
            "scope" => _scope
          } <- body,
+         {:ok, %{"viewer" => viewer}} <-
+           query(access_token, """
+            viewer {
+              id
+            }
+           """),
          {:ok, fresh_access_token} <-
            Accounts.save_token(user, %{
              token: access_token,
              expires_in: expires_in,
              context: :linear,
+             linear_workspace_external_id: viewer["id"],
              type: :access
            }) do
       {:ok, user, fresh_access_token}

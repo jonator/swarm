@@ -236,4 +236,10 @@ defmodule Swarm.Accounts do
     |> where(context: ^context)
     |> Repo.delete_all()
   end
+
+  def get_token_by_linear_workspace_external_id(external_id) do
+    Token
+    |> where(linear_workspace_external_id: ^external_id)
+    |> Repo.one()
+  end
 end

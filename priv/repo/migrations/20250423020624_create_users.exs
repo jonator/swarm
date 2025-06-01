@@ -11,18 +11,21 @@ defmodule Swarm.Repo.Migrations.CreateUsers do
       timestamps()
     end
 
-    create unique_index(:users, [:email, :username])
+    create unique_index(:users, [:email])
+    create unique_index(:users, [:username])
 
     create table(:tokens) do
       add :user_id, references(:users, on_delete: :delete_all), null: false
       add :token, :string, null: false
       add :context, :string, null: false
       add :type, :string, null: false
+      add :linear_workspace_external_id, :string
       add :expires, :utc_datetime, null: false
 
       timestamps()
     end
 
     create index(:tokens, [:user_id])
+    create index(:tokens, [:linear_workspace_external_id])
   end
 end

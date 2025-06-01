@@ -71,7 +71,9 @@ defmodule Swarm.MixProject do
       {:req, "~> 0.5.10"},
       {:tentacat, "~> 2.5.0"},
       {:joken, "~> 2.6.2"},
-      {:absinthe_client, "~> 0.1.1"}
+      {:absinthe_client, "~> 0.1.1"},
+      {:mock, "~> 0.3.9", only: :test},
+      {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false}
     ]
   end
 

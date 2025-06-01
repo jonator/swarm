@@ -185,36 +185,36 @@ defmodule Swarm.EventsFixtures do
     "appUserId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
     "createdAt": "2025-05-31T21:52:43.625Z",
     "notification": {
-    "actor": {
-      "avatarUrl": "https://public.linear.app/f15f0e68-9424-4add-b7c6-1d318e455719/79589ad0-a8cf-4250-829c-807be084c051",
-      "email": "jonathanator0@gmail.com",
-      "id": "f15f0e68-9424-4add-b7c6-1d318e455719",
-      "name": "Jonathan Ator",
-      "url": "https://linear.app/swarmai/profiles/jonathanator0"
-    },
-    "actorId": "f15f0e68-9424-4add-b7c6-1d318e455719",
-    "archivedAt": null,
-    "createdAt": "2025-05-31T21:52:43.596Z",
-    "document": {
-      "id": "f433ebff-9cd0-4057-867a-2ab6e528a12d",
-      "project": {
-        "id": "bd51cbd8-589f-4122-8326-4347fb0c89ce",
-        "name": "Test project",
-        "url": "https://linear.app/swarmai/project/test-project-3f0905925071"
+      "actor": {
+        "avatarUrl": "https://public.linear.app/f15f0e68-9424-4add-b7c6-1d318e455719/79589ad0-a8cf-4250-829c-807be084c051",
+        "email": "jonathanator0@gmail.com",
+        "id": "f15f0e68-9424-4add-b7c6-1d318e455719",
+        "name": "Jonathan Ator",
+        "url": "https://linear.app/swarmai/profiles/jonathanator0"
       },
-      "projectId": "bd51cbd8-589f-4122-8326-4347fb0c89ce",
-      "title": "Test doc"
-    },
-    "documentId": "f433ebff-9cd0-4057-867a-2ab6e528a12d",
-    "emailedAt": null,
-    "externalUserActorId": null,
-    "id": "540899ec-b1a0-44fe-873f-f1ad047cfd72",
-    "readAt": null,
-    "snoozedUntilAt": null,
-    "type": "documentMention",
-    "unsnoozedAt": null,
-    "updatedAt": "2025-05-31T21:52:43.596Z",
-    "userId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      "actorId": "f15f0e68-9424-4add-b7c6-1d318e455719",
+      "archivedAt": null,
+      "createdAt": "2025-05-31T21:52:43.596Z",
+      "document": {
+        "id": "f433ebff-9cd0-4057-867a-2ab6e528a12d",
+        "project": {
+          "id": "bd51cbd8-589f-4122-8326-4347fb0c89ce",
+          "name": "Test project",
+          "url": "https://linear.app/swarmai/project/test-project-3f0905925071"
+        },
+        "projectId": "bd51cbd8-589f-4122-8326-4347fb0c89ce",
+        "title": "Test doc"
+      },
+      "documentId": "f433ebff-9cd0-4057-867a-2ab6e528a12d",
+      "emailedAt": null,
+      "externalUserActorId": null,
+      "id": "540899ec-b1a0-44fe-873f-f1ad047cfd72",
+      "readAt": null,
+      "snoozedUntilAt": null,
+      "type": "documentMention",
+      "unsnoozedAt": null,
+      "updatedAt": "2025-05-31T21:52:43.596Z",
+      "userId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
     },
     "oauthClientId": "766dc2d9-8ff7-4bc8-bf2b-c6e2ce32cb72",
     "organizationId": "4fde7f37-de48-4d5c-93fb-473c8f24d4cb",

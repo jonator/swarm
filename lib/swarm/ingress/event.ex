@@ -227,7 +227,8 @@ defmodule Swarm.Ingress.Event do
     base_context = %{
       action: data["action"],
       actor: data["actor"],
-      data: data["data"]
+      data: data["data"],
+      app_user_id: data["appUserId"]
     }
 
     # Add notification data if present (new webhook format)

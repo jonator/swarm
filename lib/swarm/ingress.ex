@@ -26,12 +26,14 @@ defmodule Swarm.Ingress do
     - `{:error, reason}` - Event processing failed
   """
   def process_event(event_data, source, opts \\ []) do
-    with {:ok, event} <- Event.new(event_data, source, opts) do
-      route_event(event)
+    with {:ok, event} <- Event.new(event_data, source, opts),
+         {:ok, agent_attrs} <- route_event(event) do
+      {:ok, agent_attrs}
     end
   end
 
   # Routes an event to the appropriate handler based on its source.
+  # Returns attributes used for spawning an agent.
   defp route_event(%Event{source: :github} = event) do
     GitHubHandler.handle(event)
   end

@@ -13,7 +13,6 @@ defmodule Swarm.Ingress.GitHubHandler do
 
   alias Swarm.Ingress.Event
   alias Swarm.Ingress.Permissions
-  alias Swarm.Agents
   alias Swarm.Repositories
 
   @doc """
@@ -23,24 +22,26 @@ defmodule Swarm.Ingress.GitHubHandler do
     - event: Standardized event struct from GitHub webhook
 
   ## Returns
-    - `{:ok, agent}` - Successfully created and queued agent
+    - `{:ok, agent_attrs}` - Successfully built agent attributes for spawning
     - `{:ok, :ignored}` - Event was valid but not actionable
     - `{:error, reason}` - Event processing failed
   """
   def handle(%Event{source: :github} = event) do
     Logger.info("Processing GitHub event: #{event.type}")
 
-    with {:ok, user} <- Permissions.validate_user_access(event),
-         {:ok, repository} <- find_or_create_repository(user, event),
-         {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
-      case should_spawn_agent?(event) do
-        true -> spawn_agent(agent_attrs)
-        false -> {:ok, :ignored}
+    # Check if event is relevant first
+    if relevant_event?(event) do
+      with {:ok, user} <- Permissions.validate_user_access(event),
+           {:ok, repository} <- find_or_create_repository(user, event),
+           {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
+        {:ok, agent_attrs}
+      else
+        {:error, reason} = error ->
+          Logger.warning("GitHub event processing failed: #{reason}")
+          error
       end
     else
-      {:error, reason} = error ->
-        Logger.warning("GitHub event processing failed: #{reason}")
-        error
+      {:ok, :ignored}
     end
   end
 
@@ -49,47 +50,43 @@ defmodule Swarm.Ingress.GitHubHandler do
   end
 
   @doc """
-  Determines if an agent should be spawned for this GitHub event.
+  Determines if an event is relevant for processing.
   """
-  def should_spawn_agent?(%Event{type: "issue", context: context}) do
+  def relevant_event?(%Event{type: "issue", context: context}) do
     action = context[:action]
     issue = get_in(context, [:data, "issue"])
 
-    # Spawn agent if:
-    # 1. Issue was opened and contains implementation details
+    # Process events for:
+    # 1. Issue was opened
     # 2. Issue was assigned to @swarm
     # 3. Issue comment mentions @swarm
     cond do
-      action == "opened" && has_implementation_plan?(issue) -> true
+      action == "opened" -> true
       action == "assigned" && assigned_to_swarm?(issue) -> true
       action == "created" && mentions_swarm?(get_in(context, [:data, "comment"])) -> true
       true -> false
     end
   end
 
-  def should_spawn_agent?(%Event{type: "pull_request", context: context}) do
+  def relevant_event?(%Event{type: "pull_request", context: context}) do
     action = context[:action]
 
-    # Spawn agent for:
-    # 2. PR ready for review after draft
-    if action == "ready_for_review" do
-      true
-    else
-      false
-    end
+    # Process events for:
+    # PR ready for review after draft
+    action == "ready_for_review"
   end
 
-  def should_spawn_agent?(%Event{type: "push"}) do
+  def relevant_event?(%Event{type: "push"}) do
     # TODO: Implement push event handling
     false
   end
 
-  def should_spawn_agent?(%Event{type: "repository"}) do
-    # Don't spawn agents for repository events by default
+  def relevant_event?(%Event{type: "repository"}) do
+    # Don't process repository events by default
     false
   end
 
-  def should_spawn_agent?(_event) do
+  def relevant_event?(_event) do
     false
   end
 
@@ -134,7 +131,7 @@ defmodule Swarm.Ingress.GitHubHandler do
   def build_agent_attributes(%Event{} = event, user, repository) do
     base_attrs = %{
       user_id: user.id,
-      repository_id: repository.id,
+      repository: repository,
       source: :github,
       status: :pending
     }
@@ -159,18 +156,9 @@ defmodule Swarm.Ingress.GitHubHandler do
     issue = get_in(context, [:data, "issue"])
     action = context[:action]
 
-    {agent_type, agent_name} =
-      if has_implementation_plan?(issue) do
-        {:coder, "GitHub Issue Implementation: #{issue["title"]}"}
-      else
-        {:researcher, "GitHub Issue Research: #{issue["title"]}"}
-      end
-
     context_text = build_issue_context(issue, action)
 
     %{
-      type: agent_type,
-      name: agent_name,
       context: context_text
     }
   end
@@ -179,8 +167,6 @@ defmodule Swarm.Ingress.GitHubHandler do
     pr = get_in(context, [:data, "pull_request"])
 
     %{
-      type: :code_reviewer,
-      name: "GitHub PR Review: #{pr["title"]}",
       context:
         "Review pull request: #{pr["title"]}\n\nDescription: #{pr["body"] || "No description provided"}"
     }
@@ -191,61 +177,17 @@ defmodule Swarm.Ingress.GitHubHandler do
     commit_messages = Enum.map_join(commits, "\n", & &1["message"])
 
     %{
-      type: :coder,
-      name: "GitHub Push Analysis",
       context: "Analyze recent commits and suggest improvements:\n\n#{commit_messages}"
     }
   end
 
   defp build_default_agent_attrs(_event) do
     %{
-      type: :researcher,
-      name: "GitHub Event Analysis",
       context: "Analyze GitHub event and determine next steps"
     }
   end
 
-  defp spawn_agent(agent_attrs) do
-    case Agents.create_agent(agent_attrs) do
-      {:ok, agent} ->
-        Logger.info("Created agent #{agent.id} for GitHub event")
-
-        # TODO: Queue the agent job with Oban
-        # This would integrate with the existing worker system
-
-        {:ok, agent}
-
-      {:error, changeset} ->
-        Logger.error("Failed to create agent: #{inspect(changeset)}")
-        {:error, "Failed to create agent"}
-    end
-  end
-
   # Helper functions for event analysis
-
-  defp has_implementation_plan?(issue) do
-    body = issue["body"] || ""
-    title = issue["title"] || ""
-
-    # Check for implementation indicators
-    implementation_keywords = [
-      "implementation",
-      "implement",
-      "steps:",
-      "todo:",
-      "file:",
-      "function:",
-      "method:",
-      "class:",
-      "component:",
-      "endpoint:",
-      "api:",
-      "database"
-    ]
-
-    text = String.downcase("#{title} #{body}")
-    Enum.any?(implementation_keywords, &String.contains?(text, &1))
-  end
 
   defp assigned_to_swarm?(issue) do
     assignees = issue["assignees"] || []

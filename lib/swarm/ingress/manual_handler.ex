@@ -12,7 +12,6 @@ defmodule Swarm.Ingress.ManualHandler do
 
   alias Swarm.Ingress.Event
   alias Swarm.Ingress.Permissions
-  alias Swarm.Agents
   alias Swarm.Repositories
 
   @doc """
@@ -22,7 +21,7 @@ defmodule Swarm.Ingress.ManualHandler do
     - event: Standardized event struct from manual trigger
 
   ## Returns
-    - `{:ok, agent}` - Successfully created and queued agent
+    - `{:ok, agent_attrs}` - Successfully built agent attributes for spawning
     - `{:error, reason}` - Event processing failed
   """
   def handle(%Event{source: :manual} = event) do
@@ -31,7 +30,7 @@ defmodule Swarm.Ingress.ManualHandler do
     with {:ok, user} <- Permissions.validate_user_access(event),
          {:ok, repository} <- find_repository(user, event),
          {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
-      spawn_agent(agent_attrs)
+      agent_attrs
     else
       {:error, reason} = error ->
         Logger.warning("Manual agent spawn failed: #{reason}")
@@ -99,14 +98,13 @@ defmodule Swarm.Ingress.ManualHandler do
     base_attrs = %{
       user_id: user.id,
       repository_id: repository.id,
+      repository: repository,
       source: :manual,
       status: :pending
     }
 
     # Extract manual request specific attributes
     manual_attrs = %{
-      type: determine_agent_type(context),
-      name: determine_agent_name(context),
       context: determine_agent_context(context)
     }
 
@@ -121,57 +119,6 @@ defmodule Swarm.Ingress.ManualHandler do
     attrs = Map.merge(attrs, project_attrs)
 
     {:ok, attrs}
-  end
-
-  defp determine_agent_type(context) do
-    case context[:agent_type] || context["agent_type"] do
-      "researcher" ->
-        :researcher
-
-      "coder" ->
-        :coder
-
-      "code_reviewer" ->
-        :code_reviewer
-
-      nil ->
-        # Auto-detect based on context
-        if has_implementation_details?(context) do
-          :coder
-        else
-          :researcher
-        end
-
-      other ->
-        Logger.warning("Unknown agent type: #{other}, defaulting to researcher")
-        :researcher
-    end
-  end
-
-  defp determine_agent_name(context) do
-    case context[:name] || context["name"] do
-      nil ->
-        case context[:description] || context["description"] do
-          nil ->
-            "Manual Agent Request"
-
-          desc when is_binary(desc) ->
-            # Generate name from first line of description
-            desc
-            |> String.split("\n")
-            |> List.first()
-            |> String.slice(0, 100)
-
-          _ ->
-            "Manual Agent Request"
-        end
-
-      name when is_binary(name) ->
-        name
-
-      _ ->
-        "Manual Agent Request"
-    end
   end
 
   defp determine_agent_context(context) do
@@ -215,51 +162,5 @@ defmodule Swarm.Ingress.ManualHandler do
     else
       context_parts
     end
-  end
-
-  defp spawn_agent(agent_attrs) do
-    case Agents.create_agent(agent_attrs) do
-      {:ok, agent} ->
-        Logger.info("Created manual agent #{agent.id}")
-
-        # TODO: Queue the agent job with Oban
-        # This would integrate with the existing worker system
-
-        {:ok, agent}
-
-      {:error, changeset} ->
-        Logger.error("Failed to create manual agent: #{inspect(changeset)}")
-        {:error, "Failed to create agent"}
-    end
-  end
-
-  # Helper functions
-
-  defp has_implementation_details?(context) do
-    text = "#{context[:description] || ""} #{context[:requirements] || ""}"
-
-    implementation_keywords = [
-      "implement",
-      "implementation",
-      "create",
-      "build",
-      "add",
-      "modify",
-      "update",
-      "fix",
-      "file:",
-      "function:",
-      "method:",
-      "class:",
-      "component:",
-      "endpoint:",
-      "api:",
-      "database",
-      "step 1",
-      "step 2"
-    ]
-
-    text_lower = String.downcase(text)
-    Enum.any?(implementation_keywords, &String.contains?(text_lower, &1))
   end
 end

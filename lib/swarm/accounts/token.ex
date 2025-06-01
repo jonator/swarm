@@ -7,6 +7,7 @@ defmodule Swarm.Accounts.Token do
     field :token, :string
     field :context, Ecto.Enum, values: [:github, :linear]
     field :type, Ecto.Enum, values: [:access, :refresh]
+    field :linear_workspace_external_id, :string
     field :expires, :utc_datetime
 
     belongs_to :user, Swarm.Accounts.User
@@ -16,7 +17,7 @@ defmodule Swarm.Accounts.Token do
 
   def changeset(token, attrs) do
     token
-    |> cast(attrs, [:token, :context, :type, :expires])
+    |> cast(attrs, [:token, :context, :type, :linear_workspace_external_id, :expires])
     |> validate_required([:token, :context, :type, :expires])
   end
 

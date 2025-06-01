@@ -13,8 +13,8 @@ defmodule Swarm.Ingress.LinearHandler do
 
   alias Swarm.Ingress.Event
   alias Swarm.Ingress.Permissions
-  alias Swarm.Agents
   alias Swarm.Repositories
+  alias Swarm.Services.Linear
 
   @doc """
   Handles a Linear event and determines if an agent should be spawned.
@@ -35,10 +35,7 @@ defmodule Swarm.Ingress.LinearHandler do
       with {:ok, user} <- Permissions.validate_user_access(event),
            {:ok, repository} <- find_repository_for_linear_event(user, event),
            {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
-        case should_spawn_agent?(event) do
-          true -> spawn_agent(agent_attrs)
-          false -> {:ok, :ignored}
-        end
+        {:ok, agent_attrs}
       else
         {:error, reason} = error ->
           Logger.warning("Linear event processing failed: #{reason}")
@@ -58,41 +55,6 @@ defmodule Swarm.Ingress.LinearHandler do
   def relevant_event?(%Event{type: "issueMention"}), do: true
   def relevant_event?(%Event{type: "documentMention"}), do: true
   def relevant_event?(_), do: false
-
-  @doc """
-  Determines if an agent should be spawned for this Linear event.
-  """
-  def should_spawn_agent?(%Event{type: "issueAssignedToYou", context: _context}) do
-    # For the new notification format, if we receive an "issueAssignedToYou" action,
-    # it means it was assigned to the app user (which should be Swarm)
-    true
-  end
-
-  def should_spawn_agent?(%Event{type: "issueCommentMention", context: context}) do
-    # Handle both new notification format and legacy format
-    comment = get_comment_from_context(context)
-
-    # Always spawn for @swarm mentions in comments
-    mentions_swarm?(comment["body"])
-  end
-
-  def should_spawn_agent?(%Event{type: "issueMention", context: context}) do
-    # Handle both new notification format and legacy format
-    issue = get_issue_from_context(context)
-
-    # Always spawn for @swarm mentions in descriptions
-    mentions_swarm?(issue["description"])
-  end
-
-  def should_spawn_agent?(%Event{type: "documentMention", context: _context}) do
-    # For documentMention events, the fact that we received this webhook
-    # means @swarm was mentioned in the document, so always spawn
-    true
-  end
-
-  def should_spawn_agent?(_event) do
-    false
-  end
 
   @doc """
   Finds the repository associated with a Linear event.
@@ -145,9 +107,7 @@ defmodule Swarm.Ingress.LinearHandler do
       repository_id: repository.id,
       repository: repository,
       source: :linear,
-      status: :pending,
-      name: build_agent_name(event),
-      type: determine_agent_type(event)
+      status: :pending
     }
 
     type_specific_attrs =
@@ -207,7 +167,6 @@ defmodule Swarm.Ingress.LinearHandler do
 
   defp build_description_mention_attrs(%Event{context: context}) do
     issue = get_issue_from_context(context)
-
     context_text = build_issue_context(issue, "mentioned in description")
 
     %{
@@ -217,6 +176,31 @@ defmodule Swarm.Ingress.LinearHandler do
 
   defp build_document_mention_attrs(%Event{context: context}) do
     document = get_in(context, [:notification, "document"])
+    document_id = document["id"]
+    app_user_id = context[:app_user_id]
+
+    # Fetch document content from Linear if we have the necessary IDs
+    document_content =
+      if document_id && app_user_id do
+        case Linear.document(app_user_id, document_id) do
+          {:ok, %{"document" => doc_data}} ->
+            doc_data["content"] || "Document content unavailable"
+
+          {:error, _reason} ->
+            "Unable to fetch document content - API error"
+
+          {:unauthorized, _reason} ->
+            "Unable to fetch document content - unauthorized"
+
+          {:ok, %{status: status}} when status != 200 ->
+            "Unable to fetch document content - HTTP #{status}"
+
+          _other ->
+            "Unable to fetch document content - unknown error"
+        end
+      else
+        "Document content unavailable - missing document ID or app user ID"
+      end
 
     context_text = """
     Linear Document Mention: #{document["title"]}
@@ -224,27 +208,14 @@ defmodule Swarm.Ingress.LinearHandler do
     @swarm was mentioned in this document.
 
     Document URL: #{document["url"] || "No URL available"}
+
+    Document Content:
+    #{document_content}
     """
 
     %{
       context: context_text
     }
-  end
-
-  defp spawn_agent(agent_attrs) do
-    case Agents.create_agent(agent_attrs) do
-      {:ok, agent} ->
-        Logger.info("Created agent #{agent.id} for Linear event")
-
-        # TODO: Queue the agent job with Oban
-        # This would integrate with the existing worker system
-
-        {:ok, agent}
-
-      {:error, changeset} ->
-        Logger.error("Failed to create agent: #{inspect(changeset)}")
-        {:error, "Failed to create agent"}
-    end
   end
 
   # Helper functions for event analysis
@@ -288,12 +259,6 @@ defmodule Swarm.Ingress.LinearHandler do
     get_in(issue, ["team"])
   end
 
-  defp mentions_swarm?(nil), do: false
-
-  defp mentions_swarm?(text) do
-    String.contains?(String.downcase(text), "@swarm")
-  end
-
   defp build_issue_context(issue, action) do
     """
     Linear Issue #{action}: #{issue["title"]}
@@ -306,48 +271,5 @@ defmodule Swarm.Ingress.LinearHandler do
     State: #{get_in(issue, ["state", "name"]) || "Unknown"}
     Team: #{get_in(issue, ["team", "name"]) || "Unknown"}
     """
-  end
-
-  defp build_agent_name(%Event{type: type, context: context}) do
-    issue = get_issue_from_context(context)
-    title = issue["title"] || "Linear Event"
-
-    case type do
-      "issueAssignedToYou" ->
-        if has_implementation_plan?(context) do
-          "Linear Issue Implementation: #{title}"
-        else
-          "Linear Issue Research: #{title}"
-        end
-
-      "issueCommentMention" ->
-        "Linear Comment Response: #{title}"
-
-      "issueMention" ->
-        "Linear Issue Analysis: #{title}"
-
-      "documentMention" ->
-        document = get_in(context, [:notification, "document"])
-        "Linear Document Response: #{document["title"] || "Unknown document"}"
-
-      _ ->
-        "Linear: #{title}"
-    end
-  end
-
-  defp determine_agent_type(%Event{context: context}) do
-    if has_implementation_plan?(context) do
-      :coder
-    else
-      :researcher
-    end
-  end
-
-  defp has_implementation_plan?(context) do
-    issue = get_issue_from_context(context)
-    description = issue["description"] || ""
-
-    # Check if the description contains implementation plan keywords
-    String.contains?(String.downcase(description), ["implementation plan", "step 1", "step 2"])
   end
 end
