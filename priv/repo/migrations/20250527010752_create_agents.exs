@@ -2,7 +2,8 @@ defmodule Swarm.Repo.Migrations.CreateAgents do
   use Ecto.Migration
 
   def change do
-    create table(:agents) do
+    create table(:agents, primary_key: false) do
+      add :id, :uuid, primary_key: true, null: false
       add :name, :string, null: false
       add :context, :text, null: false
       add :status, :string, null: false

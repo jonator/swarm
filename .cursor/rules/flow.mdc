@@ -18,13 +18,13 @@ flowchart TD
     C1 -->|Repository| C5[Repo Event Processing]
     
     D --> D1{Linear Event Type?}
-    D1 -->|Issue Assigned to @swarm| D2[Linear Issue Assignment]
-    D1 -->|@swarm mentioned in comment| D3[Linear Comment Mention]
-    D1 -->|@swarm mentioned in description| D4[Linear Description Mention]
+    D1 -->|Issue Assigned to swarm| D2[Linear Issue Assignment]
+    D1 -->|swarm mentioned in comment| D3[Linear Comment Mention]
+    D1 -->|swarm mentioned in description| D4[Linear Description Mention]
     D1 -->|Document mention| D5[Linear Document Mention]
     
     E --> E1{Slack Event Type?}
-    E1 -->|@swarm thread mention| E2[Slack Thread Processing]
+    E1 -->|swarm thread mention| E2[Slack Thread Processing]
     E1 -->|Direct message| E3[Slack DM Processing]
     
     F --> F1[Manual Agent Spawn Request]
@@ -113,7 +113,6 @@ flowchart TD
     U -->|GitHub| X[Comment on GitHub Issue/PR]
     U -->|Manual| Y[Notify User via Platform]
     
-
     O --> Z1
     V --> Z1
     W --> Z1

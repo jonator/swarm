@@ -18,6 +18,7 @@ defmodule Swarm.Agents.Agent do
   alias Swarm.Projects.Project
   alias Swarm.Agents.Message
 
+  @primary_key {:id, Ecto.UUID, autogenerate: true}
   schema "agents" do
     field :name, :string
     field :context, :string

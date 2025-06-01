@@ -87,6 +87,7 @@ defmodule Swarm.AgentsTest do
       }
 
       assert {:ok, %Agent{} = agent} = Agents.update_agent(agent, update_attrs)
+      assert is_binary(agent.id)
       assert agent.name == "some updated name"
       assert agent.status == :running
       assert agent.type == :coder

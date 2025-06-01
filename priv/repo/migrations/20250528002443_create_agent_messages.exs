@@ -5,7 +5,7 @@ defmodule Swarm.Repo.Migrations.CreateAgentMessages do
     create table(:agent_messages) do
       add :content, :text, null: false
       add :type, :string, null: false
-      add :agent_id, references(:agents, on_delete: :delete_all)
+      add :agent_id, references(:agents, type: :uuid, on_delete: :delete_all)
 
       timestamps()
     end
