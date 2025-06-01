@@ -99,7 +99,8 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
 
       with_mock Swarm.Services.Linear,
-        document: fn _linear, _document_id ->
+        document: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+                     "f433ebff-9cd0-4057-867a-2ab6e528a12d" ->
           {:ok,
            %{
              "document" => %{
@@ -110,7 +111,8 @@ defmodule Swarm.Ingress.LinearHandlerTest do
              }
            }}
         end,
-        project: fn _workspace_id, _project_id ->
+        project: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+                    "bd51cbd8-589f-4122-8326-4347fb0c89ce" ->
           {:ok,
            %{
              "project" => %{
