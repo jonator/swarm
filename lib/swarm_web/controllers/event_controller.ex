@@ -14,28 +14,11 @@ defmodule SwarmWeb.EventController do
   def receive_event(conn, params) do
     Logger.info("Received webhook event: #{inspect(params, pretty: true)}")
 
-    temp_file = Path.join(System.tmp_dir!(), "webhook_event_#{:rand.uniform(1_000_000)}.json")
-    File.write!(temp_file, Jason.encode!(params, pretty: true))
-    Logger.info("Wrote webhook event to temp file: #{temp_file}")
-
     with {:ok, source} <- determine_event_source(conn, params),
-         {:ok, result} <- Ingress.process_event(params, source) do
-      case result do
-        %Swarm.Agents.Agent{} = agent ->
-          conn
-          |> put_status(:created)
-          |> json(%{
-            status: "agent_created",
-            agent_id: agent.id,
-            agent_name: agent.name,
-            agent_type: agent.type
-          })
-
-        :ignored ->
-          conn
-          |> put_status(:ok)
-          |> json(%{status: "ignored", message: "Event received but no action taken"})
-      end
+         {:ok, _result} <- Ingress.process_event(params, source) do
+      conn
+      |> put_status(:ok)
+      |> json(%{status: "processed"})
     else
       {:error, reason} ->
         Logger.error("Event processing failed: #{reason}")

@@ -110,6 +110,24 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  def issue(%__MODULE__{access_token: %Token{token: access_token}}, issue_id) do
+    query(access_token, """
+      issue(id: "#{issue_id}") {
+        id
+        title
+        documentContent {
+          content
+        }
+      }
+    """)
+  end
+
+  def issue(workspace_id, issue_id) do
+    with {:ok, linear} <- new(workspace_id) do
+      issue(linear, issue_id)
+    end
+  end
+
   def has_access?(%User{} = user) do
     case access_token(user) do
       {:ok, %Token{token: _access_token}} ->

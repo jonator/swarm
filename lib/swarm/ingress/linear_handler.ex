@@ -33,9 +33,8 @@ defmodule Swarm.Ingress.LinearHandler do
     # Check if event is relevant first
     if relevant_event?(event) do
       with {:ok, user} <- Permissions.validate_user_access(event),
-           {:ok, repository} <- find_repository_for_linear_event(user, event),
-           {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
-        {:ok, agent_attrs}
+           {:ok, repository} <- find_repository_for_linear_event(user, event) do
+        build_agent_attributes(event, user, repository)
       end
     else
       {:ok, :ignored}
@@ -153,9 +152,9 @@ defmodule Swarm.Ingress.LinearHandler do
     {:ok, attrs}
   end
 
-  defp build_issue_assigned_attrs(%Event{context: context}) do
+  defp build_issue_assigned_attrs(%Event{context: context, external_ids: external_ids}) do
     issue = get_issue_from_context(context)
-    context_text = build_issue_context(issue, "assigned")
+    context_text = build_issue_context(issue, external_ids, "assigned")
 
     %{
       context: context_text
@@ -182,9 +181,9 @@ defmodule Swarm.Ingress.LinearHandler do
     }
   end
 
-  defp build_description_mention_attrs(%Event{context: context}) do
+  defp build_description_mention_attrs(%Event{context: context, external_ids: external_ids}) do
     issue = get_issue_from_context(context)
-    context_text = build_issue_context(issue, "mentioned in description")
+    context_text = build_issue_context(issue, external_ids, "mentioned in description")
 
     %{
       context: context_text
@@ -271,12 +270,36 @@ defmodule Swarm.Ingress.LinearHandler do
     end
   end
 
-  defp build_issue_context(issue, action) do
+  defp build_issue_context(issue, external_ids, action) do
+    description =
+      case issue["description"] do
+        nil ->
+          case Linear.issue(external_ids[:linear_app_user_id], issue["id"]) do
+            {:ok, %{"issue" => %{"documentContent" => %{"content" => content}}}} ->
+              content
+
+            {:error, _reason} ->
+              "Unable to fetch issue description - API error"
+
+            {:unauthorized, _reason} ->
+              "Unable to fetch issue description - unauthorized"
+
+            {:ok, %{status: status}} when status != 200 ->
+              "Unable to fetch issue description - HTTP #{status}"
+
+            _ ->
+              "No description provided"
+          end
+
+        description ->
+          description
+      end
+
     """
     Linear Issue #{action}: #{issue["title"]}
 
     Description:
-    #{issue["description"] || "No description provided"}
+    #{description}
 
     Issue URL: #{issue["url"]}
     Priority: #{issue["priority"] || "No priority set"}

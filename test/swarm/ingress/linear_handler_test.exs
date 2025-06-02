@@ -47,10 +47,17 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       params = linear_issue_assigned_to_swarm_params()
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
 
-      assert {:ok, attrs} = LinearHandler.handle(event)
-      assert attrs.source == :linear
-      assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
-      assert String.contains?(attrs.context, "Linear Issue assigned: Improve README")
+      with_mock Swarm.Services.Linear,
+        issue: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+                  "71ee683d-74e4-4668-95f7-537af7734054" ->
+          {:ok, %{"issue" => %{"documentContent" => %{"content" => "Test issue content"}}}}
+        end do
+        assert {:ok, attrs} = LinearHandler.handle(event)
+        assert attrs.source == :linear
+        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert String.contains?(attrs.context, "Test issue content")
+        assert String.contains?(attrs.context, "Linear Issue assigned: Improve README")
+      end
     end
 
     test "handles Linear issue description mention event", %{user: user} do
@@ -223,14 +230,21 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       params = linear_issue_assigned_to_swarm_params()
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
 
-      assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
+      with_mock Swarm.Services.Linear,
+        issue: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+                  "71ee683d-74e4-4668-95f7-537af7734054" ->
+          {:ok, %{"issue" => %{"documentContent" => %{"content" => "Test issue content"}}}}
+        end do
+        assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
 
-      assert attrs.user_id == user.id
-      assert attrs.source == :linear
-      assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
-      assert attrs.repository.id == repository.id
+        assert attrs.user_id == user.id
+        assert attrs.source == :linear
+        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.repository.id == repository.id
 
-      assert String.contains?(attrs.context, "Linear Issue assigned: Improve README")
+        assert String.contains?(attrs.context, "Linear Issue assigned: Improve README")
+        assert String.contains?(attrs.context, "Test issue content")
+      end
     end
 
     test "builds correct attributes for comment mention event", %{
