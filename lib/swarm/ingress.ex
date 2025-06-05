@@ -11,6 +11,7 @@ defmodule Swarm.Ingress do
   alias Swarm.Ingress.LinearHandler
   alias Swarm.Ingress.SlackHandler
   alias Swarm.Ingress.ManualHandler
+  alias Swarm.Agents
 
   @doc """
   Main entry point for processing events from any source.
@@ -26,8 +27,10 @@ defmodule Swarm.Ingress do
     - `{:error, reason}` - Event processing failed
   """
   def process_event(event_data, source, opts \\ []) do
-    with {:ok, event} <- Event.new(event_data, source, opts) do
-      route_event(event)
+    with {:ok, event} <- Event.new(event_data, source, opts),
+         {:ok, agent_attrs} <- route_event(event),
+         {:ok, agent} <- Agents.spawn(agent_attrs, event) do
+      {:ok, agent}
     end
   end
 

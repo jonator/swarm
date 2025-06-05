@@ -128,6 +128,42 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  def issue_reaction(%__MODULE__{access_token: %Token{token: access_token}}, issue_id, emoji) do
+    mutation(access_token, """
+      reactionCreate(input: {issueId: "#{issue_id}", emoji: "#{emoji}"}) {
+        reaction {
+          createdAt
+        }
+      }
+    """)
+  end
+
+  def issue_reaction(workspace_id, issue_id, emoji) do
+    with {:ok, linear} <- new(workspace_id) do
+      issue_reaction(linear, issue_id, emoji)
+    end
+  end
+
+  def comment_reaction(
+        %__MODULE__{access_token: %Token{token: access_token}},
+        comment_id,
+        emoji
+      ) do
+    mutation(access_token, """
+      reactionCreate(input: {commentId: "#{comment_id}", emoji: "#{emoji}"}) {
+        reaction {
+          createdAt
+        }
+      }
+    """)
+  end
+
+  def comment_reaction(workspace_id, comment_id, emoji) do
+    with {:ok, linear} <- new(workspace_id) do
+      comment_reaction(linear, comment_id, emoji)
+    end
+  end
+
   def has_access?(%User{} = user) do
     case access_token(user) do
       {:ok, %Token{token: _access_token}} ->
@@ -139,11 +175,19 @@ defmodule Swarm.Services.Linear do
   end
 
   defp query(access_token, query) do
+    post(access_token, query, "query")
+  end
+
+  defp mutation(access_token, mutation) do
+    post(access_token, mutation, "mutation")
+  end
+
+  defp post(access_token, term, type) do
     with {:ok, %Req.Response{status: 200, body: %{"data" => data}}} <-
            Req.new(base_url: "https://api.linear.app/graphql")
            |> Req.Request.put_header("Authorization", "Bearer #{access_token}")
            |> AbsintheClient.attach()
-           |> Req.post(graphql: "query { #{query} }") do
+           |> Req.post(graphql: "#{type} { #{term} }") do
       {:ok, data}
     end
   end
