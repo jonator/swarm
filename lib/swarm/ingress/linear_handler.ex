@@ -140,8 +140,8 @@ defmodule Swarm.Ingress.LinearHandler do
     type_specific_attrs =
       case type do
         "issueAssignedToYou" -> build_issue_assigned_attrs(event)
-        "issueCommentMention" -> build_comment_mention_attrs(event)
-        "issueMention" -> build_description_mention_attrs(event)
+        "issueCommentMention" -> build_issue_comment_mention_attrs(event)
+        "issueMention" -> build_issue_description_mention_attrs(event)
         "documentMention" -> build_document_mention_attrs(event)
         _ -> %{}
       end
@@ -161,27 +161,19 @@ defmodule Swarm.Ingress.LinearHandler do
     }
   end
 
-  defp build_comment_mention_attrs(%Event{context: context}) do
+  defp build_issue_comment_mention_attrs(%Event{context: context, external_ids: external_ids}) do
     comment = get_comment_from_context(context)
     issue = get_issue_from_context(context)
 
-    context_text = """
-    Linear Comment Mention in Issue: #{issue["title"]}
-
-    Comment: #{comment["body"]}
-
-    Issue Description:
-    #{issue["description"] || "No description provided"}
-
-    Issue URL: #{issue["url"]}
-    """
+    context_text =
+      build_issue_context(issue, external_ids, "mentioned in comment #{comment["id"]}")
 
     %{
       context: context_text
     }
   end
 
-  defp build_description_mention_attrs(%Event{context: context, external_ids: external_ids}) do
+  defp build_issue_description_mention_attrs(%Event{context: context, external_ids: external_ids}) do
     issue = get_issue_from_context(context)
     context_text = build_issue_context(issue, external_ids, "mentioned in description")
 
@@ -295,16 +287,75 @@ defmodule Swarm.Ingress.LinearHandler do
           description
       end
 
+    comment_threads =
+      case Linear.issue_comment_threads(external_ids[:linear_app_user_id], issue["id"]) do
+        {:ok, %{"issue" => %{"comments" => %{"nodes" => comments}}}} ->
+          format_comment_threads(comments)
+
+        {:error, _reason} ->
+          "Unable to fetch issue comment threads - API error"
+
+        {:unauthorized, _reason} ->
+          "Unable to fetch issue comment threads - unauthorized"
+
+        {:ok, %{status: status}} when status != 200 ->
+          "Unable to fetch issue comment threads - HTTP #{status}"
+
+        _other ->
+          "Unable to fetch issue comment threads - unknown error"
+      end
+
     """
-    Linear Issue #{action}: #{issue["title"]}
+    Linear Issue #{action} (#{issue["id"]}): #{issue["title"]}
 
     Description:
     #{description}
 
-    Issue URL: #{issue["url"]}
+    Comment Threads:
+    #{comment_threads}
+
     Priority: #{issue["priority"] || "No priority set"}
     State: #{get_in(issue, ["state", "name"]) || "Unknown"}
     Team: #{get_in(issue, ["team", "name"]) || "Unknown"}
     """
   end
+
+  defp format_comment_threads([]), do: "No comments yet"
+
+  defp format_comment_threads(comments) do
+    comments
+    |> Enum.map(&format_comment/1)
+    |> Enum.join("\n\n")
+  end
+
+  defp format_comment(%{
+         "id" => id,
+         "body" => body,
+         "user" => %{"displayName" => display_name},
+         "children" => %{"nodes" => children}
+       }) do
+    formatted_comment = "- (#{id}) #{display_name}: #{body}"
+
+    case children do
+      [] ->
+        formatted_comment
+
+      replies ->
+        reply_text =
+          replies
+          |> Enum.map(fn %{
+                           "id" => reply_id,
+                           "body" => reply_body,
+                           "user" => %{"displayName" => reply_display_name}
+                         } ->
+            "  - (#{reply_id}) #{reply_display_name}: #{reply_body}"
+          end)
+          |> Enum.join("\n")
+
+        formatted_comment <> "\n" <> reply_text
+    end
+  end
+
+  defp format_comment(%{"id" => id, "body" => body, "user" => %{"displayName" => display_name}}),
+    do: "- (#{id}) #{display_name}: #{body}"
 end

@@ -128,6 +128,38 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  def issue_comment_threads(%__MODULE__{access_token: %Token{token: access_token}}, issue_id) do
+    query(access_token, """
+      issue(id: "#{issue_id}") {
+        id
+        comments(filter: { parent: { null: true } }) {
+          nodes {
+            id
+            body
+            user {
+              displayName
+            }
+            children {
+              nodes {
+                id
+                body
+                user {
+                  displayName
+                }
+              }
+            }
+          }
+        }
+      }
+    """)
+  end
+
+  def issue_comment_threads(workspace_id, issue_id) do
+    with {:ok, linear} <- new(workspace_id) do
+      issue_comment_threads(linear, issue_id)
+    end
+  end
+
   def issue_reaction(%__MODULE__{access_token: %Token{token: access_token}}, issue_id, emoji) do
     mutation(access_token, """
       reactionCreate(input: {issueId: "#{issue_id}", emoji: "#{emoji}"}) {

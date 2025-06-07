@@ -178,7 +178,7 @@ defmodule Swarm.EventsFixtures do
     """)
   end
 
-  def linear_document_mention() do
+  def linear_document_mention_params() do
     Jason.decode!("""
     {
     "action": "documentMention",
@@ -225,7 +225,7 @@ defmodule Swarm.EventsFixtures do
     """)
   end
 
-  def linear_issue_new_comment() do
+  def linear_issue_new_comment_params() do
     Jason.decode!("""
     {
     "action": "issueNewComment",
