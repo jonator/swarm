@@ -14,6 +14,10 @@ defmodule SwarmWeb.EventController do
   def receive_event(conn, params) do
     Logger.info("Received webhook event: #{inspect(params, pretty: true)}")
 
+    # tmp_file = Path.join(System.tmp_dir!(), "swarm_webhook_#{:rand.uniform(1_000_000)}.json")
+    # File.write!(tmp_file, Jason.encode!(params, pretty: true))
+    # Logger.info("Wrote webhook payload to #{tmp_file}")
+
     with {:ok, source} <- determine_event_source(conn, params),
          {:ok, _result} <- Ingress.process_event(params, source) do
       conn

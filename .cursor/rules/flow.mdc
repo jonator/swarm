@@ -43,11 +43,14 @@ flowchart TD
     
     G --> H{User Has Access?}
     H -->|No| I[Reject Event - Log Error]
-    H -->|Yes| H1[Create Agent Record]
-    H1 --> H2[Set Agent Status: 'pending']
-    H2 --> J[Extract Context & Requirements]
+    H -->|Yes| J[Extract Context & Requirements]
+    J --> AA[Acknowledge Event]
+    I --> Z[End Process]
     
-    J --> K{Valid Implementation Plan?}
+    AA --> H1[Create Agent Record]
+    H1 --> H2[Set Agent Status: 'pending']
+    H2 --> K{Valid Implementation Plan?}
+    
     K -->|No| K1[Deploy Research Agent]
     K -->|Yes| M[Determine Target Repository]
     
@@ -85,10 +88,10 @@ flowchart TD
     X1 --> Z1
     Y1 --> Z1
     
-    M --> N{Repository Accessible?}
-    N -->|No| O[Notify User - Access Required]
-    N -->|Yes| P[Identify/Create Project Scope]
+    %% Removed N, O (Is Repository Accessible & Notify User - Access Required)
+    %% Now: M --> P directly
     
+    M --> P[Identify/Create Project Scope]
     P --> Q[Update Agent Status: 'active']
     Q --> R[Queue Agent Job in Oban]
     
@@ -113,20 +116,15 @@ flowchart TD
     U -->|GitHub| X[Comment on GitHub Issue/PR]
     U -->|Manual| Y[Notify User via Platform]
     
-    O --> Z1
     V --> Z1
     W --> Z1
     X --> Z1
     Y --> Z1
     
-    I --> Z[End Process]
-    
     style A fill:#e1f5fe
     style S fill:#f3e5f5
     style I fill:#ffebee
-    style O fill:#ffebee
     style Z1 fill:#e3f2fd
-    
     style A fill:#e1f5fe
     style T fill:#f3e5f5
     style Q fill:#e8f5e8

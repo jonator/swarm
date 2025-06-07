@@ -28,9 +28,12 @@ defmodule Swarm.Ingress do
   """
   def process_event(event_data, source, opts \\ []) do
     with {:ok, event} <- Event.new(event_data, source, opts),
-         {:ok, agent_attrs} <- route_event(event),
-         {:ok, agent} <- Agents.spawn(agent_attrs, event) do
-      {:ok, agent}
+         route_result <- route_event(event) do
+      case route_result do
+        {:ok, :ignored} -> {:ok, :ignored}
+        {:ok, agent_attrs} -> Agents.spawn(agent_attrs, event)
+        error -> error
+      end
     end
   end
 

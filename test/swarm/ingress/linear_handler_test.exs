@@ -25,8 +25,8 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       # Create unique user and repository for each test
       user =
         user_fixture(%{
-          email: "test-#{:rand.uniform(10000)}@example.com",
-          username: "test-user-#{:rand.uniform(10000)}"
+          email: "jonathanator0@gmail.com",
+          username: "jonator"
         })
 
       # Create Linear access token for the user
@@ -43,9 +43,9 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       {:ok, user: user, repository: repository}
     end
 
-    test "handles Linear issue assigned to swarm event", %{user: user} do
+    test "handles Linear issue assigned to swarm event" do
       params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
+      {:ok, event} = Event.new(params, :linear)
 
       with_mock Swarm.Services.Linear,
         issue: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
@@ -60,9 +60,9 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       end
     end
 
-    test "handles Linear issue description mention event", %{user: user} do
+    test "handles Linear issue description mention event" do
       params = linear_issue_description_mention_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
+      {:ok, event} = Event.new(params, :linear)
 
       assert {:ok, attrs} = LinearHandler.handle(event)
       assert attrs.source == :linear
@@ -74,15 +74,22 @@ defmodule Swarm.Ingress.LinearHandlerTest do
              )
     end
 
-    test "handles Linear comment mention event", %{user: user} do
+    test "handles Linear comment mention event" do
       params = linear_issue_comment_mention_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
+      {:ok, event} = Event.new(params, :linear)
 
       assert {:ok, attrs} = LinearHandler.handle(event)
       assert attrs.source == :linear
       assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
       assert String.contains?(attrs.context, "Linear Comment Mention in Issue: Improve README")
       assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
+    end
+
+    test "handles Linear issue new comment event" do
+      params = linear_issue_new_comment()
+      {:ok, event} = Event.new(params, :linear)
+
+      assert {:ok, :ignored} = LinearHandler.handle(event)
     end
 
     test "rejects non-Linear events" do
