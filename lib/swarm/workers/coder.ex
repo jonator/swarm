@@ -224,16 +224,19 @@ defmodule Swarm.Workers.Coder do
   end
   
   defp search_terms_in_index(index, terms) do
-    Enum.flat_map(terms, fn term ->
-      Logger.debug("Searching for term: #{term}")
-      case Git.Index.search(index, term) do
-        results when is_list(results) ->
-          Enum.map(results, fn %{id: file_path} -> file_path end)
-        _ ->
-          []
-      end
-    end)
+    Enum.flat_map(terms, &search_single_term(index, &1))
     |> Enum.uniq()
+  end
+
+  defp search_single_term(index, term) do
+    Logger.debug("Searching for term: #{term}")
+    
+    case Git.Index.search(index, term) do
+      results when is_list(results) ->
+        Enum.map(results, fn %{id: file_path} -> file_path end)
+      _ ->
+        []
+    end
   end
   
   defp implement_changes(repo, index, relevant_files, instructions) do

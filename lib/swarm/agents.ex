@@ -183,7 +183,7 @@ defmodule Swarm.Agents do
   def mark_agent_started(%Agent{} = agent) do
     update_agent(agent, %{
       status: :running,
-      started_at: NaiveDateTime.utc_now()
+      started_at: DateTime.utc_now()
     })
   end
 
@@ -193,7 +193,7 @@ defmodule Swarm.Agents do
   def mark_agent_completed(%Agent{} = agent) do
     update_agent(agent, %{
       status: :completed,
-      completed_at: NaiveDateTime.utc_now()
+      completed_at: DateTime.utc_now()
     })
   end
 

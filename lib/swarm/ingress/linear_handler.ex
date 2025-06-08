@@ -184,31 +184,7 @@ defmodule Swarm.Ingress.LinearHandler do
 
   defp build_document_mention_attrs(%Event{context: context, external_ids: external_ids}) do
     document = get_in(context, [:notification, "document"])
-    document_id = external_ids[:linear_document_id]
-    app_user_id = external_ids[:linear_app_user_id]
-
-    # Fetch document content from Linear if we have the necessary IDs
-    document_content =
-      if document_id && app_user_id do
-        case Linear.document(app_user_id, document_id) do
-          {:ok, %{"document" => doc_data}} ->
-            doc_data["content"] || "Document content unavailable"
-
-          {:error, _reason} ->
-            "Unable to fetch document content - API error"
-
-          {:unauthorized, _reason} ->
-            "Unable to fetch document content - unauthorized"
-
-          {:ok, %{status: status}} when status != 200 ->
-            "Unable to fetch document content - HTTP #{status}"
-
-          _other ->
-            "Unable to fetch document content - unknown error"
-        end
-      else
-        "Document content unavailable - missing document ID or app user ID"
-      end
+    document_content = fetch_document_content(external_ids)
 
     context_text = """
     Linear Document Mention: #{document["title"]}
@@ -224,6 +200,32 @@ defmodule Swarm.Ingress.LinearHandler do
     %{
       context: context_text
     }
+  end
+
+  defp fetch_document_content(external_ids) do
+    document_id = external_ids[:linear_document_id]
+    app_user_id = external_ids[:linear_app_user_id]
+
+    if document_id && app_user_id do
+      fetch_document_from_api(app_user_id, document_id)
+    else
+      "Document content unavailable - missing document ID or app user ID"
+    end
+  end
+
+  defp fetch_document_from_api(app_user_id, document_id) do
+    case Linear.document(app_user_id, document_id) do
+      {:ok, %{"document" => doc_data}} ->
+        doc_data["content"] || "Document content unavailable"
+      {:error, _reason} ->
+        "Unable to fetch document content - API error"
+      {:unauthorized, _reason} ->
+        "Unable to fetch document content - unauthorized"
+      {:ok, %{status: status}} when status != 200 ->
+        "Unable to fetch document content - HTTP #{status}"
+      _other ->
+        "Unable to fetch document content - unknown error"
+    end
   end
 
   # Helper functions for event analysis
@@ -263,47 +265,8 @@ defmodule Swarm.Ingress.LinearHandler do
   end
 
   defp build_issue_context(issue, external_ids, action) do
-    description =
-      case issue["description"] do
-        nil ->
-          case Linear.issue(external_ids[:linear_app_user_id], issue["id"]) do
-            {:ok, %{"issue" => %{"documentContent" => %{"content" => content}}}} ->
-              content
-
-            {:error, _reason} ->
-              "Unable to fetch issue description - API error"
-
-            {:unauthorized, _reason} ->
-              "Unable to fetch issue description - unauthorized"
-
-            {:ok, %{status: status}} when status != 200 ->
-              "Unable to fetch issue description - HTTP #{status}"
-
-            _ ->
-              "No description provided"
-          end
-
-        description ->
-          description
-      end
-
-    comment_threads =
-      case Linear.issue_comment_threads(external_ids[:linear_app_user_id], issue["id"]) do
-        {:ok, %{"issue" => %{"comments" => %{"nodes" => comments}}}} ->
-          format_comment_threads(comments)
-
-        {:error, _reason} ->
-          "Unable to fetch issue comment threads - API error"
-
-        {:unauthorized, _reason} ->
-          "Unable to fetch issue comment threads - unauthorized"
-
-        {:ok, %{status: status}} when status != 200 ->
-          "Unable to fetch issue comment threads - HTTP #{status}"
-
-        _other ->
-          "Unable to fetch issue comment threads - unknown error"
-      end
+    description = get_issue_description(issue, external_ids)
+    comment_threads = get_issue_comment_threads(issue, external_ids)
 
     """
     Linear Issue #{action} (#{issue["id"]}): #{issue["title"]}
@@ -320,12 +283,47 @@ defmodule Swarm.Ingress.LinearHandler do
     """
   end
 
+  defp get_issue_description(issue, external_ids) do
+    case issue["description"] do
+      nil -> fetch_issue_description_from_api(external_ids, issue["id"])
+      description -> description
+    end
+  end
+
+  defp fetch_issue_description_from_api(external_ids, issue_id) do
+    case Linear.issue(external_ids[:linear_app_user_id], issue_id) do
+      {:ok, %{"issue" => %{"documentContent" => %{"content" => content}}}} ->
+        content
+      {:error, _reason} ->
+        "Unable to fetch issue description - API error"
+      {:unauthorized, _reason} ->
+        "Unable to fetch issue description - unauthorized"
+      {:ok, %{status: status}} when status != 200 ->
+        "Unable to fetch issue description - HTTP #{status}"
+      _ ->
+        "No description provided"
+    end
+  end
+
+  defp get_issue_comment_threads(issue, external_ids) do
+    case Linear.issue_comment_threads(external_ids[:linear_app_user_id], issue["id"]) do
+      {:ok, %{"issue" => %{"comments" => %{"nodes" => comments}}}} ->
+        format_comment_threads(comments)
+      {:error, _reason} ->
+        "Unable to fetch issue comment threads - API error"
+      {:unauthorized, _reason} ->
+        "Unable to fetch issue comment threads - unauthorized"
+      {:ok, %{status: status}} when status != 200 ->
+        "Unable to fetch issue comment threads - HTTP #{status}"
+      _other ->
+        "Unable to fetch issue comment threads - unknown error"
+    end
+  end
+
   defp format_comment_threads([]), do: "No comments yet"
 
   defp format_comment_threads(comments) do
-    comments
-    |> Enum.map(&format_comment/1)
-    |> Enum.join("\n\n")
+    Enum.map_join(comments, "\n\n", &format_comment/1)
   end
 
   defp format_comment(%{
@@ -342,15 +340,13 @@ defmodule Swarm.Ingress.LinearHandler do
 
       replies ->
         reply_text =
-          replies
-          |> Enum.map(fn %{
+          Enum.map_join(replies, "\n", fn %{
                            "id" => reply_id,
                            "body" => reply_body,
                            "user" => %{"displayName" => reply_display_name}
                          } ->
             "  - (#{reply_id}) #{reply_display_name}: #{reply_body}"
           end)
-          |> Enum.join("\n")
 
         formatted_comment <> "\n" <> reply_text
     end

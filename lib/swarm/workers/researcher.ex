@@ -171,17 +171,44 @@ defmodule Swarm.Workers.Researcher do
   end
   
   defp detect_project_type(index) do
-    # Detect project type based on key files present
     cond do
-      has_file?(index, "package.json") && has_file?(index, "next.config.js") -> "Next.js"
-      has_file?(index, "package.json") -> "Node.js/JavaScript"
-      has_file?(index, "mix.exs") -> "Elixir"
-      has_file?(index, "Gemfile") -> "Ruby"
-      has_file?(index, "requirements.txt") -> "Python"
-      has_file?(index, "pom.xml") -> "Java (Maven)"
-      has_file?(index, "build.gradle") -> "Java (Gradle)"
+      nextjs_project?(index) -> "Next.js"
+      nodejs_project?(index) -> "Node.js/JavaScript"
+      elixir_project?(index) -> "Elixir"
+      ruby_project?(index) -> "Ruby"
+      python_project?(index) -> "Python"
+      java_maven_project?(index) -> "Java (Maven)"
+      java_gradle_project?(index) -> "Java (Gradle)"
       true -> "Unknown"
     end
+  end
+
+  defp nextjs_project?(index) do
+    has_file?(index, "package.json") && has_file?(index, "next.config.js")
+  end
+
+  defp nodejs_project?(index) do
+    has_file?(index, "package.json")
+  end
+
+  defp elixir_project?(index) do
+    has_file?(index, "mix.exs")
+  end
+
+  defp ruby_project?(index) do
+    has_file?(index, "Gemfile")
+  end
+
+  defp python_project?(index) do
+    has_file?(index, "requirements.txt")
+  end
+
+  defp java_maven_project?(index) do
+    has_file?(index, "pom.xml")
+  end
+
+  defp java_gradle_project?(index) do
+    has_file?(index, "build.gradle")
   end
   
   defp has_file?(_index, _filename) do
