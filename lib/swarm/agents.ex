@@ -180,10 +180,11 @@ defmodule Swarm.Agents do
   @doc """
   Marks an agent as started by setting started_at to now and status to running.
   """
-  def mark_agent_started(%Agent{} = agent) do
+  def mark_agent_started(%Agent{} = agent, oban_job_id) do
     update_agent(agent, %{
       status: :running,
-      started_at: DateTime.utc_now()
+      started_at: DateTime.utc_now(),
+      oban_job_id: oban_job_id
     })
   end
 

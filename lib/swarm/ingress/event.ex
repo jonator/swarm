@@ -157,6 +157,23 @@ defmodule Swarm.Ingress.Event do
     {:ok, external_ids}
   end
 
+  defp extract_external_ids(data, :slack) do
+    external_ids = %{}
+
+    external_ids =
+      if data["event"]["ts"] do
+        Map.put(external_ids, :slack_thread_id, data["event"]["ts"])
+      else
+        external_ids
+      end
+
+    {:ok, external_ids}
+  end
+
+  defp extract_external_ids(_data, :manual) do
+    {:ok, %{}}
+  end
+
   defp extract_linear_issue_id(external_ids, data) do
     cond do
       # New notification-based format
@@ -234,23 +251,6 @@ defmodule Swarm.Ingress.Event do
     else
       external_ids
     end
-  end
-
-  defp extract_external_ids(data, :slack) do
-    external_ids = %{}
-
-    external_ids =
-      if data["event"]["ts"] do
-        Map.put(external_ids, :slack_thread_id, data["event"]["ts"])
-      else
-        external_ids
-      end
-
-    {:ok, external_ids}
-  end
-
-  defp extract_external_ids(_data, :manual) do
-    {:ok, %{}}
   end
 
   # Extract context information
