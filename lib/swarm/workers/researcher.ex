@@ -15,6 +15,7 @@ defmodule Swarm.Workers.Researcher do
   alias Swarm.Agents
   alias Swarm.Agents.Agent
   alias Swarm.Git
+  alias Swarm.Repositories.Repository
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -66,7 +67,7 @@ defmodule Swarm.Workers.Researcher do
   end
 
   defp analyze_repository_and_context(agent, repository) do
-    repo_url = build_repository_url(repository)
+    repo_url = Repository.build_repository_url(repository)
 
     with {:ok, repo} <- clone_repository(repo_url, agent.id),
          {:ok, codebase_analysis} <- analyze_codebase_structure(repo),
@@ -81,15 +82,7 @@ defmodule Swarm.Workers.Researcher do
     end
   end
 
-  defp build_repository_url(repository) do
-    case repository.external_id do
-      "github:" <> _github_id ->
-        "https://github.com/#{repository.owner}/#{repository.name}.git"
-      _ ->
-        # Fallback to constructing from owner/name
-        "https://github.com/#{repository.owner}/#{repository.name}.git"
-    end
-  end
+
 
   defp clone_repository(repo_url, agent_id) do
     Logger.debug("Cloning repository: #{repo_url}")

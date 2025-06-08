@@ -17,6 +17,7 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Agents.Agent
   alias Swarm.Git
   alias Swarm.Instructor
+  alias Swarm.Repositories.Repository
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -68,7 +69,7 @@ defmodule Swarm.Workers.Coder do
   end
 
   defp implement_changes_in_repository(agent, repository) do
-    repo_url = build_repository_url(repository)
+    repo_url = Repository.build_repository_url(repository)
     instructions = agent.context
 
     with {:ok, branch_name} <- generate_branch_name(instructions),
@@ -87,15 +88,7 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp build_repository_url(repository) do
-    case repository.external_id do
-      "github:" <> _github_id ->
-        "https://github.com/#{repository.owner}/#{repository.name}.git"
-      _ ->
-        # Fallback to constructing from owner/name
-        "https://github.com/#{repository.owner}/#{repository.name}.git"
-    end
-  end
+
 
   defp generate_branch_name(instructions) do
     case Instructor.BranchName.generate_branch_name(instructions) do
