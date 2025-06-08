@@ -23,7 +23,7 @@ defmodule Swarm.Agents.Agent do
     field :name, :string
     field :context, :string
     field :status, Ecto.Enum, values: [:pending, :running, :completed, :failed]
-    field :source, Ecto.Enum, values: [:frontend, :linear, :slack, :github]
+    field :source, Ecto.Enum, values: [:manual, :linear, :slack, :github]
     field :type, Ecto.Enum, values: [:researcher, :coder, :code_reviewer]
     field :github_pull_request_id, :string
     field :github_issue_id, :string

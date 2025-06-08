@@ -11,7 +11,7 @@ defmodule Swarm.Ingress do
   alias Swarm.Ingress.LinearHandler
   alias Swarm.Ingress.SlackHandler
   alias Swarm.Ingress.ManualHandler
-  alias Swarm.Agents
+  alias Swarm.Workers
 
   @doc """
   Main entry point for processing events from any source.
@@ -31,7 +31,7 @@ defmodule Swarm.Ingress do
          route_result <- route_event(event) do
       case route_result do
         {:ok, :ignored} -> {:ok, :ignored}
-        {:ok, agent_attrs} -> Agents.spawn(agent_attrs, event)
+        {:ok, agent_attrs} -> Workers.spawn(agent_attrs, event)
         error -> error
       end
     end

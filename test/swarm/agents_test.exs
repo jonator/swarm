@@ -40,7 +40,7 @@ defmodule Swarm.AgentsTest do
         type: :researcher,
         context: "some context",
         started_at: ~N[2025-05-26 01:07:00],
-        source: :frontend,
+        source: :manual,
         github_pull_request_id: "some github_pull_request_id",
         github_issue_id: "some github_issue_id",
         linear_issue_id: "some linear_issue_id",
@@ -55,7 +55,7 @@ defmodule Swarm.AgentsTest do
       assert agent.type == :researcher
       assert agent.context == "some context"
       assert agent.started_at == ~N[2025-05-26 01:07:00]
-      assert agent.source == :frontend
+      assert agent.source == :manual
       assert agent.github_pull_request_id == "some github_pull_request_id"
       assert agent.github_issue_id == "some github_issue_id"
       assert agent.linear_issue_id == "some linear_issue_id"

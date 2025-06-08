@@ -7,8 +7,6 @@ defmodule Swarm.Agents do
   alias Swarm.Repo
 
   alias Swarm.Agents.Agent
-  alias Swarm.Egress
-  alias Swarm.Ingress.Event
 
   @doc """
   Returns the list of agents.
@@ -102,11 +100,5 @@ defmodule Swarm.Agents do
   """
   def change_agent(%Agent{} = agent, attrs \\ %{}) do
     Agent.changeset(agent, attrs)
-  end
-
-  def spawn(_agent_attrs, %Event{} = event) do
-    with {:ok, msg} <- Egress.acknowledge(event) do
-      {:ok, msg}
-    end
   end
 end
