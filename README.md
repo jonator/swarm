@@ -21,3 +21,7 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 
 Use this tool to view dependency graph of a project.
 https://depviz.jasonaxelson.com/
+
+## Tidewave
+
+Included in deps for this project. To activate, follow [these instructions](https://hexdocs.pm/tidewave/installation.html)

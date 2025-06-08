@@ -73,7 +73,8 @@ defmodule Swarm.MixProject do
       {:joken, "~> 2.6.2"},
       {:absinthe_client, "~> 0.1.1"},
       {:mock, "~> 0.3.9", only: :test},
-      {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false}
+      {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
+      {:tidewave, "~> 0.1", only: :dev}
     ]
   end
 
