@@ -14,8 +14,8 @@ defmodule Swarm.Repo.Migrations.CreateAgents do
       add :linear_issue_id, :string
       add :linear_document_id, :string
       add :slack_thread_id, :string
-      add :started_at, :naive_datetime
-      add :completed_at, :naive_datetime
+      add :started_at, :utc_datetime
+      add :completed_at, :utc_datetime
       add :oban_job_id, references(:oban_jobs, on_delete: :nothing)
       add :user_id, references(:users, on_delete: :nothing)
       add :repository_id, references(:repositories, on_delete: :nothing)

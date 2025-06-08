@@ -30,8 +30,8 @@ defmodule Swarm.Agents.Agent do
     field :linear_issue_id, :string
     field :linear_document_id, :string
     field :slack_thread_id, :string
-    field :started_at, :naive_datetime
-    field :completed_at, :naive_datetime
+    field :started_at, :utc_datetime
+    field :completed_at, :utc_datetime
     belongs_to :oban_job, Oban.Job
     belongs_to :user, User
     belongs_to :repository, Repository
