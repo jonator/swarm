@@ -21,18 +21,21 @@ defmodule Swarm.Workers do
   3. Creates an agent record with appropriate type (researcher or coder)
   4. Schedules the worker job 30 seconds in the future
   5. Handles duplicate pending agents by updating existing ones
+
+  Returns {:ok, agent, job, ack_msg} on success.
+  Returns {:error, reason} on failure.
   """
   def spawn(agent_attrs, %Event{} = event) do
     Logger.info("Processing agent spawn request for event type: #{event.type}")
 
     with {:ok, agent_type} <- determine_agent_type(agent_attrs),
-         {:ok, agent_result} <- create_or_update_agent(agent_attrs, agent_type, event) do
-      case agent_result.action do
+         {:ok, %{agent: agent, action: action}} <- create_or_update_agent(agent_attrs, agent_type, event) do
+      case action do
         :created ->
           with {:ok, msg} <- Egress.acknowledge(event),
-               {:ok, _job} <- schedule_agent_worker(agent_result.agent, agent_type) do
-            Logger.info("Successfully spawned #{agent_type} agent #{agent_result.agent.id}")
-            {:ok, msg}
+               {:ok, job} <- schedule_agent_worker(agent, agent_type) do
+            Logger.info("Successfully spawned #{agent_type} agent #{agent.id}")
+            {:ok, agent, job, msg}
           else
             {:error, reason} = error ->
               Logger.error("Failed to acknowledge event or schedule agent: #{reason}")
@@ -40,7 +43,7 @@ defmodule Swarm.Workers do
           end
 
         :updated ->
-          Logger.info("Updated existing pending agent #{agent_result.agent.id}")
+          Logger.info("Updated existing pending agent #{agent.id}")
           {:ok, :updated}
       end
     else

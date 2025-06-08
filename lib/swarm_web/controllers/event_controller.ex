@@ -54,14 +54,24 @@ defmodule SwarmWeb.EventController do
     opts = [user_id: user_id]
 
     case Ingress.process_event(params, :manual, opts) do
-      {:ok, %Swarm.Agents.Agent{} = agent} ->
+      {:ok, agent, job, msg} ->
         conn
         |> put_status(:created)
         |> json(%{
           status: "agent_created",
+          message: msg,
           agent_id: agent.id,
           agent_name: agent.name,
-          agent_type: agent.type
+          agent_type: agent.type,
+          job_id: job.id
+        })
+
+      {:ok, :updated} ->
+        conn
+        |> put_status(:accepted)
+        |> json(%{
+          status: "agent_updated",
+          message: "Existing agent updated"
         })
 
       {:error, reason} ->
