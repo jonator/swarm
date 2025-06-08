@@ -160,6 +160,21 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  def issue_branch_name(%__MODULE__{access_token: %Token{token: access_token}}, issue_id) do
+    query(access_token, """
+      issue(id: "#{issue_id}") {
+        id
+        branchName
+      }
+    """)
+  end
+
+  def issue_branch_name(workspace_id, issue_id) do
+    with {:ok, linear} <- new(workspace_id) do
+      issue_branch_name(linear, issue_id)
+    end
+  end
+
   def issue_reaction(%__MODULE__{access_token: %Token{token: access_token}}, issue_id, emoji) do
     mutation(access_token, """
       reactionCreate(input: {issueId: "#{issue_id}", emoji: "#{emoji}"}) {

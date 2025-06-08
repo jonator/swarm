@@ -18,11 +18,46 @@ defmodule SwarmWeb.EventController do
     # File.write!(tmp_file, Jason.encode!(params, pretty: true))
     # Logger.info("Wrote webhook payload to #{tmp_file}")
 
-    with {:ok, source} <- determine_event_source(conn, params),
-         {:ok, _result} <- Ingress.process_event(params, source) do
-      conn
-      |> put_status(:ok)
-      |> json(%{status: "processed"})
+    with {:ok, source} <- determine_event_source(conn, params) do
+      case Ingress.process_event(params, source) do
+        {:ok, agent, job, msg} ->
+          conn
+          |> put_status(:created)
+          |> json(%{
+            status: "agent_created",
+            message: msg,
+            agent_id: agent.id,
+            agent_name: agent.name,
+            agent_type: agent.type,
+            job_id: job.id
+          })
+
+        {:ok, :updated} ->
+          conn
+          |> put_status(:accepted)
+          |> json(%{
+            status: "agent_updated",
+            message: "Existing agent updated"
+          })
+
+        {:ok, :ignored} ->
+          conn
+          |> put_status(:ok)
+          |> json(%{
+            status: "ignored",
+            message: "Event was ignored"
+          })
+
+        {:error, reason} ->
+          Logger.error("Event processing failed: #{reason}")
+
+          conn
+          |> put_status(:unprocessable_entity)
+          |> json(%{
+            status: "error",
+            message: reason
+          })
+      end
     else
       {:error, reason} ->
         Logger.error("Event processing failed: #{reason}")
@@ -72,6 +107,14 @@ defmodule SwarmWeb.EventController do
         |> json(%{
           status: "agent_updated",
           message: "Existing agent updated"
+        })
+
+      {:ok, :ignored} ->
+        conn
+        |> put_status(:ok)
+        |> json(%{
+          status: "ignored",
+          message: "Request was ignored"
         })
 
       {:error, reason} ->
