@@ -38,6 +38,22 @@ defmodule Swarm.Agents do
   def get_agent!(id), do: Repo.get!(Agent, id)
 
   @doc """
+  Gets a single agent.
+
+  Returns `nil` if the Agent does not exist.
+
+  ## Examples
+
+      iex> get_agent!(123)
+      %Agent{}
+
+      iex> get_agent!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_agent(id), do: Repo.get(Agent, id)
+
+  @doc """
   Creates a agent.
 
   ## Examples
@@ -100,5 +116,108 @@ defmodule Swarm.Agents do
   """
   def change_agent(%Agent{} = agent, attrs \\ %{}) do
     Agent.changeset(agent, attrs)
+  end
+
+  @doc """
+  Finds an agent that has overlapping agent_attrs IDs.
+
+  This checks for agents with the same Linear issue ID, GitHub issue ID,
+  or other identifying attributes that would indicate they're working on
+  the same task.
+  """
+  def find_pending_agent_with_any_ids(agent_attrs) do
+    query = from(a in Agent, where: a.status == :pending)
+
+    # Add conditions for overlapping IDs
+    query = add_overlap_conditions(query, agent_attrs)
+
+    Repo.one(query)
+  end
+
+  defp add_overlap_conditions(query, agent_attrs) do
+    conditions = []
+
+    # Check Linear issue ID
+    conditions = if linear_id = Map.get(agent_attrs, :linear_issue_id) do
+      [dynamic([a], a.linear_issue_id == ^linear_id) | conditions]
+    else
+      conditions
+    end
+
+    # Check GitHub issue ID
+    conditions = if github_id = Map.get(agent_attrs, :github_issue_id) do
+      [dynamic([a], a.github_issue_id == ^github_id) | conditions]
+    else
+      conditions
+    end
+
+    # Check GitHub PR ID
+    conditions = if pr_id = Map.get(agent_attrs, :github_pull_request_id) do
+      [dynamic([a], a.github_pull_request_id == ^pr_id) | conditions]
+    else
+      conditions
+    end
+
+    # Check Slack thread ID
+    conditions = if slack_id = Map.get(agent_attrs, :slack_thread_id) do
+      [dynamic([a], a.slack_thread_id == ^slack_id) | conditions]
+    else
+      conditions
+    end
+
+    # Combine conditions with OR
+    case conditions do
+      [] -> query
+      [condition] -> where(query, ^condition)
+      conditions ->
+        combined = Enum.reduce(conditions, fn condition, acc ->
+          dynamic([], ^acc or ^condition)
+        end)
+        where(query, ^combined)
+    end
+  end
+
+  @doc """
+  Marks an agent as started by setting started_at to now and status to running.
+  """
+  def mark_agent_started(%Agent{} = agent) do
+    update_agent(agent, %{
+      status: :running,
+      started_at: NaiveDateTime.utc_now()
+    })
+  end
+
+  @doc """
+  Marks an agent as completed by setting completed_at to now and status to completed.
+  """
+  def mark_agent_completed(%Agent{} = agent) do
+    update_agent(agent, %{
+      status: :completed,
+      completed_at: NaiveDateTime.utc_now()
+    })
+  end
+
+  @doc """
+  Marks an agent as failed by setting status to failed.
+  """
+  def mark_agent_failed(%Agent{} = agent) do
+    update_agent(agent, %{status: :failed})
+  end
+
+  @doc """
+  Gets agents by status.
+  """
+  def list_agents_by_status(status) when status in [:pending, :running, :completed, :failed] do
+    from(a in Agent, where: a.status == ^status)
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets pending agents with overlapping external IDs for a given set of agent_attrs.
+  """
+  def list_pending_agents_with_overlapping_attrs(agent_attrs) do
+    query = from(a in Agent, where: a.status == :pending)
+    query = add_overlap_conditions(query, agent_attrs)
+    Repo.all(query)
   end
 end

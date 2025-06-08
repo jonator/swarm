@@ -56,7 +56,11 @@ defmodule Swarm.Agents.Agent do
       :linear_document_id,
       :slack_thread_id,
       :started_at,
-      :completed_at
+      :completed_at,
+      :user_id,
+      :repository_id,
+      :project_id,
+      :oban_job_id
     ])
     |> validate_required([
       :name,

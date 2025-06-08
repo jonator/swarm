@@ -207,9 +207,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                                   "71ee683d-74e4-4668-95f7-537af7734054" ->
           {:ok, @comprehensive_thread}
         end do
-          IO.inspect(event)
         assert {:ok, attrs} = LinearHandler.handle(event)
-        IO.inspect(attrs)
         assert attrs.source == :linear
         assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
         assert String.contains?(attrs.context, "Test issue content")
