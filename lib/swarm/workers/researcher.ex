@@ -211,12 +211,6 @@ defmodule Swarm.Workers.Researcher do
     false
   end
 
-  defp has_file?(_index, _filename) do
-    # This would check if the file exists in the index
-    # Implementation depends on Git.Index API
-    false
-  end
-
   defp get_main_directories(_index) do
     # Get top-level directories from the index
     # Implementation depends on Git.Index API

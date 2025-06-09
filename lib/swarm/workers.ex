@@ -11,6 +11,9 @@ defmodule Swarm.Workers do
   alias Swarm.Ingress.Event
   alias Swarm.Egress
   alias Swarm.Agents
+  alias Swarm.Agents.Agent
+
+  @agent_update_window_seconds 30
 
   @doc """
   Spawns an appropriate agent based on the event context and agent attributes.
@@ -33,7 +36,7 @@ defmodule Swarm.Workers do
       case action do
         :created ->
           with {:ok, msg} <- Egress.acknowledge(event),
-               {:ok, job} <- schedule_agent_worker(agent, agent_type) do
+               {:ok, job} <- schedule_agent_worker(agent) do
             Logger.info("Successfully spawned #{agent_type} agent #{agent.id}")
             {:ok, agent, job, msg}
           else
@@ -162,15 +165,15 @@ defmodule Swarm.Workers do
     end
   end
 
-  defp schedule_agent_worker(agent, :researcher) do
-    %{agent_id: agent.id}
-    |> Swarm.Workers.Researcher.new(schedule_in: 30)
+  defp schedule_agent_worker(%Agent{id: agent_id, type: :researcher}) do
+    %{agent_id: agent_id}
+    |> Swarm.Workers.Researcher.new(schedule_in: @agent_update_window_seconds)
     |> Oban.insert()
   end
 
-  defp schedule_agent_worker(agent, :coder) do
-    %{agent_id: agent.id}
-    |> Swarm.Workers.Coder.new(schedule_in: 30)
+  defp schedule_agent_worker(%Agent{id: agent_id, type: :coder}) do
+    %{agent_id: agent_id}
+    |> Swarm.Workers.Coder.new(schedule_in: @agent_update_window_seconds)
     |> Oban.insert()
   end
 end
