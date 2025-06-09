@@ -272,22 +272,6 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       assert {:ok, :ignored} = LinearHandler.handle(event)
     end
 
-    test "rejects non-Linear events" do
-      github_event = %Event{
-        source: :github,
-        type: "pull_request",
-        raw_data: %{},
-        user_id: nil,
-        repository_external_id: nil,
-        external_ids: %{},
-        context: %{},
-        timestamp: DateTime.utc_now()
-      }
-
-      assert {:error, message} = LinearHandler.handle(github_event)
-      assert String.contains?(message, "LinearHandler received non-Linear event: github")
-    end
-
     test "handles Linear document mention event", %{user: user, repository: repository} do
       params = linear_document_mention_params()
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
@@ -330,6 +314,22 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert String.contains?(attrs.context, "Test doc")
         assert String.contains?(attrs.context, "This is a test document content")
       end
+    end
+
+    test "rejects non-Linear events" do
+      github_event = %Event{
+        source: :github,
+        type: "pull_request",
+        raw_data: %{},
+        user_id: nil,
+        repository_external_id: nil,
+        external_ids: %{},
+        context: %{},
+        timestamp: DateTime.utc_now()
+      }
+
+      assert {:error, message} = LinearHandler.handle(github_event)
+      assert String.contains?(message, "LinearHandler received non-Linear event: github")
     end
   end
 
