@@ -32,7 +32,8 @@ defmodule Swarm.Workers do
     Logger.info("Processing agent spawn request for event type: #{event.type}")
 
     with {:ok, agent_type} <- determine_agent_type(agent_attrs),
-         {:ok, %{agent: agent, action: action}} <- create_or_update_agent(agent_attrs, agent_type, event) do
+         {:ok, %{agent: agent, action: action}} <-
+           create_or_update_agent(agent_attrs, agent_type, event) do
       case action do
         :created ->
           with {:ok, msg} <- Egress.acknowledge(event),
@@ -89,7 +90,8 @@ defmodule Swarm.Workers do
 
     # Context is sufficient if it has technical details, clear requirements,
     # sufficient length, and specific mentions
-    has_technical_details && has_clear_requirements && has_sufficient_length && has_specific_mentions
+    has_technical_details && has_clear_requirements && has_sufficient_length &&
+      has_specific_mentions
   end
 
   def analyze_context_sufficiency(_), do: false
@@ -106,6 +108,7 @@ defmodule Swarm.Workers do
       existing_agent ->
         # Update existing agent with new data
         Logger.info("Found existing pending agent #{existing_agent.id}, updating data")
+
         case update_existing_agent(existing_agent, agent_attrs, agent_type) do
           {:ok, agent} -> {:ok, %{agent: agent, action: :updated}}
           error -> error
@@ -114,6 +117,9 @@ defmodule Swarm.Workers do
   end
 
   defp create_new_agent(agent_attrs, agent_type, event) do
+    # Use external_ids from agent_attrs, or fall back to event external_ids
+    external_ids = Map.get(agent_attrs, :external_ids, event.external_ids || %{})
+
     agent_params = %{
       name: generate_agent_name(agent_type, agent_attrs),
       context: Map.get(agent_attrs, :context, ""),
@@ -122,20 +128,21 @@ defmodule Swarm.Workers do
       type: agent_type,
       user_id: Map.get(agent_attrs, :user_id),
       repository_id: Map.get(agent_attrs, :repository, %{id: agent_attrs[:repository_id]}).id,
-      github_pull_request_id: Map.get(agent_attrs, :github_pull_request_id),
-      github_issue_id: Map.get(agent_attrs, :github_issue_id),
-      linear_issue_id: Map.get(agent_attrs, :linear_issue_id),
-      linear_document_id: Map.get(agent_attrs, :linear_document_id),
-      slack_thread_id: Map.get(agent_attrs, :slack_thread_id)
+      external_ids: external_ids
     }
 
     Agents.create_agent(agent_params)
   end
 
   defp update_existing_agent(agent, agent_attrs, agent_type) do
+    # Use external_ids from agent_attrs, merge with existing agent external_ids
+    new_external_ids = Map.get(agent_attrs, :external_ids, %{})
+    merged_external_ids = Map.merge(agent.external_ids || %{}, new_external_ids)
+
     update_params = %{
       context: Map.get(agent_attrs, :context, agent.context),
       type: agent_type,
+      external_ids: merged_external_ids,
       # Keep the agent as pending, don't change status
       status: :pending
     }
@@ -144,7 +151,12 @@ defmodule Swarm.Workers do
   end
 
   def generate_agent_name(agent_type, agent_attrs) do
-    case {agent_type, Map.get(agent_attrs, :linear_issue_id), Map.get(agent_attrs, :github_issue_id)} do
+    # Try to get external IDs from external_ids map first, then fall back to direct keys
+    external_ids = Map.get(agent_attrs, :external_ids, %{})
+    linear_id = external_ids[:linear_issue_id] || Map.get(agent_attrs, :linear_issue_id)
+    github_id = external_ids[:github_issue_id] || Map.get(agent_attrs, :github_issue_id)
+
+    case {agent_type, linear_id, github_id} do
       {:researcher, linear_id, _} when not is_nil(linear_id) ->
         "Research Agent - Linear Issue #{String.slice(linear_id, 0, 8)}"
 

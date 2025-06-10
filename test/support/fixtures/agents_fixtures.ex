@@ -13,11 +13,13 @@ defmodule Swarm.AgentsFixtures do
       |> Enum.into(%{
         completed_at: ~N[2025-05-26 01:07:00],
         context: "some context",
-        github_issue_id: "some github_issue_id",
-        github_pull_request_id: "some github_pull_request_id",
-        linear_issue_id: "some linear_issue_id",
+        external_ids: %{
+          "github_issue_id" => "some github_issue_id",
+          "github_pull_request_id" => "some github_pull_request_id",
+          "linear_issue_id" => "some linear_issue_id",
+          "slack_thread_id" => "some slack_thread_id"
+        },
         name: "some name",
-        slack_thread_id: "some slack_thread_id",
         started_at: ~N[2025-05-26 01:07:00],
         status: :pending,
         source: :manual,

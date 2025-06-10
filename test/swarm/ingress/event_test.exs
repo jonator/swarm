@@ -17,17 +17,17 @@ defmodule Swarm.Ingress.EventTest do
       assert event.repository_external_id == nil
 
       # Verify external IDs extraction
-      assert event.external_ids[:linear_issue_id] == "71ee683d-74e4-4668-95f7-537af7734054"
-      assert event.external_ids[:linear_team_id] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
-      assert event.external_ids[:linear_app_user_id] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
-      refute Map.has_key?(event.external_ids, :linear_comment_id)
-      refute Map.has_key?(event.external_ids, :linear_document_id)
+      assert event.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert event.external_ids["linear_team_id"] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
+      assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      refute Map.has_key?(event.external_ids, "linear_comment_id")
+      refute Map.has_key?(event.external_ids, "linear_document_id")
 
       # Verify context extraction
       assert event.context.action == "issueMention"
       assert event.context.organization_id == "4fde7f37-de48-4d5c-93fb-473c8f24d4cb"
       assert event.context.webhook_id == "d86e55d2-acb2-4ba5-bdc5-78368417c3a8"
-      assert event.context.webhook_timestamp == 1748718589311
+      assert event.context.webhook_timestamp == 1_748_718_589_311
       assert event.context.actor["id"] == "f15f0e68-9424-4add-b7c6-1d318e455719"
       assert event.context.actor["email"] == "jonathanator0@gmail.com"
       assert event.context.actor["name"] == "Jonathan Ator"
@@ -46,17 +46,17 @@ defmodule Swarm.Ingress.EventTest do
       assert event.raw_data == event_data
 
       # Verify external IDs extraction
-      assert event.external_ids[:linear_issue_id] == "71ee683d-74e4-4668-95f7-537af7734054"
-      assert event.external_ids[:linear_team_id] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
-      assert event.external_ids[:linear_app_user_id] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
-      refute Map.has_key?(event.external_ids, :linear_comment_id)
-      refute Map.has_key?(event.external_ids, :linear_document_id)
+      assert event.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert event.external_ids["linear_team_id"] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
+      assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      refute Map.has_key?(event.external_ids, "linear_comment_id")
+      refute Map.has_key?(event.external_ids, "linear_document_id")
 
       # Verify context extraction
       assert event.context.action == "issueAssignedToYou"
       assert event.context.organization_id == "4fde7f37-de48-4d5c-93fb-473c8f24d4cb"
       assert event.context.webhook_id == "d86e55d2-acb2-4ba5-bdc5-78368417c3a8"
-      assert event.context.webhook_timestamp == 1748718790250
+      assert event.context.webhook_timestamp == 1_748_718_790_250
       assert event.context.actor["id"] == "f15f0e68-9424-4add-b7c6-1d318e455719"
       assert event.context.notification["type"] == "issueAssignedToYou"
       assert event.context.notification["issue"]["identifier"] == "SW-10"
@@ -72,16 +72,19 @@ defmodule Swarm.Ingress.EventTest do
       assert event.raw_data == event_data
 
       # Verify external IDs extraction
-      assert event.external_ids[:linear_issue_id] == "71ee683d-74e4-4668-95f7-537af7734054"
-      assert event.external_ids[:linear_comment_id] == "1572d3ac-fca9-4713-84e3-4a104c6674fd"
-      assert event.external_ids[:linear_team_id] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
-      assert event.external_ids[:linear_app_user_id] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
-      refute Map.has_key?(event.external_ids, :linear_document_id)
+      assert event.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert event.external_ids["linear_comment_id"] == "1572d3ac-fca9-4713-84e3-4a104c6674fd"
+      assert event.external_ids["linear_team_id"] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
+      assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      refute Map.has_key?(event.external_ids, "linear_document_id")
 
       # Verify context extraction
       assert event.context.action == "issueCommentMention"
       assert event.context.notification["type"] == "issueCommentMention"
-      assert event.context.notification["comment"]["body"] == "This is a mention comment @swarmdev "
+
+      assert event.context.notification["comment"]["body"] ==
+               "This is a mention comment @swarmdev "
+
       assert event.context.notification["comment"]["id"] == "1572d3ac-fca9-4713-84e3-4a104c6674fd"
       assert event.context.notification["issue"]["identifier"] == "SW-10"
     end
@@ -96,12 +99,12 @@ defmodule Swarm.Ingress.EventTest do
       assert event.raw_data == event_data
 
       # Verify external IDs extraction
-      assert event.external_ids[:linear_document_id] == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
-      assert event.external_ids[:linear_project_id] == "bd51cbd8-589f-4122-8326-4347fb0c89ce"
-      assert event.external_ids[:linear_app_user_id] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
-      refute Map.has_key?(event.external_ids, :linear_issue_id)
-      refute Map.has_key?(event.external_ids, :linear_comment_id)
-      refute Map.has_key?(event.external_ids, :linear_team_id)
+      assert event.external_ids["linear_document_id"] == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
+      assert event.external_ids["linear_project_id"] == "bd51cbd8-589f-4122-8326-4347fb0c89ce"
+      assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      refute Map.has_key?(event.external_ids, "linear_issue_id")
+      refute Map.has_key?(event.external_ids, "linear_comment_id")
+      refute Map.has_key?(event.external_ids, "linear_team_id")
 
       # Verify context extraction
       assert event.context.action == "documentMention"
@@ -120,20 +123,24 @@ defmodule Swarm.Ingress.EventTest do
       assert event.raw_data == event_data
 
       # Verify external IDs extraction
-      assert event.external_ids[:linear_issue_id] == "71ee683d-74e4-4668-95f7-537af7734054"
-      assert event.external_ids[:linear_comment_id] == "ff7ece6b-be23-4c5d-a13b-76ae72ea43d8"
-      assert event.external_ids[:linear_team_id] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
-      assert event.external_ids[:linear_app_user_id] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      assert event.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
+      assert event.external_ids["linear_comment_id"] == "ff7ece6b-be23-4c5d-a13b-76ae72ea43d8"
+      assert event.external_ids["linear_team_id"] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
+      assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
 
       # Verify context extraction
       assert event.context.action == "issueNewComment"
       assert event.context.notification["type"] == "issueNewComment"
-      assert event.context.notification["comment"]["body"] == "We should look into this at some point"
+
+      assert event.context.notification["comment"]["body"] ==
+               "We should look into this at some point"
+
       assert event.context.notification["issue"]["identifier"] == "SW-10"
     end
 
     test "creates event with custom user_id and repository_external_id options" do
       event_data = EventsFixtures.linear_issue_description_mention_params()
+
       opts = [
         user_id: 123,
         repository_external_id: "github:456789",
@@ -164,8 +171,8 @@ defmodule Swarm.Ingress.EventTest do
       assert event.source == :github
       assert event.type == "pull_request"
       assert event.repository_external_id == "github:67890"
-      assert event.external_ids[:github_pull_request_id] == 12345
-      refute Map.has_key?(event.external_ids, :github_issue_id)
+      assert event.external_ids["github_pull_request_id"] == 12345
+      refute Map.has_key?(event.external_ids, "github_issue_id")
 
       # Verify context
       assert event.context.action == "opened"
@@ -186,8 +193,8 @@ defmodule Swarm.Ingress.EventTest do
       assert event.source == :github
       assert event.type == "issue"
       assert event.repository_external_id == "github:67890"
-      assert event.external_ids[:github_issue_id] == 54321
-      refute Map.has_key?(event.external_ids, :github_pull_request_id)
+      assert event.external_ids["github_issue_id"] == 54321
+      refute Map.has_key?(event.external_ids, "github_pull_request_id")
     end
 
     test "creates event from GitHub push" do
@@ -209,6 +216,7 @@ defmodule Swarm.Ingress.EventTest do
         "pull_request" => %{"id" => 12345},
         "repository" => %{"id" => 67890}
       }
+
       opts = [repository_external_id: "custom:123"]
 
       assert {:ok, event} = Event.new(event_data, :github, opts)
@@ -221,6 +229,7 @@ defmodule Swarm.Ingress.EventTest do
         "pull_request" => %{"id" => 12345},
         "repository" => %{"id" => 67890}
       }
+
       opts = [repository_external_id: "github:123"]
 
       assert {:ok, event} = Event.new(event_data, :github, opts)
@@ -252,7 +261,7 @@ defmodule Swarm.Ingress.EventTest do
 
       assert event.source == :slack
       assert event.type == "thread_mention"
-      assert event.external_ids[:slack_thread_id] == "1234567890.123456"
+      assert event.external_ids["slack_thread_id"] == "1234567890.123456"
 
       # Verify context
       assert event.context.team_id == "T123456"
@@ -274,7 +283,7 @@ defmodule Swarm.Ingress.EventTest do
 
       assert event.source == :slack
       assert event.type == "direct_message"
-      assert event.external_ids[:slack_thread_id] == "1234567890.123456"
+      assert event.external_ids["slack_thread_id"] == "1234567890.123456"
     end
 
     test "returns error for unknown Slack event type" do
@@ -351,9 +360,9 @@ defmodule Swarm.Ingress.EventTest do
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
-      assert event.external_ids[:linear_issue_id] == "issue-123"
-      assert event.external_ids[:linear_app_user_id] == "user-456"
-      refute Map.has_key?(event.external_ids, :linear_team_id)
+      assert event.external_ids["linear_issue_id"] == "issue-123"
+      assert event.external_ids["linear_app_user_id"] == "user-456"
+      refute Map.has_key?(event.external_ids, "linear_team_id")
     end
 
     test "handles Linear event with direct issue format" do
@@ -365,7 +374,7 @@ defmodule Swarm.Ingress.EventTest do
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
-      assert event.external_ids[:linear_issue_id] == "direct-issue-123"
+      assert event.external_ids["linear_issue_id"] == "direct-issue-123"
     end
 
     test "handles Linear event with legacy comment format" do
@@ -377,8 +386,8 @@ defmodule Swarm.Ingress.EventTest do
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
-      assert event.external_ids[:linear_comment_id] == "legacy-comment-123"
-      assert event.external_ids[:linear_app_user_id] == "user-789"
+      assert event.external_ids["linear_comment_id"] == "legacy-comment-123"
+      assert event.external_ids["linear_app_user_id"] == "user-789"
     end
 
     test "handles Linear event with alternative document ID format" do
@@ -390,8 +399,8 @@ defmodule Swarm.Ingress.EventTest do
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
-      assert event.external_ids[:linear_document_id] == "alt-doc-456"
-      assert event.external_ids[:linear_app_user_id] == "user-abc"
+      assert event.external_ids["linear_document_id"] == "alt-doc-456"
+      assert event.external_ids["linear_app_user_id"] == "user-abc"
     end
 
     test "handles Linear event with team ID from issue" do
@@ -404,7 +413,7 @@ defmodule Swarm.Ingress.EventTest do
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
-      assert event.external_ids[:linear_team_id] == "team-from-issue-789"
+      assert event.external_ids["linear_team_id"] == "team-from-issue-789"
     end
 
     test "handles GitHub event without repository" do
@@ -415,7 +424,7 @@ defmodule Swarm.Ingress.EventTest do
       assert {:ok, event} = Event.new(event_data, :github)
 
       assert event.repository_external_id == nil
-      assert event.external_ids[:github_pull_request_id] == 12345
+      assert event.external_ids["github_pull_request_id"] == 12345
     end
 
     test "handles Slack event without timestamp" do
@@ -431,7 +440,7 @@ defmodule Swarm.Ingress.EventTest do
 
       assert event.source == :slack
       assert event.type == "thread_mention"
-      refute Map.has_key?(event.external_ids, :slack_thread_id)
+      refute Map.has_key?(event.external_ids, "slack_thread_id")
     end
   end
 
@@ -454,6 +463,7 @@ defmodule Swarm.Ingress.EventTest do
         "action" => "test",
         "actor" => %{"id" => "linear-actor"}
       }
+
       opts = [context: %{"action" => "base-action", "actor" => %{"id" => "base-actor"}}]
 
       assert {:ok, event} = Event.new(event_data, :linear, opts)
@@ -486,8 +496,8 @@ defmodule Swarm.Ingress.EventTest do
       assert {:ok, event} = Event.new(event_data, :github)
 
       assert event.type == "pull_request"
-      assert event.external_ids[:github_pull_request_id] == 11111
-      assert event.external_ids[:github_issue_id] == 22222
+      assert event.external_ids["github_pull_request_id"] == 11111
+      assert event.external_ids["github_issue_id"] == 22222
     end
 
     test "validates timestamp is recent" do
@@ -498,7 +508,8 @@ defmodule Swarm.Ingress.EventTest do
 
       time_diff = DateTime.diff(event.timestamp, before_time, :millisecond)
       assert time_diff >= 0
-      assert time_diff < 1000  # Should be created within 1 second
+      # Should be created within 1 second
+      assert time_diff < 1000
     end
   end
 end

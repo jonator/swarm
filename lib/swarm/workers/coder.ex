@@ -19,7 +19,6 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Instructor
   alias Swarm.Repositories.Repository
   alias Swarm.Services.GitHub
-  alias Swarm.Services.Linear
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -34,10 +33,12 @@ defmodule Swarm.Workers.Coder do
     else
       {:error, reason} = error ->
         Logger.error("Coder agent #{agent_id} failed: #{reason}")
+
         case Agents.get_agent(agent_id) do
           %Agent{} = agent -> Agents.mark_agent_failed(agent)
           nil -> :ok
         end
+
         error
     end
   end
@@ -46,6 +47,7 @@ defmodule Swarm.Workers.Coder do
     case Agents.get_agent(agent_id) do
       nil ->
         {:error, "Agent not found"}
+
       agent ->
         # Preload user and repository associations for GitHub service
         agent = Swarm.Repo.preload(agent, [:user, :repository])
@@ -81,7 +83,8 @@ defmodule Swarm.Workers.Coder do
          {:ok, repo} <- clone_repository(agent, branch_name),
          {:ok, index} <- create_repository_index(repo),
          {:ok, relevant_files} <- find_relevant_files(repo, index, instructions),
-         {:ok, implementation_result} <- implement_changes(repo, index, relevant_files, instructions),
+         {:ok, implementation_result} <-
+           implement_changes(repo, index, relevant_files, instructions),
          {:ok, _} <- run_build_and_tests(repo),
          {:ok, pr_result} <- create_pull_request(repo, agent, branch_name, implementation_result) do
       Logger.info("Code implementation completed for agent #{agent.id}")
@@ -95,9 +98,11 @@ defmodule Swarm.Workers.Coder do
 
   defp get_branch_name(%Agent{context: instructions}) do
     Logger.debug("Generating branch name using instructor")
+
     case Instructor.BranchName.generate_branch_name(instructions) do
       {:ok, %{branch_name: branch_name}} ->
         {:ok, branch_name}
+
       error ->
         Logger.warning("Failed to generate branch name, using fallback: #{inspect(error)}")
         timestamp = System.system_time(:second)
@@ -106,7 +111,9 @@ defmodule Swarm.Workers.Coder do
   end
 
   defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}, branch_name) do
-    Logger.debug("Cloning repository: #{repository.owner}/#{repository.name} with branch: #{branch_name}")
+    Logger.debug(
+      "Cloning repository: #{repository.owner}/#{repository.name} with branch: #{branch_name}"
+    )
 
     # Get repository information from GitHub API
     # Note: In the future when organizations are supported, we will need to
@@ -123,6 +130,7 @@ defmodule Swarm.Workers.Coder do
       {:error, reason} ->
         Logger.error("Failed to clone repository: #{inspect(reason)}")
         {:error, reason}
+
       error ->
         Logger.error("Failed to clone repository: #{inspect(error)}")
         error
@@ -147,6 +155,7 @@ defmodule Swarm.Workers.Coder do
       {:ok, index} ->
         Logger.debug("Successfully created repository index")
         {:ok, index}
+
       error ->
         Logger.error("Failed to create repository index: #{inspect(error)}")
         error
@@ -193,23 +202,27 @@ defmodule Swarm.Workers.Coder do
     [search_result, relevant_result] = Task.await_many(tasks, 300_000)
 
     # Combine results from different sources
-    search_files = case search_result do
-      {:ok, %{files: files}} -> files
-      _ -> []
-    end
+    search_files =
+      case search_result do
+        {:ok, %{files: files}} -> files
+        _ -> []
+      end
 
-    relevant_files = case relevant_result do
-      {:ok, %{files: files}} -> files
-      _ -> []
-    end
+    relevant_files =
+      case relevant_result do
+        {:ok, %{files: files}} -> files
+        _ -> []
+      end
 
     # Search for terms in the index if we have search terms
-    term_files = case search_result do
-      {:ok, %{terms: terms}} ->
-        search_terms_in_index(index, terms)
-      _ ->
-        []
-    end
+    term_files =
+      case search_result do
+        {:ok, %{terms: terms}} ->
+          search_terms_in_index(index, terms)
+
+        _ ->
+          []
+      end
 
     # Combine and deduplicate all files
     all_files = Enum.uniq(search_files ++ relevant_files ++ term_files)
@@ -222,8 +235,10 @@ defmodule Swarm.Workers.Coder do
     case Instructor.SearchTerms.get_search_terms(instructions) do
       {:ok, %{terms: terms, files: files}} ->
         {:ok, %{terms: terms, files: files}}
+
       {:ok, %{terms: terms}} ->
         {:ok, %{terms: terms, files: []}}
+
       error ->
         Logger.warning("Failed to get search terms: #{inspect(error)}")
         {:ok, %{terms: [], files: []}}
@@ -234,6 +249,7 @@ defmodule Swarm.Workers.Coder do
     case Instructor.RelevantFiles.get_relevant_files(repo, instructions) do
       {:ok, %{files: files}} ->
         {:ok, %{files: files}}
+
       error ->
         Logger.warning("Failed to get relevant files: #{inspect(error)}")
         {:ok, %{files: []}}
@@ -260,10 +276,12 @@ defmodule Swarm.Workers.Coder do
       {:ok, result} ->
         Logger.info("Implementation completed successfully")
         {:ok, result}
+
       result when is_binary(result) ->
         # If the implementor returns a string (like a success message)
         Logger.info("Implementation completed: #{result}")
         {:ok, result}
+
       error ->
         Logger.error("Implementation failed: #{inspect(error)}")
         {:error, "Implementation failed: #{inspect(error)}"}
@@ -297,11 +315,12 @@ defmodule Swarm.Workers.Coder do
     Logger.debug("Running Node.js build and tests")
 
     # Check if we have a lockfile to determine package manager
-    package_manager = cond do
-      File.exists?(Path.join(repo_path, "yarn.lock")) -> "yarn"
-      File.exists?(Path.join(repo_path, "pnpm-lock.yaml")) -> "pnpm"
-      true -> "npm"
-    end
+    package_manager =
+      cond do
+        File.exists?(Path.join(repo_path, "yarn.lock")) -> "yarn"
+        File.exists?(Path.join(repo_path, "pnpm-lock.yaml")) -> "pnpm"
+        true -> "npm"
+      end
 
     commands = [
       "#{package_manager} install",
@@ -338,25 +357,27 @@ defmodule Swarm.Workers.Coder do
   end
 
   defp run_commands_in_directory(repo_path, commands) do
-    results = Enum.map(commands, fn command ->
-      Logger.debug("Running command: #{command}")
+    results =
+      Enum.map(commands, fn command ->
+        Logger.debug("Running command: #{command}")
 
-      case System.cmd("sh", ["-c", command], cd: repo_path, stderr_to_stdout: true) do
-        {output, 0} ->
-          Logger.debug("Command succeeded: #{command}")
-          {:ok, output}
+        case System.cmd("sh", ["-c", command], cd: repo_path, stderr_to_stdout: true) do
+          {output, 0} ->
+            Logger.debug("Command succeeded: #{command}")
+            {:ok, output}
 
-        {output, exit_code} ->
-          Logger.warning("Command failed (exit #{exit_code}): #{command}\nOutput: #{output}")
-          {:warning, "Command failed: #{command} (exit #{exit_code})"}
-      end
-    end)
+          {output, exit_code} ->
+            Logger.warning("Command failed (exit #{exit_code}): #{command}\nOutput: #{output}")
+            {:warning, "Command failed: #{command} (exit #{exit_code})"}
+        end
+      end)
 
     # Check if any critical commands failed
-    failures = Enum.filter(results, fn
-      {:error, _} -> true
-      _ -> false
-    end)
+    failures =
+      Enum.filter(results, fn
+        {:error, _} -> true
+        _ -> false
+      end)
 
     if Enum.empty?(failures) do
       {:ok, results}
@@ -413,6 +434,7 @@ defmodule Swarm.Workers.Coder do
     case agent.linear_issue_id do
       nil ->
         "Automated changes by Swarm Agent"
+
       linear_id ->
         "SW: Automated implementation for #{String.slice(linear_id, 0, 8)}"
     end

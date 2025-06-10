@@ -25,11 +25,7 @@ defmodule Swarm.Agents.Agent do
     field :status, Ecto.Enum, values: [:pending, :running, :completed, :failed]
     field :source, Ecto.Enum, values: [:manual, :linear, :slack, :github]
     field :type, Ecto.Enum, values: [:researcher, :coder, :code_reviewer]
-    field :github_pull_request_id, :string
-    field :github_issue_id, :string
-    field :linear_issue_id, :string
-    field :linear_document_id, :string
-    field :slack_thread_id, :string
+    field :external_ids, :map, default: %{}
     field :started_at, :utc_datetime
     field :completed_at, :utc_datetime
     belongs_to :oban_job, Oban.Job
@@ -50,11 +46,7 @@ defmodule Swarm.Agents.Agent do
       :status,
       :source,
       :type,
-      :github_pull_request_id,
-      :github_issue_id,
-      :linear_issue_id,
-      :linear_document_id,
-      :slack_thread_id,
+      :external_ids,
       :started_at,
       :completed_at,
       :user_id,

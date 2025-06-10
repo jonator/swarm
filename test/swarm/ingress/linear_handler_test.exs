@@ -209,7 +209,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         end do
         assert {:ok, attrs} = LinearHandler.handle(event)
         assert attrs.source == :linear
-        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert String.contains?(attrs.context, "Test issue content")
 
         assert String.contains?(
@@ -230,7 +230,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         end do
         assert {:ok, attrs} = LinearHandler.handle(event)
         assert attrs.source == :linear
-        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
 
         assert String.contains?(
                  attrs.context,
@@ -254,7 +254,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         end do
         assert {:ok, attrs} = LinearHandler.handle(event)
         assert attrs.source == :linear
-        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
 
         assert String.contains?(
                  attrs.context,
@@ -309,7 +309,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert {:ok, attrs} = LinearHandler.handle(event)
 
         assert attrs.source == :linear
-        assert attrs.linear_document_id == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
+        assert attrs.external_ids["linear_document_id"] == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
         assert attrs.repository.id == repository.id
         assert String.contains?(attrs.context, "Test doc")
         assert String.contains?(attrs.context, "This is a test document content")
@@ -430,7 +430,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
 
         assert attrs.user_id == user.id
         assert attrs.source == :linear
-        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
         assert String.contains?(
@@ -462,7 +462,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
 
         assert attrs.user_id == user.id
         assert attrs.source == :linear
-        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
         assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
@@ -485,7 +485,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
 
         assert attrs.user_id == user.id
         assert attrs.source == :linear
-        assert attrs.linear_issue_id == "71ee683d-74e4-4668-95f7-537af7734054"
+        assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
         assert String.contains?(attrs.context, "@swarmdev")
@@ -515,7 +515,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
 
         assert attrs.user_id == user.id
         assert attrs.source == :linear
-        assert attrs.linear_document_id == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
+        assert attrs.external_ids["linear_document_id"] == "f433ebff-9cd0-4057-867a-2ab6e528a12d"
         assert attrs.repository.id == repository.id
         assert String.contains?(attrs.context, "Test doc")
         assert String.contains?(attrs.context, "This is a test document content")

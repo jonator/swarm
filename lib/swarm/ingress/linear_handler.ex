@@ -60,13 +60,13 @@ defmodule Swarm.Ingress.LinearHandler do
   3. Manual configuration
   """
   def find_repository_for_linear_event(user, %Event{type: type, external_ids: external_ids}) do
-    case external_ids[:linear_team_id] do
+    case external_ids["linear_team_id"] do
       nil ->
-        if type == "documentMention" && external_ids[:linear_project_id] do
+        if type == "documentMention" && external_ids["linear_project_id"] do
           find_repository_by_project_id(
             user,
-            external_ids[:linear_app_user_id],
-            external_ids[:linear_project_id]
+            external_ids["linear_app_user_id"],
+            external_ids["linear_project_id"]
           )
         else
           {:error, "No team information found in Linear event"}
@@ -147,7 +147,7 @@ defmodule Swarm.Ingress.LinearHandler do
       end
 
     attrs = Map.merge(base_attrs, type_specific_attrs)
-    attrs = Map.merge(attrs, external_ids)
+    attrs = Map.put(attrs, :external_ids, external_ids)
 
     {:ok, attrs}
   end
@@ -203,8 +203,8 @@ defmodule Swarm.Ingress.LinearHandler do
   end
 
   defp fetch_document_content(external_ids) do
-    document_id = external_ids[:linear_document_id]
-    app_user_id = external_ids[:linear_app_user_id]
+    document_id = external_ids["linear_document_id"]
+    app_user_id = external_ids["linear_app_user_id"]
 
     if document_id && app_user_id do
       fetch_document_from_api(app_user_id, document_id)
@@ -217,12 +217,16 @@ defmodule Swarm.Ingress.LinearHandler do
     case Linear.document(app_user_id, document_id) do
       {:ok, %{"document" => doc_data}} ->
         doc_data["content"] || "Document content unavailable"
+
       {:error, _reason} ->
         "Unable to fetch document content - API error"
+
       {:unauthorized, _reason} ->
         "Unable to fetch document content - unauthorized"
+
       {:ok, %{status: status}} when status != 200 ->
         "Unable to fetch document content - HTTP #{status}"
+
       _other ->
         "Unable to fetch document content - unknown error"
     end
@@ -291,30 +295,38 @@ defmodule Swarm.Ingress.LinearHandler do
   end
 
   defp fetch_issue_description_from_api(external_ids, issue_id) do
-    case Linear.issue(external_ids[:linear_app_user_id], issue_id) do
+    case Linear.issue(external_ids["linear_app_user_id"], issue_id) do
       {:ok, %{"issue" => %{"documentContent" => %{"content" => content}}}} ->
         content
+
       {:error, _reason} ->
         "Unable to fetch issue description - API error"
+
       {:unauthorized, _reason} ->
         "Unable to fetch issue description - unauthorized"
+
       {:ok, %{status: status}} when status != 200 ->
         "Unable to fetch issue description - HTTP #{status}"
+
       _ ->
         "No description provided"
     end
   end
 
   defp get_issue_comment_threads(issue, external_ids) do
-    case Linear.issue_comment_threads(external_ids[:linear_app_user_id], issue["id"]) do
+    case Linear.issue_comment_threads(external_ids["linear_app_user_id"], issue["id"]) do
       {:ok, %{"issue" => %{"comments" => %{"nodes" => comments}}}} ->
         format_comment_threads(comments)
+
       {:error, _reason} ->
         "Unable to fetch issue comment threads - API error"
+
       {:unauthorized, _reason} ->
         "Unable to fetch issue comment threads - unauthorized"
+
       {:ok, %{status: status}} when status != 200 ->
         "Unable to fetch issue comment threads - HTTP #{status}"
+
       _other ->
         "Unable to fetch issue comment threads - unknown error"
     end
@@ -341,10 +353,10 @@ defmodule Swarm.Ingress.LinearHandler do
       replies ->
         reply_text =
           Enum.map_join(replies, "\n", fn %{
-                           "id" => reply_id,
-                           "body" => reply_body,
-                           "user" => %{"displayName" => reply_display_name}
-                         } ->
+                                            "id" => reply_id,
+                                            "body" => reply_body,
+                                            "user" => %{"displayName" => reply_display_name}
+                                          } ->
             "  - (#{reply_id}) #{reply_display_name}: #{reply_body}"
           end)
 

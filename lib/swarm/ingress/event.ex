@@ -130,14 +130,14 @@ defmodule Swarm.Ingress.Event do
 
     external_ids =
       if data["pull_request"] do
-        Map.put(external_ids, :github_pull_request_id, data["pull_request"]["id"])
+        Map.put(external_ids, "github_pull_request_id", data["pull_request"]["id"])
       else
         external_ids
       end
 
     external_ids =
       if data["issue"] do
-        Map.put(external_ids, :github_issue_id, data["issue"]["id"])
+        Map.put(external_ids, "github_issue_id", data["issue"]["id"])
       else
         external_ids
       end
@@ -146,13 +146,14 @@ defmodule Swarm.Ingress.Event do
   end
 
   defp extract_external_ids(data, :linear) do
-    external_ids = %{}
-    |> extract_linear_issue_id(data)
-    |> extract_linear_comment_id(data)
-    |> extract_linear_document_id(data)
-    |> extract_linear_team_id(data)
-    |> extract_linear_project_id(data)
-    |> extract_linear_app_user_id(data)
+    external_ids =
+      %{}
+      |> extract_linear_issue_id(data)
+      |> extract_linear_comment_id(data)
+      |> extract_linear_document_id(data)
+      |> extract_linear_team_id(data)
+      |> extract_linear_project_id(data)
+      |> extract_linear_app_user_id(data)
 
     {:ok, external_ids}
   end
@@ -162,7 +163,7 @@ defmodule Swarm.Ingress.Event do
 
     external_ids =
       if data["event"]["ts"] do
-        Map.put(external_ids, :slack_thread_id, data["event"]["ts"])
+        Map.put(external_ids, "slack_thread_id", data["event"]["ts"])
       else
         external_ids
       end
@@ -178,15 +179,15 @@ defmodule Swarm.Ingress.Event do
     cond do
       # New notification-based format
       data["notification"]["issue"] ->
-        Map.put(external_ids, :linear_issue_id, data["notification"]["issue"]["id"])
+        Map.put(external_ids, "linear_issue_id", data["notification"]["issue"]["id"])
 
       # Direct issue format
       data["data"] && data["type"] == "Issue" ->
-        Map.put(external_ids, :linear_issue_id, data["data"]["id"])
+        Map.put(external_ids, "linear_issue_id", data["data"]["id"])
 
       # Legacy format
       data["data"]["issue"] ->
-        Map.put(external_ids, :linear_issue_id, data["data"]["issue"]["id"])
+        Map.put(external_ids, "linear_issue_id", data["data"]["issue"]["id"])
 
       true ->
         external_ids
@@ -197,11 +198,11 @@ defmodule Swarm.Ingress.Event do
     cond do
       # New notification-based comment format
       data["notification"]["comment"] ->
-        Map.put(external_ids, :linear_comment_id, data["notification"]["comment"]["id"])
+        Map.put(external_ids, "linear_comment_id", data["notification"]["comment"]["id"])
 
       # Legacy comment format
       data["data"]["comment"] ->
-        Map.put(external_ids, :linear_comment_id, data["data"]["comment"]["id"])
+        Map.put(external_ids, "linear_comment_id", data["data"]["comment"]["id"])
 
       true ->
         external_ids
@@ -212,11 +213,11 @@ defmodule Swarm.Ingress.Event do
     cond do
       # New notification-based document format
       data["notification"]["document"] ->
-        Map.put(external_ids, :linear_document_id, data["notification"]["document"]["id"])
+        Map.put(external_ids, "linear_document_id", data["notification"]["document"]["id"])
 
       # Alternative document ID format
       data["notification"]["documentId"] ->
-        Map.put(external_ids, :linear_document_id, data["notification"]["documentId"])
+        Map.put(external_ids, "linear_document_id", data["notification"]["documentId"])
 
       true ->
         external_ids
@@ -226,10 +227,10 @@ defmodule Swarm.Ingress.Event do
   defp extract_linear_team_id(external_ids, data) do
     cond do
       data["notification"] && data["notification"]["teamId"] ->
-        Map.put(external_ids, :linear_team_id, data["notification"]["teamId"])
+        Map.put(external_ids, "linear_team_id", data["notification"]["teamId"])
 
       data["notification"] && data["notification"]["issue"]["teamId"] ->
-        Map.put(external_ids, :linear_team_id, data["notification"]["issue"]["teamId"])
+        Map.put(external_ids, "linear_team_id", data["notification"]["issue"]["teamId"])
 
       true ->
         external_ids
@@ -239,7 +240,7 @@ defmodule Swarm.Ingress.Event do
   defp extract_linear_project_id(external_ids, data) do
     if data["notification"] && data["notification"]["document"] &&
          data["notification"]["document"]["projectId"] do
-      Map.put(external_ids, :linear_project_id, data["notification"]["document"]["projectId"])
+      Map.put(external_ids, "linear_project_id", data["notification"]["document"]["projectId"])
     else
       external_ids
     end
@@ -247,7 +248,7 @@ defmodule Swarm.Ingress.Event do
 
   defp extract_linear_app_user_id(external_ids, data) do
     if data["appUserId"] do
-      Map.put(external_ids, :linear_app_user_id, data["appUserId"])
+      Map.put(external_ids, "linear_app_user_id", data["appUserId"])
     else
       external_ids
     end

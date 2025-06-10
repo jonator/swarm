@@ -9,11 +9,7 @@ defmodule Swarm.Repo.Migrations.CreateAgents do
       add :status, :string, null: false
       add :source, :string, null: false
       add :type, :string, null: false
-      add :github_pull_request_id, :string
-      add :github_issue_id, :string
-      add :linear_issue_id, :string
-      add :linear_document_id, :string
-      add :slack_thread_id, :string
+      add :external_ids, :map, null: false, default: %{}
       add :started_at, :utc_datetime
       add :completed_at, :utc_datetime
       add :oban_job_id, references(:oban_jobs, on_delete: :nothing)
