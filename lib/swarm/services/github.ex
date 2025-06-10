@@ -97,6 +97,21 @@ defmodule Swarm.Services.GitHub do
     end
   end
 
+  def repository_info(user_or_client, owner, repo)
+
+  def repository_info(%User{} = user, owner, repo) do
+    with {:ok, %__MODULE__{} = client} <- new(user) do
+      repository_info(client, owner, repo)
+    end
+  end
+
+  def repository_info(%__MODULE__{client: client}, owner, repo) do
+    # https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
+    with {200, repo_info, _} <- Tentacat.Repositories.repo_get(client, owner, repo) do
+      {:ok, repo_info}
+    end
+  end
+
   def repository_file_content(%User{} = user, owner, repo, file_path) do
     with {:ok, %__MODULE__{} = client} <- new(user) do
       repository_file_content(client, owner, repo, file_path)

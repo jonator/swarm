@@ -16,6 +16,7 @@ defmodule Swarm.Workers.Researcher do
   alias Swarm.Agents.Agent
   alias Swarm.Git
   alias Swarm.Repositories.Repository
+  alias Swarm.Services.GitHub
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -40,24 +41,24 @@ defmodule Swarm.Workers.Researcher do
 
   defp get_agent(agent_id) do
     case Agents.get_agent(agent_id) do
-      nil -> {:error, "Agent not found"}
-      agent -> {:ok, agent}
+      nil ->
+        {:error, "Agent not found"}
+      agent ->
+        agent = Swarm.Repo.preload(agent, [:user, :repository])
+        {:ok, agent}
     end
   end
 
   defp conduct_research(%Agent{} = agent) do
     Logger.info("Conducting research for agent #{agent.id}")
 
-    FLAME.call(Swarm.ImplementNextjsPool, fn ->
+    FLAME.call(Swarm.FlamePool, fn ->
       perform_research_analysis(agent)
     end)
   end
 
-  defp perform_research_analysis(%Agent{} = agent) do
+  defp perform_research_analysis(%Agent{repository: repository} = agent) do
     Logger.info("Performing research analysis for agent #{agent.id}")
-
-    # Get repository information
-    repository = Swarm.Repo.preload(agent, :repository).repository
 
     if repository do
       analyze_repository_and_context(agent, repository)
@@ -66,37 +67,32 @@ defmodule Swarm.Workers.Researcher do
     end
   end
 
-  defp analyze_repository_and_context(agent, repository) do
-    repo_url = Repository.build_repository_url(repository)
-
-    with {:ok, repo} <- clone_repository(repo_url, agent.id),
+  defp analyze_repository_and_context(agent, _repository) do
+    with {:ok, repo} <- clone_repository(agent),
          {:ok, codebase_analysis} <- analyze_codebase_structure(repo),
          {:ok, implementation_plan} <- generate_implementation_plan(agent, codebase_analysis),
          {:ok, _} <- update_linear_issue_with_plan(agent, implementation_plan) do
       Logger.info("Research completed for agent #{agent.id}")
       {:ok, %{plan: implementation_plan, analysis: codebase_analysis}}
-    else
-      error ->
-        Logger.error("Research analysis failed for agent #{agent.id}: #{inspect(error)}")
-        error
     end
   end
 
 
 
-  defp clone_repository(repo_url, agent_id) do
-    Logger.debug("Cloning repository: #{repo_url}")
+  defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}) do
+    Logger.debug("Cloning repository: #{repository.owner}/#{repository.name}")
 
-    # Use a unique branch name for research
-    branch_name = "swarm-research-#{agent_id}-#{System.system_time(:second)}"
-
-    case Git.Repo.open(repo_url, "research-#{agent_id}", branch_name) do
-      {:ok, repo} ->
-        Logger.debug("Successfully cloned repository to: #{repo.path}")
-        {:ok, repo}
-      error ->
-        Logger.error("Failed to clone repository: #{inspect(error)}")
-        error
+    # Get repository information from GitHub API
+    # Note: In the future when organizations are supported, we will need to
+    # get the repository using the organization and not the user
+    with {:ok, repo_info} <- GitHub.repository_info(user, repository.owner, repository.name),
+         default_branch <- Map.get(repo_info, "default_branch", "main"),
+         :ok <- Logger.debug("Default branch: #{default_branch}"),
+         repo_url <- Repository.build_repository_url(repository),
+         # Clone using the default branch
+         {:ok, repo} <- Git.Repo.open(repo_url, "research-#{agent_id}", default_branch) do
+      Logger.debug("Successfully cloned repository to: #{repo.path}")
+      {:ok, repo}
     end
   end
 

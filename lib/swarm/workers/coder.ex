@@ -18,6 +18,8 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Git
   alias Swarm.Instructor
   alias Swarm.Repositories.Repository
+  alias Swarm.Services.GitHub
+  alias Swarm.Services.Linear
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -42,15 +44,19 @@ defmodule Swarm.Workers.Coder do
 
   defp get_agent(agent_id) do
     case Agents.get_agent(agent_id) do
-      nil -> {:error, "Agent not found"}
-      agent -> {:ok, agent}
+      nil ->
+        {:error, "Agent not found"}
+      agent ->
+        # Preload user and repository associations for GitHub service
+        agent = Swarm.Repo.preload(agent, [:user, :repository])
+        {:ok, agent}
     end
   end
 
   defp implement_code_changes(%Agent{} = agent) do
     Logger.info("Implementing code changes for agent #{agent.id}")
 
-    FLAME.call(Swarm.ImplementNextjsPool, fn ->
+    FLAME.call(Swarm.FlamePool, fn ->
       perform_code_implementation(agent)
     end)
   end
@@ -68,12 +74,11 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp implement_changes_in_repository(agent, repository) do
-    repo_url = Repository.build_repository_url(repository)
+  defp implement_changes_in_repository(agent, _repository) do
     instructions = agent.context
 
-    with {:ok, branch_name} <- generate_branch_name(instructions),
-         {:ok, repo} <- clone_repository(repo_url, agent.id, branch_name),
+    with {:ok, branch_name} <- get_branch_name(agent),
+         {:ok, repo} <- clone_repository(agent, branch_name),
          {:ok, index} <- create_repository_index(repo),
          {:ok, relevant_files} <- find_relevant_files(repo, index, instructions),
          {:ok, implementation_result} <- implement_changes(repo, index, relevant_files, instructions),
@@ -88,9 +93,8 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-
-
-  defp generate_branch_name(instructions) do
+  defp get_branch_name(%Agent{context: instructions}) do
+    Logger.debug("Generating branch name using instructor")
     case Instructor.BranchName.generate_branch_name(instructions) do
       {:ok, %{branch_name: branch_name}} ->
         {:ok, branch_name}
@@ -101,16 +105,35 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp clone_repository(repo_url, agent_id, branch_name) do
-    Logger.debug("Cloning repository: #{repo_url} with branch: #{branch_name}")
+  defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}, branch_name) do
+    Logger.debug("Cloning repository: #{repository.owner}/#{repository.name} with branch: #{branch_name}")
 
-    case Git.Repo.open(repo_url, "coder-#{agent_id}", branch_name) do
-      {:ok, repo} ->
-        Logger.debug("Successfully cloned repository to: #{repo.path}")
-        {:ok, repo}
+    # Get repository information from GitHub API
+    # Note: In the future when organizations are supported, we will need to
+    # get the repository using the organization and not the user
+    with {:ok, repo_info} <- GitHub.repository_info(user, repository.owner, repository.name),
+         default_branch <- Map.get(repo_info, "default_branch", "main"),
+         repo_url <- Repository.build_repository_url(repository),
+         # Use default branch as base, but checkout our working branch
+         {:ok, repo} <- Git.Repo.open(repo_url, "coder-#{agent_id}", default_branch),
+         {:ok, _} <- create_and_switch_branch(repo, branch_name) do
+      Logger.debug("Successfully cloned repository to: #{repo.path}")
+      {:ok, repo}
+    else
+      {:error, reason} ->
+        Logger.error("Failed to clone repository: #{inspect(reason)}")
+        {:error, reason}
       error ->
         Logger.error("Failed to clone repository: #{inspect(error)}")
         error
+    end
+  end
+
+  defp create_and_switch_branch(repo, branch_name) do
+    # Create and switch to the working branch
+    case System.cmd("git", ["checkout", "-b", branch_name], cd: repo.path) do
+      {_, 0} -> {:ok, :branch_created}
+      {error, _} -> {:error, "Failed to create branch: #{error}"}
     end
   end
 

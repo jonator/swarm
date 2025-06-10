@@ -115,6 +115,7 @@ defmodule Swarm.Services.Linear do
       issue(id: "#{issue_id}") {
         id
         title
+        branchName
         documentContent {
           content
         }
@@ -157,21 +158,6 @@ defmodule Swarm.Services.Linear do
   def issue_comment_threads(workspace_id, issue_id) do
     with {:ok, linear} <- new(workspace_id) do
       issue_comment_threads(linear, issue_id)
-    end
-  end
-
-  def issue_branch_name(%__MODULE__{access_token: %Token{token: access_token}}, issue_id) do
-    query(access_token, """
-      issue(id: "#{issue_id}") {
-        id
-        branchName
-      }
-    """)
-  end
-
-  def issue_branch_name(workspace_id, issue_id) do
-    with {:ok, linear} <- new(workspace_id) do
-      issue_branch_name(linear, issue_id)
     end
   end
 
