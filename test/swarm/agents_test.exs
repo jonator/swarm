@@ -2,11 +2,10 @@ defmodule Swarm.AgentsTest do
   use Swarm.DataCase
 
   alias Swarm.Agents
+  import Swarm.AgentsFixtures
 
   describe "agents" do
     alias Swarm.Agents.Agent
-
-    import Swarm.AgentsFixtures
 
     @invalid_attrs %{
       name: nil,
@@ -117,6 +116,231 @@ defmodule Swarm.AgentsTest do
     test "change_agent/1 returns a agent changeset" do
       agent = agent_fixture()
       assert %Ecto.Changeset{} = Agents.change_agent(agent)
+    end
+  end
+
+  describe "find_pending_agent_with_any_ids/1" do
+    test "finds pending agent with matching linear_issue_id" do
+      existing_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"linear_issue_id" => "issue-123", "linear_app_user_id" => "user-456"}
+        })
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "issue-123"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
+    end
+
+    test "finds pending agent with matching github_issue_id" do
+      existing_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"github_issue_id" => "gh-issue-789"}
+        })
+
+      agent_attrs = %{external_ids: %{"github_issue_id" => "gh-issue-789"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
+    end
+
+    test "finds pending agent with matching github_pull_request_id" do
+      existing_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"github_pull_request_id" => "pr-456"}
+        })
+
+      agent_attrs = %{external_ids: %{"github_pull_request_id" => "pr-456"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
+    end
+
+    test "finds pending agent with matching slack_thread_id" do
+      existing_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"slack_thread_id" => "thread-789"}
+        })
+
+      agent_attrs = %{external_ids: %{"slack_thread_id" => "thread-789"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
+    end
+
+    test "returns nil when no matching IDs found" do
+      agent_fixture(%{
+        status: :pending,
+        external_ids: %{"linear_issue_id" => "different-issue"}
+      })
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "non-matching-issue"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
+    end
+
+    test "returns nil when agent exists but is not pending" do
+      agent_fixture(%{
+        status: :completed,
+        external_ids: %{"linear_issue_id" => "issue-123"}
+      })
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "issue-123"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
+    end
+
+    test "returns nil when external_ids is missing" do
+      agent_fixture(%{status: :pending})
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "issue-123"}}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
+    end
+
+    test "returns nil when agent_attrs has no external_ids" do
+      agent_fixture(%{
+        status: :pending,
+        external_ids: %{"linear_issue_id" => "issue-123"}
+      })
+
+      agent_attrs = %{}
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
+    end
+
+    test "finds agent with multiple matching IDs" do
+      existing_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{
+            "linear_issue_id" => "issue-123",
+            "github_issue_id" => "gh-issue-456"
+          }
+        })
+
+      agent_attrs = %{
+        external_ids: %{
+          "linear_issue_id" => "issue-123",
+          "github_issue_id" => "gh-issue-456"
+        }
+      }
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
+    end
+
+    test "finds agent when only one ID matches among multiple" do
+      existing_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"linear_issue_id" => "issue-123"}
+        })
+
+      agent_attrs = %{
+        external_ids: %{
+          "linear_issue_id" => "issue-123",
+          "github_issue_id" => "different-gh-issue"
+        }
+      }
+
+      assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
+    end
+  end
+
+  describe "list_pending_agents_with_overlapping_attrs/1" do
+    test "returns all pending agents with matching linear_issue_id" do
+      agent1 =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"linear_issue_id" => "issue-123"}
+        })
+
+      agent2 =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"linear_issue_id" => "issue-123"}
+        })
+
+      # Non-matching agent
+      agent_fixture(%{
+        status: :pending,
+        external_ids: %{"linear_issue_id" => "different-issue"}
+      })
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "issue-123"}}
+
+      result = Agents.list_pending_agents_with_overlapping_attrs(agent_attrs)
+      assert length(result) == 2
+      assert agent1 in result
+      assert agent2 in result
+    end
+
+    test "returns empty list when no matching agents found" do
+      agent_fixture(%{
+        status: :pending,
+        external_ids: %{"linear_issue_id" => "different-issue"}
+      })
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "non-matching-issue"}}
+
+      assert Agents.list_pending_agents_with_overlapping_attrs(agent_attrs) == []
+    end
+
+    test "only returns pending agents" do
+      agent_fixture(%{
+        status: :completed,
+        external_ids: %{"linear_issue_id" => "issue-123"}
+      })
+
+      agent_fixture(%{
+        status: :failed,
+        external_ids: %{"linear_issue_id" => "issue-123"}
+      })
+
+      pending_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"linear_issue_id" => "issue-123"}
+        })
+
+      agent_attrs = %{external_ids: %{"linear_issue_id" => "issue-123"}}
+
+      result = Agents.list_pending_agents_with_overlapping_attrs(agent_attrs)
+      assert result == [pending_agent]
+    end
+
+    test "returns agents matching any of multiple ID types" do
+      linear_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"linear_issue_id" => "issue-123"}
+        })
+
+      github_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"github_issue_id" => "gh-issue-456"}
+        })
+
+      slack_agent =
+        agent_fixture(%{
+          status: :pending,
+          external_ids: %{"slack_thread_id" => "thread-789"}
+        })
+
+      agent_attrs = %{
+        external_ids: %{
+          "linear_issue_id" => "issue-123",
+          "github_issue_id" => "gh-issue-456",
+          "slack_thread_id" => "thread-789"
+        }
+      }
+
+      result = Agents.list_pending_agents_with_overlapping_attrs(agent_attrs)
+      assert length(result) == 3
+      assert linear_agent in result
+      assert github_agent in result
+      assert slack_agent in result
     end
   end
 end

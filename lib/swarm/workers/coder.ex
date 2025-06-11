@@ -19,6 +19,7 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Instructor
   alias Swarm.Repositories.Repository
   alias Swarm.Services.GitHub
+  alias Swarm.Services.Linear
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -63,11 +64,8 @@ defmodule Swarm.Workers.Coder do
     end)
   end
 
-  defp perform_code_implementation(%Agent{} = agent) do
+  defp perform_code_implementation(%Agent{repository: repository} = agent) do
     Logger.info("Performing code implementation for agent #{agent.id}")
-
-    # Get repository information
-    repository = Swarm.Repo.preload(agent, :repository).repository
 
     if repository do
       implement_changes_in_repository(agent, repository)
@@ -93,6 +91,25 @@ defmodule Swarm.Workers.Coder do
       error ->
         Logger.error("Code implementation failed for agent #{agent.id}: #{inspect(error)}")
         error
+    end
+  end
+
+  defp get_branch_name(
+         %Agent{
+           source: :linear,
+           external_ids: %{"linear_issue_id" => issue_id, "linear_app_user_id" => app_user_id}
+         } = agent
+       ) do
+    case Linear.issue(app_user_id, issue_id) do
+      {:ok, %{branchName: branch_name}} ->
+        {:ok, branch_name}
+
+      error ->
+        Logger.error(
+          "Failed to get Linear branch name (falling back to instructor): #{inspect(error)}"
+        )
+
+        get_branch_name(agent)
     end
   end
 
@@ -431,7 +448,7 @@ defmodule Swarm.Workers.Coder do
   end
 
   defp generate_pr_title(agent) do
-    case agent.linear_issue_id do
+    case Map.get(agent.external_ids, "linear_issue_id") do
       nil ->
         "Automated changes by Swarm Agent"
 
@@ -456,7 +473,7 @@ defmodule Swarm.Workers.Coder do
     - Agent ID: #{agent.id}
     - Agent Type: #{agent.type}
     - Source: #{agent.source}
-    #{if agent.linear_issue_id, do: "- Linear Issue: #{agent.linear_issue_id}", else: ""}
+    #{Map.get(agent.external_ids, "linear_issue_id") && "- Linear Issue: #{Map.get(agent.external_ids, "linear_issue_id")}"}
 
     ### Review Notes
     Please review the changes carefully before merging. This is an automated implementation

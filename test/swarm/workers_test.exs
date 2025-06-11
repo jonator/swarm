@@ -11,7 +11,7 @@ defmodule Swarm.WorkersTest do
         source: :linear,
         user_id: 1,
         repository: %{id: 1},
-        linear_issue_id: "test-issue-123"
+        external_ids: %{"linear_issue_id" => "test-issue-123"}
       }
 
       {:ok, agent_type} = Workers.determine_agent_type(agent_attrs)
@@ -30,7 +30,7 @@ defmodule Swarm.WorkersTest do
         source: :linear,
         user_id: 1,
         repository: %{id: 1},
-        linear_issue_id: "test-issue-456"
+        external_ids: %{"linear_issue_id" => "test-issue-456"}
       }
 
       {:ok, agent_type} = Workers.determine_agent_type(agent_attrs)
@@ -80,37 +80,24 @@ defmodule Swarm.WorkersTest do
 
   describe "generate_agent_name/2" do
     test "generates researcher name with linear issue" do
-      agent_attrs = %{linear_issue_id: "71ee683d-74e4-4668-95f7-537af7734054"}
-
-      name = Workers.generate_agent_name(:researcher, agent_attrs)
-      assert name == "Research Agent - Linear Issue 71ee683d"
-    end
-
-    test "generates researcher name with linear issue from external_ids" do
-      agent_attrs = %{external_ids: %{linear_issue_id: "71ee683d-74e4-4668-95f7-537af7734054"}}
+      agent_attrs = %{
+        external_ids: %{"linear_issue_id" => "71ee683d-74e4-4668-95f7-537af7734054"}
+      }
 
       name = Workers.generate_agent_name(:researcher, agent_attrs)
       assert name == "Research Agent - Linear Issue 71ee683d"
     end
 
     test "generates coder name with github issue" do
-      agent_attrs = %{github_issue_id: "12345"}
+      agent_attrs = %{external_ids: %{"github_issue_id" => "12345"}}
 
       name = Workers.generate_agent_name(:coder, agent_attrs)
       assert name == "Coding Agent - GitHub Issue 12345"
     end
 
-    test "generates coder name with github issue from external_ids" do
-      agent_attrs = %{external_ids: %{github_issue_id: "12345"}}
-
-      name = Workers.generate_agent_name(:coder, agent_attrs)
-      assert name == "Coding Agent - GitHub Issue 12345"
-    end
-
-    test "prioritizes external_ids over direct keys" do
+    test "generates name with external_ids" do
       agent_attrs = %{
-        linear_issue_id: "old-id-123",
-        external_ids: %{linear_issue_id: "new-id-456"}
+        external_ids: %{"linear_issue_id" => "new-id-456"}
       }
 
       name = Workers.generate_agent_name(:researcher, agent_attrs)
@@ -137,7 +124,7 @@ defmodule Swarm.WorkersTest do
       user_id: nil,
       repository_external_id: nil,
       external_ids: %{
-        linear_issue_id: "test-issue-123"
+        "linear_issue_id" => "test-issue-123"
       },
       context: %{},
       timestamp: DateTime.utc_now()
@@ -148,7 +135,7 @@ defmodule Swarm.WorkersTest do
       source: :linear,
       user_id: 1,
       repository: %{id: 1},
-      linear_issue_id: "test-issue-123"
+      external_ids: %{"linear_issue_id" => "test-issue-123"}
     }
 
     # This test would require setting up the database and mocking
@@ -173,18 +160,18 @@ defmodule Swarm.WorkersTest do
         user_id: 1,
         repository: %{id: 1},
         external_ids: %{
-          linear_issue_id: "linear-123",
-          github_issue_id: "github-456",
-          slack_thread_id: "slack-789"
+          "linear_issue_id" => "linear-123",
+          "github_issue_id" => "github-456",
+          "slack_thread_id" => "slack-789"
         }
       }
 
       # The external_ids should be used directly from agent_attrs
       expected_external_ids = agent_attrs[:external_ids]
 
-      assert expected_external_ids[:linear_issue_id] == "linear-123"
-      assert expected_external_ids[:github_issue_id] == "github-456"
-      assert expected_external_ids[:slack_thread_id] == "slack-789"
+      assert expected_external_ids["linear_issue_id"] == "linear-123"
+      assert expected_external_ids["github_issue_id"] == "github-456"
+      assert expected_external_ids["slack_thread_id"] == "slack-789"
     end
 
     test "falls back to event external_ids when agent_attrs has none" do
@@ -197,12 +184,12 @@ defmodule Swarm.WorkersTest do
       }
 
       event_external_ids = %{
-        linear_issue_id: "event-linear-123"
+        "linear_issue_id" => "event-linear-123"
       }
 
       # In the actual implementation, this would come from event.external_ids
       # Here we just verify the expected behavior
-      assert event_external_ids[:linear_issue_id] == "event-linear-123"
+      assert event_external_ids["linear_issue_id"] == "event-linear-123"
     end
   end
 end

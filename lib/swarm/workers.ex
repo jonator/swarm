@@ -151,10 +151,10 @@ defmodule Swarm.Workers do
   end
 
   def generate_agent_name(agent_type, agent_attrs) do
-    # Try to get external IDs from external_ids map first, then fall back to direct keys
+    # Get external IDs from external_ids map
     external_ids = Map.get(agent_attrs, :external_ids, %{})
-    linear_id = external_ids[:linear_issue_id] || Map.get(agent_attrs, :linear_issue_id)
-    github_id = external_ids[:github_issue_id] || Map.get(agent_attrs, :github_issue_id)
+    linear_id = external_ids["linear_issue_id"]
+    github_id = external_ids["github_issue_id"]
 
     case {agent_type, linear_id, github_id} do
       {:researcher, linear_id, _} when not is_nil(linear_id) ->

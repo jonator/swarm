@@ -31,10 +31,12 @@ defmodule Swarm.Workers.Researcher do
     else
       {:error, reason} = error ->
         Logger.error("Research agent #{agent_id} failed: #{reason}")
+
         case Agents.get_agent(agent_id) do
-          %Agent{} = agent -> Agents.mark_agent_failed(agent)
+          %Agent{} = fresh_agent -> Agents.mark_agent_failed(fresh_agent)
           nil -> :ok
         end
+
         error
     end
   end
@@ -43,6 +45,7 @@ defmodule Swarm.Workers.Researcher do
     case Agents.get_agent(agent_id) do
       nil ->
         {:error, "Agent not found"}
+
       agent ->
         agent = Swarm.Repo.preload(agent, [:user, :repository])
         {:ok, agent}
@@ -76,8 +79,6 @@ defmodule Swarm.Workers.Researcher do
       {:ok, %{plan: implementation_plan, analysis: codebase_analysis}}
     end
   end
-
-
 
   defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}) do
     Logger.debug("Cloning repository: #{repository.owner}/#{repository.name}")
@@ -143,15 +144,25 @@ defmodule Swarm.Workers.Researcher do
   defp find_key_files(_index) do
     # Search for important configuration and entry files
     _key_patterns = [
-      "package.json", "package-lock.json", "yarn.lock",
-      "Dockerfile", "docker-compose.yml",
-      "README.md", "README.txt",
-      "mix.exs", "mix.lock",
-      "Gemfile", "Gemfile.lock",
-      "requirements.txt", "setup.py",
-      "pom.xml", "build.gradle",
-      "next.config.js", "tailwind.config.js",
-      "tsconfig.json", "jsconfig.json"
+      "package.json",
+      "package-lock.json",
+      "yarn.lock",
+      "Dockerfile",
+      "docker-compose.yml",
+      "README.md",
+      "README.txt",
+      "mix.exs",
+      "mix.lock",
+      "Gemfile",
+      "Gemfile.lock",
+      "requirements.txt",
+      "setup.py",
+      "pom.xml",
+      "build.gradle",
+      "next.config.js",
+      "tailwind.config.js",
+      "tsconfig.json",
+      "jsconfig.json"
     ]
 
     # This would use the index to search for these files
@@ -217,10 +228,14 @@ defmodule Swarm.Workers.Researcher do
     readme_path = Path.join(repo.path, "README.md")
 
     case File.read(readme_path) do
-      {:ok, content} -> String.slice(content, 0, 2000) # Limit content size
+      # Limit content size
+      {:ok, content} ->
+        String.slice(content, 0, 2000)
+
       {:error, _} ->
         # Try alternative README files
         alt_readme = Path.join(repo.path, "README.txt")
+
         case File.read(alt_readme) do
           {:ok, content} -> String.slice(content, 0, 2000)
           {:error, _} -> "No README found"
@@ -276,8 +291,9 @@ defmodule Swarm.Workers.Researcher do
   end
 
   defp update_linear_issue_with_plan(agent, implementation_plan) do
-    if agent.linear_issue_id do
-      Logger.debug("Updating Linear issue #{agent.linear_issue_id} with implementation plan")
+    if Map.get(agent.external_ids, "linear_issue_id") do
+      linear_issue_id = Map.get(agent.external_ids, "linear_issue_id")
+      Logger.debug("Updating Linear issue #{linear_issue_id} with implementation plan")
 
       # Get the user's Linear app user ID from the agent context
       # This would need to be stored or retrieved from the user/agent relationship
@@ -291,7 +307,7 @@ defmodule Swarm.Workers.Researcher do
 
       # Note: This would need the actual Linear app user ID
       # For now, we'll just log that we would update it
-      Logger.info("Would update Linear issue #{agent.linear_issue_id} with research findings")
+      Logger.info("Would update Linear issue #{linear_issue_id} with research findings")
       {:ok, :updated}
     else
       Logger.debug("No Linear issue ID found, skipping Linear update")

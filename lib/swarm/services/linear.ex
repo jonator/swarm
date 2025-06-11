@@ -84,8 +84,8 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
-  def document(workspace_id, document_id) do
-    with {:ok, linear} <- new(workspace_id) do
+  def document(app_user_id, document_id) do
+    with {:ok, linear} <- new(app_user_id) do
       document(linear, document_id)
     end
   end
@@ -104,8 +104,8 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
-  def project(workspace_id, project_id) do
-    with {:ok, linear} <- new(workspace_id) do
+  def project(app_user_id, project_id) do
+    with {:ok, linear} <- new(app_user_id) do
       project(linear, project_id)
     end
   end
@@ -123,8 +123,8 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
-  def issue(workspace_id, issue_id) do
-    with {:ok, linear} <- new(workspace_id) do
+  def issue(app_user_id, issue_id) do
+    with {:ok, linear} <- new(app_user_id) do
       issue(linear, issue_id)
     end
   end
@@ -155,8 +155,8 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
-  def issue_comment_threads(workspace_id, issue_id) do
-    with {:ok, linear} <- new(workspace_id) do
+  def issue_comment_threads(app_user_id, issue_id) do
+    with {:ok, linear} <- new(app_user_id) do
       issue_comment_threads(linear, issue_id)
     end
   end
@@ -171,8 +171,8 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
-  def issue_reaction(workspace_id, issue_id, emoji) do
-    with {:ok, linear} <- new(workspace_id) do
+  def issue_reaction(app_user_id, issue_id, emoji) do
+    with {:ok, linear} <- new(app_user_id) do
       issue_reaction(linear, issue_id, emoji)
     end
   end
@@ -191,8 +191,8 @@ defmodule Swarm.Services.Linear do
     """)
   end
 
-  def comment_reaction(workspace_id, comment_id, emoji) do
-    with {:ok, linear} <- new(workspace_id) do
+  def comment_reaction(app_user_id, comment_id, emoji) do
+    with {:ok, linear} <- new(app_user_id) do
       comment_reaction(linear, comment_id, emoji)
     end
   end

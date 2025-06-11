@@ -126,53 +126,83 @@ defmodule Swarm.Agents do
   the same task.
   """
   def find_pending_agent_with_any_ids(agent_attrs) do
-    query = from(a in Agent, where: a.status == :pending)
+    external_ids = Map.get(agent_attrs, :external_ids, %{})
 
-    # Add conditions for overlapping IDs
-    query = add_overlap_conditions(query, agent_attrs)
+    # Return nil if there are no external IDs to search for
+    if Enum.empty?(external_ids) do
+      nil
+    else
+      query = from(a in Agent, where: a.status == :pending)
 
-    Repo.one(query)
+      # Add conditions for overlapping IDs
+      query = add_overlap_conditions(query, agent_attrs)
+
+      Repo.one(query)
+    end
   end
 
   defp add_overlap_conditions(query, agent_attrs) do
+    external_ids = Map.get(agent_attrs, :external_ids, %{})
     conditions = []
 
     # Check Linear issue ID
-    conditions = if linear_id = Map.get(agent_attrs, :linear_issue_id) do
-      [dynamic([a], a.linear_issue_id == ^linear_id) | conditions]
-    else
-      conditions
-    end
+    conditions =
+      if linear_id = Map.get(external_ids, "linear_issue_id") do
+        [
+          dynamic([a], fragment("?->>'linear_issue_id' = ?", a.external_ids, ^linear_id))
+          | conditions
+        ]
+      else
+        conditions
+      end
 
     # Check GitHub issue ID
-    conditions = if github_id = Map.get(agent_attrs, :github_issue_id) do
-      [dynamic([a], a.github_issue_id == ^github_id) | conditions]
-    else
-      conditions
-    end
+    conditions =
+      if github_id = Map.get(external_ids, "github_issue_id") do
+        [
+          dynamic([a], fragment("?->>'github_issue_id' = ?", a.external_ids, ^github_id))
+          | conditions
+        ]
+      else
+        conditions
+      end
 
     # Check GitHub PR ID
-    conditions = if pr_id = Map.get(agent_attrs, :github_pull_request_id) do
-      [dynamic([a], a.github_pull_request_id == ^pr_id) | conditions]
-    else
-      conditions
-    end
+    conditions =
+      if pr_id = Map.get(external_ids, "github_pull_request_id") do
+        [
+          dynamic([a], fragment("?->>'github_pull_request_id' = ?", a.external_ids, ^pr_id))
+          | conditions
+        ]
+      else
+        conditions
+      end
 
     # Check Slack thread ID
-    conditions = if slack_id = Map.get(agent_attrs, :slack_thread_id) do
-      [dynamic([a], a.slack_thread_id == ^slack_id) | conditions]
-    else
-      conditions
-    end
+    conditions =
+      if slack_id = Map.get(external_ids, "slack_thread_id") do
+        [
+          dynamic([a], fragment("?->>'slack_thread_id' = ?", a.external_ids, ^slack_id))
+          | conditions
+        ]
+      else
+        conditions
+      end
 
     # Combine conditions with OR
     case conditions do
-      [] -> query
-      [condition] -> where(query, ^condition)
+      [] ->
+        query
+
+      [condition] ->
+        where(query, ^condition)
+
       conditions ->
-        combined = Enum.reduce(conditions, fn condition, acc ->
-          dynamic([], ^acc or ^condition)
-        end)
+        combined =
+          Enum.reduce(conditions, fn condition, acc ->
+            dynamic([], ^acc or ^condition)
+          end)
+
         where(query, ^combined)
     end
   end
