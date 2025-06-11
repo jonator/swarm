@@ -10,24 +10,29 @@ defmodule Swarm.Services.GitHub do
 
   typedstruct enforce: true do
     field :client, Tentacat.Client.t(), enforce: true
-    field :installation_client, Tentacat.Client.t()
-    field :access_token, %Token{type: :access}, enforce: true
+  end
+
+  @doc """
+  Creates a new GitHub service instance using JWT authentication. Useful for authenticating as the Swarm app itself.
+
+  See: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/about-authentication-with-a-github-app#authentication-as-a-github-app
+  """
+  def new() do
+    app_jwt = SwarmWeb.Auth.GitHubToken.create()
+    client = Tentacat.Client.new(%{jwt: app_jwt})
+    {:ok, %__MODULE__{client: client}}
   end
 
   @doc """
   Creates a new GitHub service instance for the given user with user access token.
   """
   def new(%User{} = user) do
-    with {:ok, %Token{token: access_token} = token} <- access_token(user),
+    with {:ok, %Token{token: access_token}} <- access_token(user),
          client <-
            Tentacat.Client.new(%{
              access_token: access_token
-           }),
-          app_jwt = SwarmWeb.Auth.GitHubToken.create(),
-          installation_client <- Tentacat.Client.new(%{
-            jwt: app_jwt
-          }) do
-      {:ok, %__MODULE__{client: client, installation_client: installation_client, access_token: token}}
+           }) do
+      {:ok, %__MODULE__{client: client}}
     else
       {:error, reason} -> {:error, "Failed to create GitHub client: #{reason}"}
       {:unauthorized, reason} -> {:unauthorized, "Unauthorized with GitHub: #{reason}"}
@@ -37,7 +42,7 @@ defmodule Swarm.Services.GitHub do
 
   @doc """
   Exchanges a GitHub OAuth code for an access token and uses it to
-  return the associated user.
+  return the associated user. Saves the access token and refresh token to the database.
   """
   def exchange_user_code(code) do
     case github_login(
@@ -70,14 +75,20 @@ defmodule Swarm.Services.GitHub do
   def installation_repositories(%User{} = user, target_type) do
     with {:ok, %__MODULE__{} = client} <- new(user),
          {:ok, %{"installations" => installations}} <- installations(client),
-         %{"id" => installation_id} <- Enum.find(installations, {:error, "Installation not found for user #{user.id} of target_type #{target_type}"}, &(&1["target_type"] == target_type)) do
+         %{"id" => installation_id} <-
+           Enum.find(
+             installations,
+             {:error, "Installation not found for user #{user.id} of target_type #{target_type}"},
+             &(&1["target_type"] == target_type)
+           ) do
       installation_repositories(client, installation_id)
     end
   end
 
   def installation_repositories(%__MODULE__{client: client}, installation_id) do
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-    with {200, repositories, _} <- Tentacat.App.Installations.list_repositories_for_user(client, installation_id) do
+    with {200, repositories, _} <-
+           Tentacat.App.Installations.list_repositories_for_user(client, installation_id) do
       {:ok, repositories}
     end
   end
@@ -120,20 +131,21 @@ defmodule Swarm.Services.GitHub do
 
   def repository_file_content(%__MODULE__{client: client}, owner, repo, file_path) do
     case Tentacat.Repositories.Contents.content(client, owner, repo, file_path) do
-        {200, %{"content" => content, "encoding" => "base64"}, _} ->
-          case Base.decode64(content, ignore: :whitespace) do
-            {:ok, decoded_content} ->
-              {:ok, decoded_content}
-            error ->
-              error
-          end
+      {200, %{"content" => content, "encoding" => "base64"}, _} ->
+        case Base.decode64(content, ignore: :whitespace) do
+          {:ok, decoded_content} ->
+            {:ok, decoded_content}
 
-        {200, %{"content" => content}, _} ->
-          {:ok, content}
+          error ->
+            error
+        end
 
-        error ->
-          error
-      end
+      {200, %{"content" => content}, _} ->
+        {:ok, content}
+
+      error ->
+        error
+    end
   end
 
   defp access_token(%User{} = user) do
@@ -159,11 +171,12 @@ defmodule Swarm.Services.GitHub do
          "No tokens found for user, #{user.username} likely not authenticated with GitHub."}
 
       %Token{token: refresh_token} ->
-        with {:ok, _user, fresh_access_token, _fresh_refresh_token} <- github_login(
-               user,
-               grant_type: "refresh_token",
-               refresh_token: refresh_token
-             ) do
+        with {:ok, _user, fresh_access_token, _fresh_refresh_token} <-
+               github_login(
+                 user,
+                 grant_type: "refresh_token",
+                 refresh_token: refresh_token
+               ) do
           {:ok, fresh_access_token}
         end
     end
@@ -176,7 +189,8 @@ defmodule Swarm.Services.GitHub do
         client_secret: Application.get_env(:swarm, :github_client_secret)
       ] ++ params
 
-    with {:ok, %Req.Response{status: 200} = resp} <- Req.post("https://github.com/login/oauth/access_token", form: form),
+    with {:ok, %Req.Response{status: 200} = resp} <-
+           Req.post("https://github.com/login/oauth/access_token", form: form),
          %{
            "access_token" => access_token,
            "expires_in" => expires_in,
@@ -205,9 +219,14 @@ defmodule Swarm.Services.GitHub do
            }) do
       {:ok, user, fresh_access_token, fresh_refresh_token}
     else
-      {:ok, %Req.Response{status: 401}} -> {:unauthorized, "Unauthorized with GitHub: user_or_nil-#{user_or_nil}"}
-      {:error, error} -> {:error, "Failed to login to github: #{inspect(error)}"}
-      _ -> {:error, "Failed to login to github: unknown error"}
+      {:ok, %Req.Response{status: 401}} ->
+        {:unauthorized, "Unauthorized with GitHub: user_or_nil-#{user_or_nil}"}
+
+      {:error, error} ->
+        {:error, "Failed to login to github: #{inspect(error)}"}
+
+      _ ->
+        {:error, "Failed to login to github: unknown error"}
     end
   end
 
