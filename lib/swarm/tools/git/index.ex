@@ -22,7 +22,7 @@ defmodule Swarm.Tools.Git.Index do
           required: true
         })
       ],
-      function: fn %{"query" => query} = _arguments, %{"repo_index" => repo_index} ->
+      function: fn %{"query" => query} = _arguments, %{"git_repo_index" => repo_index} ->
         case Swarm.Git.Index.search(repo_index, query) do
           [] ->
             "No results found for query: #{query}"

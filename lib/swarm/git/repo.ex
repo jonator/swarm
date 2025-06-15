@@ -7,6 +7,7 @@ defmodule Swarm.Git.Repo do
   typedstruct enforce: true do
     field :url, String.t(), enforce: true
     field :branch, String.t(), enforce: true
+    field :base_branch, String.t(), enforce: true
     field :path, String.t(), enforce: true
     field :closed, boolean(), default: false
   end
@@ -20,7 +21,7 @@ defmodule Swarm.Git.Repo do
 
     with {:ok, _} <- clone_repo(url, path),
          {:ok, _} <- switch_branch(path, branch) do
-      {:ok, %__MODULE__{url: url, path: path, branch: branch}}
+      {:ok, %__MODULE__{url: url, path: path, branch: branch, base_branch: branch}}
     else
       {:error, error} ->
         {:error, "Failed to open repository: #{url} #{error}"}
@@ -35,7 +36,8 @@ defmodule Swarm.Git.Repo do
 
     case File.rm_rf(path) do
       {:ok, _} ->
-        {:ok, %__MODULE__{url: url, path: path, branch: branch, closed: true}}
+        {:ok,
+         %__MODULE__{url: url, path: path, branch: branch, base_branch: branch, closed: true}}
 
       error ->
         error

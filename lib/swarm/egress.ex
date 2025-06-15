@@ -4,7 +4,6 @@ defmodule Swarm.Egress do
   """
 
   alias Swarm.Ingress.Event
-
   alias Swarm.Egress.LinearDispatch
 
   @doc """

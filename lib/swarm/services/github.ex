@@ -7,6 +7,7 @@ defmodule Swarm.Services.GitHub do
   alias Swarm.Accounts
   alias Swarm.Accounts.User
   alias Swarm.Accounts.Token
+  alias Swarm.Organizations.Organization
 
   typedstruct enforce: true do
     field :client, Tentacat.Client.t(), enforce: true
@@ -18,7 +19,7 @@ defmodule Swarm.Services.GitHub do
   See: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/about-authentication-with-a-github-app#authentication-as-a-github-app
   """
   def new() do
-    app_jwt = SwarmWeb.Auth.GitHubToken.create()
+    {:ok, app_jwt, _} = SwarmWeb.Auth.GitHubToken.create()
     client = Tentacat.Client.new(%{jwt: app_jwt})
     {:ok, %__MODULE__{client: client}}
   end
@@ -37,6 +38,16 @@ defmodule Swarm.Services.GitHub do
       {:error, reason} -> {:error, "Failed to create GitHub client: #{reason}"}
       {:unauthorized, reason} -> {:unauthorized, "Unauthorized with GitHub: #{reason}"}
       _ -> {:error, "Failed to create GitHub client"}
+    end
+  end
+
+  def new(%Organization{} = organization) do
+    with {:ok, access_token} <- access_token(organization),
+         client <-
+           Tentacat.Client.new(%{
+             access_token: access_token
+           }) do
+      {:ok, %__MODULE__{client: client}}
     end
   end
 
@@ -64,7 +75,7 @@ defmodule Swarm.Services.GitHub do
   end
 
   def installations(%__MODULE__{client: client}) do
-    # https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
+    # https://docs.github.com/en/rest/apops/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
     with {200, installations, _} <- Tentacat.App.Installations.list_for_user(client) do
       {:ok, installations}
     end
@@ -149,6 +160,43 @@ defmodule Swarm.Services.GitHub do
     end
   end
 
+  @doc """
+  Creates a pull request for the given organization and repository.
+
+  Pull Request body example:
+
+  ```elixir
+  %{
+    "title" => "Amazing new feature",
+    "body"  => "Please pull this in!",
+    "head"  => "octocat:new-feature",
+    "base"  => "master"
+   }
+  ```
+
+  Alternative input (using an existing issue):
+
+  ```elixir
+  %{
+    "issue" => "5",
+    "head"  => "octocat:new-feature",
+    "base"  => "master"
+   }
+  ```
+  """
+  def create_pull(%Organization{name: name} = org, repo, attrs) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      create_pull(client, name, repo, attrs)
+    end
+  end
+
+  def create_pull(%__MODULE__{client: client}, owner, repo, attrs) do
+    # https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
+    with {201, %{"number" => number}, _} <- Tentacat.Pulls.create(client, owner, repo, attrs) do
+      {:ok, number}
+    end
+  end
+
   defp access_token(%User{} = user) do
     case Accounts.get_token(user, :access, :github) do
       # could have been cleaned up due to expiration
@@ -164,7 +212,14 @@ defmodule Swarm.Services.GitHub do
     end
   end
 
-  # Refreshes the GitHub access token for a user using the cached refresh token.
+  defp access_token(%Organization{github_installation_id: github_installation_id}) do
+    with {:ok, jwt_gh} <- new(),
+         {201, %{"token" => token}, _} <-
+           Tentacat.App.Installations.token(jwt_gh.client, github_installation_id) do
+      {:ok, token}
+    end
+  end
+
   defp refresh_token(%User{} = user) do
     case Accounts.get_token(user, :refresh, :github) do
       nil ->

@@ -56,21 +56,11 @@ defmodule Swarm.Workers.Researcher do
     Logger.info("Conducting research for agent #{agent.id}")
 
     FLAME.call(Swarm.FlamePool, fn ->
-      perform_research_analysis(agent)
+      analyze_repository_and_context(agent)
     end)
   end
 
-  defp perform_research_analysis(%Agent{repository: repository} = agent) do
-    Logger.info("Performing research analysis for agent #{agent.id}")
-
-    if repository do
-      analyze_repository_and_context(agent, repository)
-    else
-      {:error, "No repository associated with agent"}
-    end
-  end
-
-  defp analyze_repository_and_context(agent, _repository) do
+  defp analyze_repository_and_context(%Agent{} = agent) do
     with {:ok, repo} <- clone_repository(agent),
          {:ok, codebase_analysis} <- analyze_codebase_structure(repo),
          {:ok, implementation_plan} <- generate_implementation_plan(agent, codebase_analysis),
@@ -88,7 +78,6 @@ defmodule Swarm.Workers.Researcher do
     # get the repository using the organization and not the user
     with {:ok, repo_info} <- GitHub.repository_info(user, repository.owner, repository.name),
          default_branch <- Map.get(repo_info, "default_branch", "main"),
-         :ok <- Logger.debug("Default branch: #{default_branch}"),
          repo_url <- Repository.build_repository_url(repository),
          # Clone using the default branch
          {:ok, repo} <- Git.Repo.open(repo_url, "research-#{agent_id}", default_branch) do

@@ -28,8 +28,8 @@ defmodule Swarm.Tools.Git.Repo do
           required: true
         })
       ],
-      function: fn %{"file" => file} = _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.add_file(repo, file) |> handle_repo_response()
+      function: fn %{"file" => file} = _arguments, %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.add_file(git_repo, file) |> handle_repo_response()
       end
     })
   end
@@ -39,8 +39,8 @@ defmodule Swarm.Tools.Git.Repo do
       name: "add_all_files",
       description: "Adds all files to the staging area of the git repository.",
       parameters: [],
-      function: fn _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.add_all_files(repo) |> handle_repo_response()
+      function: fn _arguments, %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.add_all_files(git_repo) |> handle_repo_response()
       end
     })
   end
@@ -57,8 +57,8 @@ defmodule Swarm.Tools.Git.Repo do
           required: true
         })
       ],
-      function: fn %{"message" => message} = _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.commit(repo, message) |> handle_repo_response()
+      function: fn %{"message" => message} = _arguments, %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.commit(git_repo, message) |> handle_repo_response()
       end
     })
   end
@@ -68,8 +68,8 @@ defmodule Swarm.Tools.Git.Repo do
       name: "push_origin",
       description: "Pushes the current branch to origin.",
       parameters: [],
-      function: fn _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.push_origin(repo) |> handle_repo_response()
+      function: fn _arguments, %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.push_origin(git_repo) |> handle_repo_response()
       end
     })
   end
@@ -93,8 +93,8 @@ defmodule Swarm.Tools.Git.Repo do
         })
       ],
       function: fn %{"old_file" => old_file, "new_file" => new_file} = _arguments,
-                   %{"repo" => repo} ->
-        Swarm.Git.Repo.rename_file(repo, old_file, new_file) |> handle_repo_response()
+                   %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.rename_file(git_repo, old_file, new_file) |> handle_repo_response()
       end
     })
   end
@@ -104,8 +104,8 @@ defmodule Swarm.Tools.Git.Repo do
       name: "list_files",
       description: "Lists all relative file paths in the git repository.",
       parameters: [],
-      function: fn _arguments, %{"repo" => repo} ->
-        case Swarm.Git.Repo.list_files(repo) do
+      function: fn _arguments, %{"git_repo" => git_repo} ->
+        case Swarm.Git.Repo.list_files(git_repo) do
           {:ok, files} -> Enum.join(files, "\n")
           {:error, msg} -> "Error: #{msg}"
         end
@@ -125,8 +125,8 @@ defmodule Swarm.Tools.Git.Repo do
           required: true
         })
       ],
-      function: fn %{"file" => file} = _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.open_file(repo, file) |> handle_repo_response()
+      function: fn %{"file" => file} = _arguments, %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.open_file(git_repo, file) |> handle_repo_response()
       end
     })
   end
@@ -150,8 +150,9 @@ defmodule Swarm.Tools.Git.Repo do
           required: true
         })
       ],
-      function: fn %{"file" => file, "content" => content} = _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.write_file(repo, file, content) |> handle_repo_response()
+      function: fn %{"file" => file, "content" => content} = _arguments,
+                   %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.write_file(git_repo, file, content) |> handle_repo_response()
       end
     })
   end
@@ -161,8 +162,8 @@ defmodule Swarm.Tools.Git.Repo do
       name: "status",
       description: "Returns the status of the git repository.",
       parameters: [],
-      function: fn _arguments, %{"repo" => repo} ->
-        Swarm.Git.Repo.status(repo) |> handle_repo_response()
+      function: fn _arguments, %{"git_repo" => git_repo} ->
+        Swarm.Git.Repo.status(git_repo) |> handle_repo_response()
       end
     })
   end

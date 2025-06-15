@@ -10,6 +10,7 @@ defmodule Swarm.Workers.Coder do
   5. Creating a pull request with the changes
   """
 
+  alias LangChain.Function
   use Oban.Worker, queue: :default
   require Logger
 
@@ -23,8 +24,6 @@ defmodule Swarm.Workers.Coder do
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
   alias LangChain.ChatModels.ChatAnthropic
-  alias Swarm.Tools.Git.Repo, as: ToolRepo
-  alias Swarm.Tools.Git.Index, as: ToolRepoIndex
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -69,15 +68,13 @@ defmodule Swarm.Workers.Coder do
     end)
   end
 
-  defp implement_changes_in_repository(%Agent{context: context} = agent) do
+  defp implement_changes_in_repository(%Agent{context: context, repository: repository} = agent) do
     with {:ok, branch_name} <- get_branch_name(agent),
-         {:ok, repo} <- clone_repository(agent, branch_name),
-         {:ok, index} <- create_repository_index(repo),
-         {:ok, tools} <- get_tools(repo),
-         {:ok, implementation_result} <- implement_changes(repo, index, tools, context),
-         {:ok, pr_result} <- create_pull_request(repo, agent, branch_name, implementation_result) do
+         {:ok, git_repo} <- clone_repository(agent, branch_name),
+         {:ok, index} <- create_repository_index(git_repo),
+         {:ok, implementation_result} <- implement_changes(git_repo, index, repository, context) do
       Logger.info("Code implementation completed for agent #{agent.id}")
-      {:ok, %{branch: branch_name, pr: pr_result, changes: implementation_result}}
+      {:ok, %{branch: branch_name, changes: implementation_result}}
     else
       error ->
         Logger.error("Code implementation failed for agent #{agent.id}: #{inspect(error)}")
@@ -127,13 +124,12 @@ defmodule Swarm.Workers.Coder do
     # Note: In the future when organizations are supported, we will need to
     # get the repository using the organization and not the user
     with {:ok, repo_info} <- GitHub.repository_info(user, repository.owner, repository.name),
-         default_branch <- Map.get(repo_info, "default_branch", "main"),
+         base_branch <- Map.get(repo_info, "default_branch", "main"),
          repo_url <- Repository.build_repository_url(repository),
          # Use default branch as base, but checkout our working branch
-         {:ok, repo} <- Git.Repo.open(repo_url, "coder-#{agent_id}", default_branch),
-         {:ok, _} <- create_and_switch_branch(repo, branch_name) do
-      Logger.debug("Successfully cloned repository to: #{repo.path}")
-      {:ok, repo}
+         {:ok, git_repo} <- Git.Repo.open(repo_url, "coder-#{agent_id}", base_branch) do
+      Logger.debug("Successfully cloned repository to: #{git_repo.path}")
+      {:ok, git_repo}
     else
       {:error, reason} ->
         Logger.error("Failed to clone repository: #{inspect(reason)}")
@@ -145,21 +141,10 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp create_and_switch_branch(repo, branch_name) do
-    # Create and switch to the working branch
-    case System.cmd("git", ["checkout", "-b", branch_name], cd: repo.path) do
-      {_, 0} -> {:ok, :branch_created}
-      {error, _} -> {:error, "Failed to create branch: #{error}"}
-    end
-  end
-
   defp create_repository_index(repo) do
     Logger.debug("Creating repository index for: #{repo.path}")
 
-    # Get exclude patterns for indexing
-    exclude_patterns = get_exclude_patterns()
-
-    case Git.Index.from(repo, exclude_patterns) do
+    case Git.Index.from(repo) do
       {:ok, index} ->
         Logger.debug("Successfully created repository index")
         {:ok, index}
@@ -170,35 +155,26 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp get_exclude_patterns() do
-    # Common patterns to exclude from indexing
-    [
-      ~r/node_modules/,
-      ~r/\.git/,
-      ~r/_build/,
-      ~r/deps/,
-      ~r/\.next/,
-      ~r/dist/,
-      ~r/build/,
-      ~r/target/,
-      ~r/\.log$/,
-      ~r/\.tmp$/,
-      ~r/\.DS_Store$/,
-      ~r/\.env$/,
-      ~r/\.env\.local$/,
-      ~r/coverage/,
-      ~r/\.nyc_output/,
-      ~r/\.pytest_cache/,
-      ~r/__pycache__/
-    ]
-  end
-
-  defp get_tools(repo) do
-    {:ok, ToolRepo.all_tools() ++ ToolRepoIndex.all_tools()}
-  end
-
-  defp implement_changes(repo, index, tools, instructions) do
+  defp implement_changes(git_repo, git_repo_index, repository, instructions) do
     Logger.debug("Implementing changes")
+
+    # Note: finished tool is used so this agent can handle creating pull requests as needed in response to issues or code reviews
+    finished_tool =
+      Function.new!(%{
+        name: "finished",
+        description: "Indicates that the implementation is complete",
+        parameters: [],
+        function: fn _arguments, _context ->
+          {:ok, "Implementation completed successfully"}
+        end
+      })
+
+    # Tool context is passed via custom_context in the LLMChain
+    tools =
+      Swarm.Tools.Git.Repo.all_tools() ++
+        Swarm.Tools.Git.Index.all_tools() ++
+        Swarm.Tools.GitHub.all_tools() ++
+        [finished_tool]
 
     messages = [
       Message.new_system!("""
@@ -217,97 +193,29 @@ defmodule Swarm.Workers.Coder do
         stream: false
       })
 
+    organization = Swarm.Repo.preload(repository, :organization).organization
+
     case %{
            llm: chat_model,
-           custom_context: %{"repo" => repo, "repo_index" => index},
-           verbose: true
+           custom_context: %{
+             "git_repo" => git_repo,
+             "git_repo_index" => git_repo_index,
+             "repository" => repository,
+             "organization" => organization
+           },
+           verbose: Logger.level() == :debug
          }
          |> LLMChain.new!()
          |> LLMChain.add_messages(messages)
          |> LLMChain.add_tools(tools)
-         |> LLMChain.run_until_tool_used("push_origin") do
-      {:ok, updated_chain} ->
+         |> LLMChain.run_until_tool_used("finished") do
+      {:ok, updated_chain, _messages} ->
         Logger.info("Implementation completed successfully")
         {:ok, updated_chain.last_message.content}
-
-      result when is_binary(result) ->
-        Logger.info("Implementation completed: #{result}")
-        {:ok, result}
 
       error ->
         Logger.error("Implementation failed: #{inspect(error)}")
         {:error, "Implementation failed: #{inspect(error)}"}
     end
-  end
-
-  defp create_pull_request(repo, agent, branch_name, implementation_result) do
-    Logger.debug("Creating pull request for branch: #{branch_name}")
-
-    # Create PR description
-    pr_description = generate_pr_description(agent, implementation_result)
-
-    # For now, we'll return a success indicator
-    # In a real implementation, this would use the GitHub API to create the PR
-    pr_info = %{
-      title: generate_pr_title(agent),
-      branch: branch_name,
-      description: pr_description,
-      repository: "#{repo.path}"
-    }
-
-    Logger.info("Pull request created successfully: #{pr_info.title}")
-    {:ok, pr_info}
-  end
-
-  defp generate_pr_title(agent) do
-    case Map.get(agent.external_ids, "linear_issue_id") do
-      nil ->
-        "Automated changes by Swarm Agent"
-
-      linear_id ->
-        "SW: Automated implementation for #{String.slice(linear_id, 0, 8)}"
-    end
-  end
-
-  defp generate_pr_description(agent, implementation_result) do
-    """
-    ## 🤖 Automated Implementation by Swarm Agent
-
-    This pull request was created automatically by a Swarm coding agent.
-
-    ### Original Request
-    #{String.slice(agent.context, 0, 500)}#{if String.length(agent.context) > 500, do: "...", else: ""}
-
-    ### Implementation Details
-    #{format_implementation_result(implementation_result)}
-
-    ### Agent Information
-    - Agent ID: #{agent.id}
-    - Agent Type: #{agent.type}
-    - Source: #{agent.source}
-    #{Map.get(agent.external_ids, "linear_issue_id") && "- Linear Issue: #{Map.get(agent.external_ids, "linear_issue_id")}"}
-
-    ### Review Notes
-    Please review the changes carefully before merging. This is an automated implementation
-    and may require adjustments or additional testing.
-
-    ---
-    *Generated by Swarm Coding Agent at #{DateTime.utc_now()}*
-    """
-  end
-
-  defp format_implementation_result(result) when is_binary(result) do
-    result
-  end
-
-  defp format_implementation_result(result) when is_map(result) do
-    case Map.get(result, :summary) do
-      nil -> "Implementation completed successfully."
-      summary -> summary
-    end
-  end
-
-  defp format_implementation_result(_result) do
-    "Implementation completed successfully."
   end
 end
