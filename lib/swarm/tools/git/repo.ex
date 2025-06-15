@@ -1,4 +1,4 @@
-defmodule Swarm.Tool.Git.Repo do
+defmodule Swarm.Tools.Git.Repo do
   alias LangChain.Function
   alias LangChain.FunctionParam
 
@@ -11,8 +11,8 @@ defmodule Swarm.Tool.Git.Repo do
       list_files(),
       open_file(),
       write_file(),
-      status()
-      # push_origin()
+      status(),
+      push_origin()
     ]
   end
 

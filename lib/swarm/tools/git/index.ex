@@ -1,4 +1,4 @@
-defmodule Swarm.Tool.Git.Index do
+defmodule Swarm.Tools.Git.Index do
   @moduledoc false
 
   alias LangChain.Function

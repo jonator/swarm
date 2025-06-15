@@ -20,6 +20,11 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Repositories.Repository
   alias Swarm.Services.GitHub
   alias Swarm.Services.Linear
+  alias LangChain.Chains.LLMChain
+  alias LangChain.Message
+  alias LangChain.ChatModels.ChatAnthropic
+  alias Swarm.Tools.Git.Repo, as: ToolRepo
+  alias Swarm.Tools.Git.Index, as: ToolRepoIndex
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -60,30 +65,16 @@ defmodule Swarm.Workers.Coder do
     Logger.info("Implementing code changes for agent #{agent.id}")
 
     FLAME.call(Swarm.FlamePool, fn ->
-      perform_code_implementation(agent)
+      implement_changes_in_repository(agent)
     end)
   end
 
-  defp perform_code_implementation(%Agent{repository: repository} = agent) do
-    Logger.info("Performing code implementation for agent #{agent.id}")
-
-    if repository do
-      implement_changes_in_repository(agent, repository)
-    else
-      {:error, "No repository associated with agent"}
-    end
-  end
-
-  defp implement_changes_in_repository(agent, _repository) do
-    instructions = agent.context
-
+  defp implement_changes_in_repository(%Agent{context: context} = agent) do
     with {:ok, branch_name} <- get_branch_name(agent),
          {:ok, repo} <- clone_repository(agent, branch_name),
          {:ok, index} <- create_repository_index(repo),
-         {:ok, relevant_files} <- find_relevant_files(repo, index, instructions),
-         {:ok, implementation_result} <-
-           implement_changes(repo, index, relevant_files, instructions),
-         {:ok, _} <- run_build_and_tests(repo),
+         {:ok, tools} <- get_tools(repo),
+         {:ok, implementation_result} <- implement_changes(repo, index, tools, context),
          {:ok, pr_result} <- create_pull_request(repo, agent, branch_name, implementation_result) do
       Logger.info("Code implementation completed for agent #{agent.id}")
       {:ok, %{branch: branch_name, pr: pr_result, changes: implementation_result}}
@@ -202,100 +193,44 @@ defmodule Swarm.Workers.Coder do
     ]
   end
 
-  defp find_relevant_files(repo, index, instructions) do
-    Logger.debug("Finding relevant files for implementation")
+  defp get_tools(repo) do
+    {:ok, ToolRepo.all_tools() ++ ToolRepoIndex.all_tools()}
+  end
 
-    # Run tasks concurrently to gather file information
-    tasks = [
-      Task.async(fn ->
-        get_search_terms_and_files(instructions)
-      end),
-      Task.async(fn ->
-        get_relevant_files_from_instructor(repo, instructions)
-      end)
+  defp implement_changes(repo, index, tools, instructions) do
+    Logger.debug("Implementing changes")
+
+    messages = [
+      Message.new_system!("""
+      You are a software developer implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
+      Write files and commit changes immediately- do not ask for confirmation.
+      Push changes once completed. If there are newline file terminators, keep them.
+      """),
+      Message.new_user!("I need to implement the following changes: #{inspect(instructions)}")
     ]
 
-    # Await results
-    [search_result, relevant_result] = Task.await_many(tasks, 300_000)
+    chat_model =
+      ChatAnthropic.new!(%{
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 4096,
+        temperature: 0.7,
+        stream: false
+      })
 
-    # Combine results from different sources
-    search_files =
-      case search_result do
-        {:ok, %{files: files}} -> files
-        _ -> []
-      end
-
-    relevant_files =
-      case relevant_result do
-        {:ok, %{files: files}} -> files
-        _ -> []
-      end
-
-    # Search for terms in the index if we have search terms
-    term_files =
-      case search_result do
-        {:ok, %{terms: terms}} ->
-          search_terms_in_index(index, terms)
-
-        _ ->
-          []
-      end
-
-    # Combine and deduplicate all files
-    all_files = Enum.uniq(search_files ++ relevant_files ++ term_files)
-
-    Logger.debug("Found #{length(all_files)} relevant files for implementation")
-    {:ok, all_files}
-  end
-
-  defp get_search_terms_and_files(instructions) do
-    case Instructor.SearchTerms.get_search_terms(instructions) do
-      {:ok, %{terms: terms, files: files}} ->
-        {:ok, %{terms: terms, files: files}}
-
-      {:ok, %{terms: terms}} ->
-        {:ok, %{terms: terms, files: []}}
-
-      error ->
-        Logger.warning("Failed to get search terms: #{inspect(error)}")
-        {:ok, %{terms: [], files: []}}
-    end
-  end
-
-  defp get_relevant_files_from_instructor(repo, instructions) do
-    case Instructor.RelevantFiles.get_relevant_files(repo, instructions) do
-      {:ok, %{files: files}} ->
-        {:ok, %{files: files}}
-
-      error ->
-        Logger.warning("Failed to get relevant files: #{inspect(error)}")
-        {:ok, %{files: []}}
-    end
-  end
-
-  defp search_terms_in_index(index, terms) do
-    Enum.flat_map(terms, &search_single_term(index, &1))
-    |> Enum.uniq()
-  end
-
-  defp search_single_term(index, term) do
-    Logger.debug("Searching for term: #{term}")
-
-    Git.Index.search(index, term)
-    |> Enum.map(fn %{id: file_path} -> file_path end)
-  end
-
-  defp implement_changes(repo, index, relevant_files, instructions) do
-    Logger.debug("Implementing changes with #{length(relevant_files)} relevant files")
-
-    # Use the existing Agent.Implementor module if available
-    case Swarm.Agent.Implementor.implement(repo, index, relevant_files, instructions) do
-      {:ok, result} ->
+    case %{
+           llm: chat_model,
+           custom_context: %{"repo" => repo, "repo_index" => index},
+           verbose: true
+         }
+         |> LLMChain.new!()
+         |> LLMChain.add_messages(messages)
+         |> LLMChain.add_tools(tools)
+         |> LLMChain.run_until_tool_used("push_origin") do
+      {:ok, updated_chain} ->
         Logger.info("Implementation completed successfully")
-        {:ok, result}
+        {:ok, updated_chain.last_message.content}
 
       result when is_binary(result) ->
-        # If the implementor returns a string (like a success message)
         Logger.info("Implementation completed: #{result}")
         {:ok, result}
 
@@ -305,146 +240,23 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp run_build_and_tests(repo) do
-    Logger.debug("Running build and tests for: #{repo.path}")
-
-    # Change to repository directory and run common build/test commands
-    repo_path = repo.path
-
-    # Try to detect and run appropriate build/test commands
-    cond do
-      File.exists?(Path.join(repo_path, "package.json")) ->
-        run_nodejs_build_and_tests(repo_path)
-
-      File.exists?(Path.join(repo_path, "mix.exs")) ->
-        run_elixir_build_and_tests(repo_path)
-
-      File.exists?(Path.join(repo_path, "Gemfile")) ->
-        run_ruby_build_and_tests(repo_path)
-
-      true ->
-        Logger.info("No recognized build system found, skipping build/test")
-        {:ok, :skipped}
-    end
-  end
-
-  defp run_nodejs_build_and_tests(repo_path) do
-    Logger.debug("Running Node.js build and tests")
-
-    # Check if we have a lockfile to determine package manager
-    package_manager =
-      cond do
-        File.exists?(Path.join(repo_path, "yarn.lock")) -> "yarn"
-        File.exists?(Path.join(repo_path, "pnpm-lock.yaml")) -> "pnpm"
-        true -> "npm"
-      end
-
-    commands = [
-      "#{package_manager} install",
-      "#{package_manager} run build",
-      "#{package_manager} run lint",
-      "#{package_manager} run format"
-    ]
-
-    run_commands_in_directory(repo_path, commands)
-  end
-
-  defp run_elixir_build_and_tests(repo_path) do
-    Logger.debug("Running Elixir build and tests")
-
-    commands = [
-      "mix deps.get",
-      "mix compile",
-      "mix format",
-      "mix credo --strict"
-    ]
-
-    run_commands_in_directory(repo_path, commands)
-  end
-
-  defp run_ruby_build_and_tests(repo_path) do
-    Logger.debug("Running Ruby build and tests")
-
-    commands = [
-      "bundle install",
-      "bundle exec rubocop"
-    ]
-
-    run_commands_in_directory(repo_path, commands)
-  end
-
-  defp run_commands_in_directory(repo_path, commands) do
-    results =
-      Enum.map(commands, fn command ->
-        Logger.debug("Running command: #{command}")
-
-        case System.cmd("sh", ["-c", command], cd: repo_path, stderr_to_stdout: true) do
-          {output, 0} ->
-            Logger.debug("Command succeeded: #{command}")
-            {:ok, output}
-
-          {output, exit_code} ->
-            Logger.warning("Command failed (exit #{exit_code}): #{command}\nOutput: #{output}")
-            {:warning, "Command failed: #{command} (exit #{exit_code})"}
-        end
-      end)
-
-    # Check if any critical commands failed
-    failures =
-      Enum.filter(results, fn
-        {:error, _} -> true
-        _ -> false
-      end)
-
-    if Enum.empty?(failures) do
-      {:ok, results}
-    else
-      Logger.warning("Some build/test commands failed, but continuing with PR creation")
-      {:ok, results}
-    end
-  end
-
   defp create_pull_request(repo, agent, branch_name, implementation_result) do
     Logger.debug("Creating pull request for branch: #{branch_name}")
 
-    # Push the branch
-    case push_branch(repo, branch_name) do
-      {:ok, _} ->
-        # Create PR description
-        pr_description = generate_pr_description(agent, implementation_result)
+    # Create PR description
+    pr_description = generate_pr_description(agent, implementation_result)
 
-        # For now, we'll return a success indicator
-        # In a real implementation, this would use the GitHub API to create the PR
-        pr_info = %{
-          title: generate_pr_title(agent),
-          branch: branch_name,
-          description: pr_description,
-          repository: "#{repo.path}"
-        }
+    # For now, we'll return a success indicator
+    # In a real implementation, this would use the GitHub API to create the PR
+    pr_info = %{
+      title: generate_pr_title(agent),
+      branch: branch_name,
+      description: pr_description,
+      repository: "#{repo.path}"
+    }
 
-        Logger.info("Pull request created successfully: #{pr_info.title}")
-        {:ok, pr_info}
-
-      error ->
-        Logger.error("Failed to push branch: #{inspect(error)}")
-        error
-    end
-  end
-
-  defp push_branch(repo, branch_name) do
-    Logger.debug("Pushing branch #{branch_name} for repo at #{repo.path}")
-
-    # This would use Git commands to push the branch
-    # For now, we'll simulate a successful push
-    case System.cmd("git", ["push", "origin", branch_name], cd: repo.path, stderr_to_stdout: true) do
-      {_output, 0} ->
-        Logger.info("Successfully pushed branch: #{branch_name}")
-        {:ok, :pushed}
-
-      {output, exit_code} ->
-        Logger.error("Failed to push branch: #{output} (exit #{exit_code})")
-        {:error, "Failed to push branch: #{output}"}
-    end
+    Logger.info("Pull request created successfully: #{pr_info.title}")
+    {:ok, pr_info}
   end
 
   defp generate_pr_title(agent) do

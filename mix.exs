@@ -63,7 +63,7 @@ defmodule Swarm.MixProject do
       {:typed_struct, "~> 0.3.0"},
       {:instructor, "~> 0.1.0"},
       {:search, "~> 0.3"},
-      {:langchain, "~> 0.3.2"},
+      {:langchain, github: "brainlid/langchain"},
       {:flame, github: "jonator/flame", branch: "main"},
       {:guardian, "~> 2.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

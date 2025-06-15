@@ -7,34 +7,35 @@ erDiagram
     User {
         int ID PK
         string email
+        string username
+    }
+    Organization {
+        int ID PK
+        string Name
+        int GithubInstallationId
     }
     Repository {
         int ID PK
         string Owner
         string Name
+        string ExternalId
+        int OrganizationId FK
     }
     Project {
         int ID PK
         string RootDir
         string Type
         string Name
-    }
-    Organization {
-        int ID PK
-        string Name
-        string Type
+        int RepositoryId FK
     }
     Agent {
-        int ID PK
+        uuid ID PK
         string Name
         text Context
         string Status
         string Source
-        string SourceExternalId
-        string GithubPullRequestId
-        string GithubIssueId
-        string LinearIssueId
-        string SlackThreadId
+        string Type
+        map ExternalIds
         datetime StartedAt
         datetime CompletedAt
         int ObanJobId FK
@@ -44,38 +45,27 @@ erDiagram
         datetime InsertedAt
         datetime UpdatedAt
     }
-
     AgentMessage {
         int ID PK
         int AgentId FK
-        string MessageType
+        string Type
         text Content
-        json Metadata
-        datetime CreatedAt
-        int SequenceNumber
-    }
-    UsersRepositories {
-        int UserId FK
-        int RepositoryId FK
+        datetime InsertedAt
+        datetime UpdatedAt
     }
     UsersOrganizations {
         int UserId FK
         int OrganizationId FK
-    }
-    OrganizationsRepositories {
-        int OrganizationId FK
-        int RepositoryId FK
+        string Role
     }
 
-    User ||--o{ UsersRepositories : has
-    Repository ||--o{ UsersRepositories : has
     User ||--o{ UsersOrganizations : has
     Organization ||--o{ UsersOrganizations : has
-    Organization ||--o{ OrganizationsRepositories : has
-    Repository ||--o{ OrganizationsRepositories : has
-    Project }o--|| Repository : belongs_to
-    
+    Organization ||--o{ Repository : has
+    Repository ||--o{ Project : has
     User ||--o{ Agent : owns
     Repository ||--o{ Agent : contains
     Project ||--o{ Agent : scoped_to
     Agent ||--o{ AgentMessage : generates
+
+    %% Note: Each user may have a "personal organization" (an Organization with only them as a member)
