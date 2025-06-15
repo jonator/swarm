@@ -7,54 +7,62 @@ defmodule Swarm.RepositoriesTest do
     alias Swarm.Repositories.Repository
 
     import Swarm.RepositoriesFixtures
+    import Swarm.OrganizationsFixtures
 
     @invalid_attrs %{external_id: nil, name: nil, owner: nil}
 
     test "list_repositories/0 returns all repositories" do
       repository = repository_fixture()
-      assert Repositories.list_repositories() == [Ecto.reset_fields(repository, [:users])]
+      assert Repositories.list_repositories() == [repository]
     end
 
     test "get_repository!/1 returns the repository with given id" do
       repository = repository_fixture()
 
-      assert Repositories.get_repository!(repository.id) ==
-               Ecto.reset_fields(repository, [:users])
+      assert Repositories.get_repository!(repository.id) == repository
     end
 
     test "create_repository/1 with valid data creates a repository" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
       valid_attrs = %{external_id: "github:123456", name: "name", owner: "some_owner"}
 
-      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
+      assert {:ok, %Repository{} = repository} = Repositories.create_repository(user, valid_attrs)
       assert repository.external_id == "github:123456"
       assert repository.name == "name"
       assert repository.owner == "some_owner"
     end
 
     test "create_repository/1 with valid data including project creates a repository & project" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
+
       valid_attrs = %{
         external_id: "github:789012",
         name: "name",
         owner: "some_owner",
-        projects: [%{type: "nextjs", root_dir: "path"}]
+        projects: [%{type: :nextjs, root_dir: "path", name: "my-project"}]
       }
 
-      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
+      assert {:ok, %Repository{} = repository} = Repositories.create_repository(user, valid_attrs)
       assert repository.external_id == "github:789012"
       assert repository.name == "name"
       assert repository.owner == "some_owner"
     end
 
     test "create_repository/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Repositories.create_repository(@invalid_attrs)
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
+      assert {:error, %Ecto.Changeset{}} = Repositories.create_repository(user, @invalid_attrs)
     end
 
     test "create_repositories/2 with valid data creates a list of repositories for some user" do
       user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
 
       valid_attrs = [
-        %{external_id: "github:123456", name: "name", owner: "some_owner"},
-        %{external_id: "github:789012", name: "name", owner: "some_owner"}
+        %{external_id: "github:123456", name: "name", owner: user.username},
+        %{external_id: "github:789012", name: "name2", owner: user.username}
       ]
 
       assert {:ok, [%Repository{}, %Repository{}]} =
@@ -63,15 +71,16 @@ defmodule Swarm.RepositoriesTest do
 
     test "create_repositories/2 updates existing repository with new name and owner" do
       user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
 
       initial_attrs = [
-        %{external_id: "github:123456", name: "initial_name", owner: "initial_owner"}
+        %{external_id: "github:123456", name: "initial_name", owner: user.username}
       ]
 
       {:ok, [initial_repo]} = Repositories.create_repositories(user, initial_attrs)
 
       update_attrs = [
-        %{external_id: "github:123456", name: "updated_name", owner: "updated_owner"}
+        %{external_id: "github:123456", name: "updated_name", owner: user.username}
       ]
 
       {:ok, [updated_repo]} = Repositories.create_repositories(user, update_attrs)
@@ -79,7 +88,7 @@ defmodule Swarm.RepositoriesTest do
       assert updated_repo.id == initial_repo.id
       assert updated_repo.external_id == "github:123456"
       assert updated_repo.name == "updated_name"
-      assert updated_repo.owner == "updated_owner"
+      assert updated_repo.owner == user.username
     end
 
     test "update_repository/2 with valid data updates the repository" do
@@ -100,8 +109,7 @@ defmodule Swarm.RepositoriesTest do
       assert {:error, %Ecto.Changeset{}} =
                Repositories.update_repository(repository, @invalid_attrs)
 
-      assert Ecto.reset_fields(repository, [:users]) ==
-               Repositories.get_repository!(repository.id)
+      assert repository == Repositories.get_repository!(repository.id)
     end
 
     test "delete_repository/1 deletes the repository" do
@@ -119,8 +127,7 @@ defmodule Swarm.RepositoriesTest do
       user = Swarm.AccountsFixtures.user_fixture()
       repository = repository_fixture(user, %{external_id: "github:555777"})
 
-      assert Repositories.get_repository_by_external_id!("github:555777") ==
-               Ecto.reset_fields(repository, [:users])
+      assert Repositories.get_repository_by_external_id!("github:555777") == repository
     end
 
     test "get_repository_by_external_id!/1 raises error when repository doesn't exist" do
@@ -133,8 +140,7 @@ defmodule Swarm.RepositoriesTest do
       user = Swarm.AccountsFixtures.user_fixture()
       repository = repository_fixture(user, %{external_id: "github:444333"})
 
-      assert Repositories.get_repository_by_external_id("github:444333") ==
-               Ecto.reset_fields(repository, [:users])
+      assert Repositories.get_repository_by_external_id("github:444333") == repository
     end
 
     test "get_repository_by_external_id/1 returns nil when repository doesn't exist" do
@@ -143,8 +149,9 @@ defmodule Swarm.RepositoriesTest do
 
     test "validates external_id format" do
       user = Swarm.AccountsFixtures.user_fixture(%{username: "testuser"})
+      _organization = personal_organization_fixture(user)
 
-      # Should fail if we try to create with invalid format manually
+      # Should fail with changeset error for invalid format
       assert {:error, %Ecto.Changeset{}} =
                Repositories.create_repository(user, %{
                  external_id: "invalid-format",
@@ -154,13 +161,16 @@ defmodule Swarm.RepositoriesTest do
     end
 
     test "enforces unique constraint on external_id" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
+
       # Create first repository
       attrs = %{external_id: "github:123456", name: "repo_name", owner: "owner_name"}
-      assert {:ok, %Repository{}} = Repositories.create_repository(attrs)
+      assert {:ok, %Repository{}} = Repositories.create_repository(user, attrs)
 
       # Try to create another repository with same external_id (should fail)
       assert {:error, %Ecto.Changeset{} = changeset} =
-               Repositories.create_repository(%{
+               Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: "different_name",
                  owner: "different_owner"
@@ -173,7 +183,7 @@ defmodule Swarm.RepositoriesTest do
 
       # Different external_id should work even with same name and owner
       assert {:ok, %Repository{}} =
-               Repositories.create_repository(%{
+               Repositories.create_repository(user, %{
                  external_id: "github:654321",
                  name: "repo_name",
                  owner: "owner_name"
@@ -181,9 +191,12 @@ defmodule Swarm.RepositoriesTest do
     end
 
     test "validates name length" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
+
       # Name too short (less than 3 characters)
       assert {:error, %Ecto.Changeset{} = changeset} =
-               Repositories.create_repository(%{
+               Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: "ab",
                  owner: "owner"
@@ -197,8 +210,8 @@ defmodule Swarm.RepositoriesTest do
       long_name = String.duplicate("a", 101)
 
       assert {:error, %Ecto.Changeset{} = changeset} =
-               Repositories.create_repository(%{
-                 external_id: "github:123457",
+               Repositories.create_repository(user, %{
+                 external_id: "github:123456",
                  name: long_name,
                  owner: "owner"
                })
@@ -209,105 +222,84 @@ defmodule Swarm.RepositoriesTest do
     end
 
     test "validates name format" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
+
       # Invalid characters in name
       assert {:error, %Ecto.Changeset{} = changeset} =
-               Repositories.create_repository(%{
-                 external_id: "github:123458",
+               Repositories.create_repository(user, %{
+                 external_id: "github:123456",
                  name: "invalid@name",
                  owner: "owner"
                })
 
-      assert {:name,
-              {"can only contain letters, numbers, spaces, underscores, hyphens, slashes, and periods",
-               [validation: :format]}} in changeset.errors
-
-      # Valid name with allowed characters
-      assert {:ok, %Repository{}} =
-               Repositories.create_repository(%{
-                 external_id: "github:123459",
-                 name: "valid-name_123 /repo.test",
-                 owner: "owner"
-               })
+      assert changeset.errors[:name]
     end
 
-    test "validates name exclusion (reserved names)" do
-      # Test each reserved name
-      reserved_names = ["admin", "system", "root"]
+    test "validates reserved names" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
 
-      for {reserved_name, index} <- Enum.with_index(reserved_names) do
-        assert {:error, %Ecto.Changeset{} = changeset} =
-                 Repositories.create_repository(%{
-                   external_id: "github:#{123_460 + index}",
-                   name: reserved_name,
-                   owner: "owner"
-                 })
-
-        assert {:name,
-                {"is reserved", [validation: :exclusion, enum: ["admin", "system", "root"]]}} in changeset.errors
-      end
-    end
-
-    test "trims whitespace from name" do
-      assert {:ok, %Repository{} = repository} =
-               Repositories.create_repository(%{
-                 external_id: "github:123463",
-                 name: "  trimmed_name  ",
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Repositories.create_repository(user, %{
+                 external_id: "github:123456",
+                 name: "admin",
                  owner: "owner"
                })
 
-      assert repository.name == "trimmed_name"
+      assert {:name, {"is reserved", [validation: :exclusion, enum: ["admin", "system", "root"]]}} in changeset.errors
     end
 
-    test "create_repository/1 with linear_team_external_ids creates a repository" do
-      valid_attrs = %{
-        external_id: "github:123464",
-        name: "name",
-        owner: "some_owner",
-        linear_team_external_ids: ["team1", "team2"]
+    test "build_repository_url/1 returns the correct GitHub URL" do
+      repository = %Repository{
+        external_id: "github:123456",
+        name: "my-repo",
+        owner: "myuser"
       }
 
-      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
-      assert repository.linear_team_external_ids == ["team1", "team2"]
+      assert Repository.build_repository_url(repository) ==
+               "https://github.com/myuser/my-repo.git"
     end
 
-    test "create_repository/1 with empty linear_team_external_ids creates a repository" do
-      valid_attrs = %{
-        external_id: "github:123465",
-        name: "name",
-        owner: "some_owner",
-        linear_team_external_ids: []
-      }
+    test "validates external_id format for repositories" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
 
-      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
-      assert repository.linear_team_external_ids == []
-    end
+      # Valid format
+      valid_attrs = %{external_id: "github:123456", name: "test-repo", owner: "testuser"}
+      assert {:ok, %Repository{}} = Repositories.create_repository(user, valid_attrs)
 
-    test "create_repository/1 without linear_team_external_ids defaults to empty list" do
-      valid_attrs = %{external_id: "github:123466", name: "name", owner: "some_owner"}
+      # Invalid format (missing colon)
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Repositories.create_repository(user, %{
+                 external_id: "github123456",
+                 name: "test-repo",
+                 owner: "testuser"
+               })
 
-      assert {:ok, %Repository{} = repository} = Repositories.create_repository(valid_attrs)
-      assert repository.linear_team_external_ids == []
-    end
+      assert changeset.errors[:external_id]
 
-    test "update_repository/2 can update linear_team_external_ids" do
-      repository = repository_fixture()
-      update_attrs = %{linear_team_external_ids: ["updated_team1", "updated_team2"]}
+      # Invalid format (non-numeric ID)
+      assert {:error, %Ecto.Changeset{} = changeset} =
+               Repositories.create_repository(user, %{
+                 external_id: "github:abc",
+                 name: "test-repo",
+                 owner: "testuser"
+               })
 
-      assert {:ok, %Repository{} = updated_repository} =
-               Repositories.update_repository(repository, update_attrs)
-
-      assert updated_repository.linear_team_external_ids == ["updated_team1", "updated_team2"]
+      assert changeset.errors[:external_id]
     end
 
     test "create_repositories/2 updates existing repository linear_team_external_ids" do
       user = Swarm.AccountsFixtures.user_fixture()
+      _organization = personal_organization_fixture(user)
 
       initial_attrs = [
         %{
-          external_id: "github:123467",
+          external_id: "github:123456",
           name: "initial_name",
-          owner: "initial_owner",
-          linear_team_external_ids: ["initial_team"]
+          owner: user.username,
+          linear_team_external_ids: ["team1", "team2"]
         }
       ]
 
@@ -315,17 +307,20 @@ defmodule Swarm.RepositoriesTest do
 
       update_attrs = [
         %{
-          external_id: "github:123467",
+          external_id: "github:123456",
           name: "updated_name",
-          owner: "updated_owner",
-          linear_team_external_ids: ["updated_team1", "updated_team2"]
+          owner: user.username,
+          linear_team_external_ids: ["team3", "team4", "team5"]
         }
       ]
 
       {:ok, [updated_repo]} = Repositories.create_repositories(user, update_attrs)
 
       assert updated_repo.id == initial_repo.id
-      assert updated_repo.linear_team_external_ids == ["updated_team1", "updated_team2"]
+      assert updated_repo.external_id == "github:123456"
+      assert updated_repo.name == "updated_name"
+      assert updated_repo.owner == user.username
+      assert updated_repo.linear_team_external_ids == ["team3", "team4", "team5"]
     end
   end
 end

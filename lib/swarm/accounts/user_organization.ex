@@ -9,7 +9,7 @@ defmodule Swarm.Accounts.UserOrganization do
   schema "users_organizations" do
     belongs_to :user, User
     belongs_to :organization, Organization
-    field :role, Ecto.Enum, values: [:admin, :member]
+    field :role, Ecto.Enum, values: [:owner, :member]
 
     timestamps()
   end
@@ -23,6 +23,6 @@ defmodule Swarm.Accounts.UserOrganization do
   def delete_changeset(user_organization) do
     user_organization
     |> cast(%{}, [:role])
-    |> validate_inclusion(:role, [:admin], message: "must be admin to delete organization")
+    |> validate_inclusion(:role, [:owner], message: "must be owner to delete organization")
   end
 end

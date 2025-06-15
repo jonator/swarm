@@ -15,7 +15,7 @@ defmodule SwarmWeb.GitHubController do
   end
 
   def repositories(conn, _params, user) do
-    with {:ok, repositories} <- GitHub.installation_repositories(user) do
+    with {:ok, repositories} <- Swarm.Services.fetch_all_github_repositories(user) do
       conn
       |> put_status(:ok)
       |> json(repositories)
@@ -31,7 +31,8 @@ defmodule SwarmWeb.GitHubController do
   end
 
   def frameworks(conn, %{"owner" => owner, "repo" => repo, "branch" => branch}, user) do
-    with {:ok, frameworks} <- Swarm.Services.detect_github_repository_frameworks(user, owner, repo, branch) do
+    with {:ok, frameworks} <-
+           Swarm.Services.detect_github_repository_frameworks(user, owner, repo, branch) do
       conn
       |> put_status(:ok)
       |> json(frameworks)

@@ -2,7 +2,6 @@ defmodule Swarm.Repositories.Repository do
   @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
-  alias Swarm.Accounts.User
   alias Swarm.Organizations.Organization
   alias Swarm.Projects.Project
 
@@ -12,8 +11,7 @@ defmodule Swarm.Repositories.Repository do
     field :name, :string
     field :owner, :string
     field :linear_team_external_ids, {:array, :string}, default: []
-    many_to_many :users, User, join_through: "users_repositories"
-    many_to_many :organizations, Organization, join_through: "organizations_repositories"
+    belongs_to :organization, Organization
     has_many :projects, Project
 
     timestamps()
@@ -39,24 +37,22 @@ defmodule Swarm.Repositories.Repository do
 
   @doc """
   Builds the git clone URL for a repository.
-  
+
   Currently supports GitHub repositories. Returns a git clone URL
   based on the repository's external_id, owner, and name.
-  
+
   ## Examples
-  
+
       iex> repo = %Repository{external_id: "github:123", owner: "myorg", name: "myrepo"}
       iex> Repository.build_repository_url(repo)
       "https://github.com/myorg/myrepo.git"
-  
+
   """
-  def build_repository_url(%__MODULE__{} = repository) do
-    case repository.external_id do
-      "github:" <> _github_id ->
-        "https://github.com/#{repository.owner}/#{repository.name}.git"
-      _ ->
-        # Fallback to constructing from owner/name for GitHub
-        "https://github.com/#{repository.owner}/#{repository.name}.git"
-    end
+  def build_repository_url(%__MODULE__{
+        external_id: "github:" <> _github_id,
+        name: name,
+        owner: owner
+      }) do
+    "https://github.com/#{owner}/#{name}.git"
   end
 end

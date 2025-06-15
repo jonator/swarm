@@ -51,12 +51,4 @@ defmodule SwarmWeb.RepositoryController do
       |> render(:show, repository: repository)
     end
   end
-
-  def migrate(conn, _params, user) do
-    with {:ok, repositories} <- Services.migrate_github_repositories(user) do
-      conn
-      |> put_status(:created)
-      |> render(:index, repositories: repositories)
-    end
-  end
 end

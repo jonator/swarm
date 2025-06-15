@@ -145,13 +145,8 @@ export type Repository = {
   languages_url: string
 }
 
-export type Repositories = {
-  repositories: Repository[]
-  total_count: number
-}
-
 export async function getRepositories() {
-  return apiClientWithAuth.get('users/github/repositories').json<Repositories>()
+  return apiClientWithAuth.get('users/github/repositories').json<Repository[]>()
 }
 
 // export type Tree = {

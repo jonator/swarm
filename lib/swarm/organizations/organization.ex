@@ -8,8 +8,9 @@ defmodule Swarm.Organizations.Organization do
 
   schema "organizations" do
     field :name, :string
+    field :github_installation_id, :integer
     many_to_many :users, User, join_through: UserOrganization
-    many_to_many :repositories, Repository, join_through: "organizations_repositories"
+    has_many :repositories, Repository
 
     timestamps()
   end
@@ -17,7 +18,7 @@ defmodule Swarm.Organizations.Organization do
   @doc false
   def changeset(organization, attrs) do
     organization
-    |> cast(attrs, [:name])
+    |> cast(attrs, [:name, :github_installation_id])
     |> validate_required([:name])
     |> update_change(:name, &String.trim/1)
     |> unique_constraint(:name)
@@ -26,5 +27,6 @@ defmodule Swarm.Organizations.Organization do
       message: "can only contain letters, numbers, underscores, and hyphens"
     )
     |> validate_exclusion(:name, ["admin", "system", "root"], message: "is reserved")
+    |> validate_number(:github_installation_id, greater_than: 0)
   end
 end

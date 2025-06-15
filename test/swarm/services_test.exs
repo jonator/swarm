@@ -27,14 +27,4 @@ defmodule Swarm.ServicesTest do
       assert is_binary(reason)
     end
   end
-
-  describe "migrate_github_repositories/1" do
-    test "returns error when GitHub API is not accessible" do
-      user = Swarm.AccountsFixtures.user_fixture(%{username: "testuser"})
-
-      # Without real GitHub integration, this should return an error
-      assert {:unauthorized, reason} = Services.migrate_github_repositories(user)
-      assert is_binary(reason)
-    end
-  end
 end

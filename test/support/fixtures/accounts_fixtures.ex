@@ -7,7 +7,14 @@ defmodule Swarm.AccountsFixtures do
   @doc """
   Generate a user.
   """
-  def user_fixture(attrs \\ %{email: "test@test.com", username: "User", avatar_url: "https://example.com/avatar.jpg", role: "user"}) do
+  def user_fixture(
+        attrs \\ %{
+          email: "test@test.com",
+          username: "User",
+          avatar_url: "https://example.com/avatar.jpg",
+          role: "user"
+        }
+      ) do
     {:ok, user} =
       attrs
       |> Enum.into(%{})

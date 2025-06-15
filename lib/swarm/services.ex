@@ -8,6 +8,7 @@ defmodule Swarm.Services do
   alias Swarm.Services.Linear
   alias Swarm.Framework
   alias Swarm.Repositories
+  alias Swarm.Organizations
 
   defdelegate github(user), to: GitHub, as: :new
   defdelegate linear(user), to: Linear, as: :new
@@ -51,10 +52,11 @@ defmodule Swarm.Services do
   end
 
   @doc """
-  Creates a repository from a GitHub repository ID and project attributes.
+  Creates a repository from a GitHub repository ID and optional project attributes.
 
   This function fetches the repository details from GitHub's API, validates that the user
-  owns the repository, and creates a local repository record with optional project data.
+  owns the repository, creates or gets an organization for the user, and creates
+  a repository record with optional project data.
 
   ## Parameters
     - user: The authenticated user record
@@ -92,8 +94,14 @@ defmodule Swarm.Services do
         github_repo_id,
         projects \\ [%{}]
       ) do
-    with {:ok, github_repo} <- fetch_github_repository(user, github_repo_id),
-         :ok <- validate_repository_ownership(github_repo, username) do
+    with {:ok, github_repo, github_installation_id} <-
+           fetch_github_repository(user, github_repo_id),
+         {:ok, organization} <-
+           Organizations.get_or_create_organization(
+             user,
+             github_repo["owner"]["login"],
+             github_installation_id
+           ) do
       # Filter to only valid projects
       valid_projects = Enum.filter(projects, &has_required_project_fields?/1)
 
@@ -111,74 +119,22 @@ defmodule Swarm.Services do
           repo_attrs
         end
 
-      Repositories.create_repository(user, repo_attrs_with_projects)
+      Repositories.create_repository(organization, repo_attrs_with_projects)
     end
   end
 
   @doc """
-  Migrates all accessible GitHub repositories for a user to the local database.
+  Fetches a GitHub repository by ID from all the user's accessible repositories across all installations.
 
-  This function fetches all repositories that the user has access to through the GitHub
-  app installation and creates them in bulk using the new create_repositories/2 function.
-  Only repositories owned by the user are included (excluding organization repositories).
-
-  ## Parameters
-    - user: The authenticated user record with valid GitHub tokens
-
-  ## Returns
-    - `{:ok, repositories}` - List of successfully created repositories
-    - `{:error, reason}` - If the migration failed
-
-  ## Examples
-
-      iex> Services.migrate_github_repositories(user)
-      {:ok, [%Repository{external_id: "github:123456", name: "repo1"}, ...]}
-
-      iex> Services.migrate_github_repositories(user)
-      {:error, "Failed to fetch repositories from GitHub: invalid_token"}
-  """
-  def migrate_github_repositories(%User{username: username} = user) do
-    case GitHub.installation_repositories(user) do
-      {:ok, %{"repositories" => github_repositories}} ->
-        # Filter to only repositories owned by the user (not organization repos)
-        user_repositories =
-          Enum.filter(github_repositories, fn repo ->
-            repo["owner"]["login"] == username
-          end)
-
-        # Transform GitHub repository data into local repository attributes
-        repository_attrs =
-          Enum.map(user_repositories, fn github_repo ->
-            %{
-              external_id: "github:#{github_repo["id"]}",
-              name: github_repo["name"],
-              owner: username
-            }
-          end)
-
-        # Use the new bulk create function
-        Repositories.create_repositories(user, repository_attrs)
-
-      {:error, reason} ->
-        {:error, "Failed to fetch repositories from GitHub: #{reason}"}
-
-      error ->
-        error
-    end
-  end
-
-  @doc """
-  Fetches a GitHub repository by ID from the user's accessible repositories.
-
-  This function queries GitHub's installation repositories API to find a repository
-  by its numeric ID within the user's accessible repositories.
+  This function queries GitHub's installations API to get all installations, then searches
+  repositories across all installations to find a repository by its numeric ID.
 
   ## Parameters
     - user: The authenticated user record with valid GitHub tokens
     - github_repo_id: GitHub repository ID (numeric string or integer)
 
   ## Returns
-    - `{:ok, repository_map}` - GitHub repository data containing id, name, owner, etc.
+    - `{:ok, repository_map, installation_id}` - GitHub repository data containing id, name, owner, etc and the associated installation id.
     - `{:error, reason}` - If the repository could not be found or accessed
 
   ## Examples
@@ -199,32 +155,94 @@ defmodule Swarm.Services do
     repo_id =
       if is_binary(github_repo_id), do: String.to_integer(github_repo_id), else: github_repo_id
 
-    case GitHub.installation_repositories(user) do
-      {:ok, %{"repositories" => repositories}} ->
-        case Enum.find(repositories, &(&1["id"] == repo_id)) do
-          nil ->
-            {:error,
-             "Repository with ID #{github_repo_id} not found in user's accessible repositories"}
+    with {:ok, gh_client} <- GitHub.new(user) do
+      case GitHub.installations(gh_client) do
+        {:ok, %{"installations" => installations}} ->
+          search_repositories_across_installations(gh_client, installations, repo_id, github_repo_id)
 
-          repository ->
-            {:ok, repository}
+        {:error, reason} ->
+          {:error, "Failed to fetch GitHub installations: #{reason}"}
+
+          error ->
+            {:error, "Failed to fetch GitHub installations: #{inspect(error)}"}
         end
+      end
+  end
+
+  defp search_repositories_across_installations(gh_client, installations, repo_id, github_repo_id) do
+    installations
+    |> Enum.reduce_while({:not_found, []}, fn installation, {_status, errors} ->
+      case GitHub.installation_repositories(gh_client, installation["id"]) do
+        {:ok, %{"repositories" => repositories}} ->
+          case Enum.find(repositories, &(&1["id"] == repo_id)) do
+            nil ->
+              {:cont, {:not_found, errors}}
+
+            repository ->
+              {:halt, {:found, repository, installation["id"]}}
+          end
+
+        {:error, reason} ->
+          {:cont, {:not_found, [reason | errors]}}
+
+        _error ->
+          {:cont, {:not_found, ["Unknown error fetching repositories" | errors]}}
+      end
+    end)
+    |> case do
+      {:found, repository, installation_id} ->
+        {:ok, repository, installation_id}
+
+      {:not_found, []} ->
+        {:error,
+         "Repository with ID #{github_repo_id} not found in user's accessible repositories"}
+
+      {:not_found, errors} ->
+        {:error,
+         "Repository with ID #{github_repo_id} not found. Errors encountered: #{Enum.join(errors, ", ")}"}
+    end
+  end
+
+  @doc """
+  Fetches all GitHub repositories accessible to the user across all GitHub installations.
+  This includes both personal repositories and repositories from organizations the user has granted Swarm access to (orgs they have app manager access to, see: https://docs.github.com/en/organizations/managing-peoples-access-to-your-organization-with-roles/roles-in-an-organization#github-app-managers).
+  NOTE: This is important since we assume repos with new "owner" become new Swarm orgs, and if it's the first user they become the owner of the Swarm org.
+  """
+  def fetch_all_github_repositories(%User{} = user) do
+    {:ok, gh_client} = GitHub.new(user)
+
+    case GitHub.installations(gh_client) do
+      {:ok, %{"installations" => installations}} ->
+        repositories_across_all_installations(gh_client, installations)
 
       {:error, reason} ->
-        {:error, "Failed to fetch repositories from GitHub: #{reason}"}
+        {:error, "Failed to fetch GitHub installations: #{reason}"}
 
       error ->
         error
     end
   end
 
-  defp validate_repository_ownership(github_repo, username) do
-    case github_repo["owner"]["login"] do
-      ^username ->
-        :ok
+  defp repositories_across_all_installations(gh_client, installations) do
+    installations
+    |> Enum.reduce_while({:ok, []}, fn installation, {:ok, acc_repos} ->
+      case GitHub.installation_repositories(gh_client, installation["id"]) do
+        {:ok, %{"repositories" => installation_repos}} ->
+          {:cont, {:ok, acc_repos ++ installation_repos}}
 
-      other_owner ->
-        {:error, "Repository owner '#{other_owner}' does not match user '#{username}'"}
+        {:error, reason} ->
+          {:cont,
+           {:error,
+            "Failed to fetch repositories for installation #{installation["id"]}: #{reason}"}}
+
+        _error ->
+          {:cont,
+           {:error, "Unknown error fetching repositories for installation #{installation["id"]}"}}
+      end
+    end)
+    |> case do
+      {:ok, repositories} -> {:ok, repositories}
+      {:error, reason} -> {:error, reason}
     end
   end
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { getRepositoryFrameworks } from '@/lib/services/github'
-import type { Repositories, Repository } from '@/lib/services/github'
+import type { Repository } from '@/lib/services/github'
 import { createRepository } from '@/lib/services/repositories'
 import type { CreateRepositoryParams } from '@/lib/services/repositories'
 import { cn } from '@/lib/utils/shadcn'
@@ -37,7 +37,7 @@ import {
 
 export const ChooseRepo = ({
   repositories,
-}: { repositories: Repositories }) => {
+}: { repositories: Repository[] }) => {
   const [repository, setRepository] = useState<Repository | null>(null)
   const router = useRouter()
 
@@ -46,7 +46,7 @@ export const ChooseRepo = ({
       <ChooseGitHubRepo
         repositories={repositories}
         onSelectRepo={(repoId) => {
-          const selectedRepo = repositories.repositories.find(
+          const selectedRepo = repositories.find(
             (repo) => repo.id === Number(repoId),
           )
 
@@ -84,9 +84,9 @@ export const ChooseRepo = ({
 }
 
 const ChooseGitHubRepo = ({
-  repositories: { repositories },
+  repositories,
   onSelectRepo,
-}: { repositories: Repositories; onSelectRepo: (repoId: string) => void }) => {
+}: { repositories: Repository[]; onSelectRepo: (repoId: string) => void }) => {
   // id
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
 

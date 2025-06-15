@@ -72,7 +72,8 @@ defmodule Swarm.Services.GitHub do
 
   def installation_repositories(user_or_client, target_type_or_id \\ "User")
 
-  def installation_repositories(%User{} = user, target_type) do
+  def installation_repositories(%User{} = user, target_type)
+      when target_type in ["User", "Organization"] do
     with {:ok, %__MODULE__{} = client} <- new(user),
          {:ok, %{"installations" => installations}} <- installations(client),
          %{"id" => installation_id} <-

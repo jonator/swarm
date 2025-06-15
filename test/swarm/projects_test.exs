@@ -2,6 +2,7 @@ defmodule Swarm.ProjectsTest do
   use Swarm.DataCase
 
   alias Swarm.Projects
+  import Swarm.RepositoriesFixtures
 
   describe "projects" do
     alias Swarm.Projects.Project
@@ -34,21 +35,20 @@ defmodule Swarm.ProjectsTest do
     end
 
     test "create_project/1 with valid data creates a project" do
+      r = repository_fixture() |> Map.from_struct()
+
       valid_attrs = %{
         root_dir: "./root_dir",
         type: :nextjs,
         name: "@swarm-labs/frontend",
-        repository: %{
-          external_id: "github:123456",
-          owner: "owner",
-          name: "somenewname"
-        }
+        repository_id: r.id
       }
 
-      assert {:ok, %Project{} = project} = Projects.create_project(valid_attrs)
+      assert {:ok, %Project{} = project} =
+               Projects.create_project(valid_attrs)
+
       assert project.type == :nextjs
       assert project.root_dir == "./root_dir"
-      assert project.repository.name == "somenewname"
       assert project.name == "@swarm-labs/frontend"
     end
 
@@ -58,7 +58,12 @@ defmodule Swarm.ProjectsTest do
 
     test "update_project/2 with valid data updates the project" do
       project = project_fixture()
-      update_attrs = %{type: :nextjs, root_dir: "./updated_root_dir", name: "updated_project_name"}
+
+      update_attrs = %{
+        type: :nextjs,
+        root_dir: "./updated_root_dir",
+        name: "updated_project_name"
+      }
 
       assert {:ok, %Project{} = project} =
                Projects.update_project(project, update_attrs)
@@ -75,17 +80,19 @@ defmodule Swarm.ProjectsTest do
                Projects.update_project(project, @invalid_attrs)
 
       assert project ==
-               Projects.get_project!(project.id) |> Repo.preload(:repository)
+               Projects.get_project!(project.id)
     end
 
     test "update_project/2 with invalid data returns error changeset (2)" do
       project = project_fixture()
 
       assert {:error, %Ecto.Changeset{}} =
-               Projects.update_project(project, %{name: "has alsdkjfa;ldskjf;alksjdflkjdoi9d9fs0df09sdf09fdf..;;sdf'sdfjljf¢¢¢¢"})
+               Projects.update_project(project, %{
+                 name: "has alsdkjfa;ldskjf;alksjdflkjdoi9d9fs0df09sdf09fdf..;;sdf'sdfjljf¢¢¢¢"
+               })
 
       assert project ==
-               Projects.get_project!(project.id) |> Repo.preload(:repository)
+               Projects.get_project!(project.id)
     end
 
     test "delete_project/1 deletes the project" do

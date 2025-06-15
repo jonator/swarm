@@ -7,33 +7,50 @@ defmodule Swarm.Repositories do
   alias Swarm.Repo
 
   alias Swarm.Accounts.User
+  alias Swarm.Organizations.Organization
   alias Swarm.Repositories.Repository
   alias Swarm.Projects.Project
 
   @doc """
   Returns the list of repositories.
 
+  When called with a User, returns the list of repositories for the user through their organizations.
+  When called with an Organization, returns the list of repositories for that organization.
+  When called with no arguments, returns all repositories.
+
   ## Examples
 
       iex> list_repositories()
       [%Repository{}, ...]
 
-  """
-  def list_repositories do
-    Repo.all(Repository)
-  end
-
-  @doc """
-  Returns the list of repositories for a given user.
-
-  ## Examples
-
       iex> list_repositories(user)
       [%Repository{}, ...]
 
+      iex> list_repositories(organization)
+      [%Repository{}, ...]
+
   """
+  def list_repositories do
+    Repo.all(Repository)
+    |> Repo.preload(:organization)
+  end
+
   def list_repositories(%User{} = user) do
-    Repo.preload(user, :repositories).repositories
+    user_organization_ids =
+      user
+      |> Repo.preload(:organizations)
+      |> Map.get(:organizations)
+      |> Enum.map(& &1.id)
+
+    Repo.all(
+      from r in Repository,
+        where: r.organization_id in ^user_organization_ids
+    )
+    |> Repo.preload(:organization)
+  end
+
+  def list_repositories(%Organization{} = organization) do
+    Repo.preload(organization, :repositories).repositories
   end
 
   @doc """
@@ -50,7 +67,10 @@ defmodule Swarm.Repositories do
       ** (Ecto.NoResultsError)
 
   """
-  def get_repository!(id), do: Repo.get!(Repository, id)
+  def get_repository!(id) do
+    Repo.get!(Repository, id)
+    |> Repo.preload(:organization)
+  end
 
   @doc """
   Gets a single repository by external_id.
@@ -68,6 +88,10 @@ defmodule Swarm.Repositories do
   """
   def get_repository_by_external_id(external_id) do
     Repo.get_by(Repository, external_id: external_id)
+    |> case do
+      nil -> nil
+      repository -> Repo.preload(repository, :organization)
+    end
   end
 
   @doc """
@@ -86,12 +110,13 @@ defmodule Swarm.Repositories do
   """
   def get_repository_by_external_id!(external_id) do
     Repo.get_by!(Repository, external_id: external_id)
+    |> Repo.preload(:organization)
   end
 
   @doc """
   Gets a single repository for a user by repository ID or external ID.
 
-  This function ensures the user has access to the repository.
+  This function ensures the user has access to the repository through their organizations.
 
   ## Examples
 
@@ -138,7 +163,9 @@ defmodule Swarm.Repositories do
   end
 
   @doc """
-  Creates a repository for a given user (not org).
+  Creates a repository for a given user through their personal organization if
+  provided a user, or a repository for a given organization if provided an
+  organization.
 
   ## Examples
 
@@ -148,24 +175,39 @@ defmodule Swarm.Repositories do
       iex> create_repository(user, %{field: bad_value})
       {:error, %Ecto.Changeset{}}
 
+      iex> create_repository(organization, %{field: value})
+      {:ok, %Repository{}}
+
+      iex> create_repository(organization, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
   """
   def create_repository(%User{username: username} = user, attrs) do
+    # Get the user's personal organization (first organization they own)
+    user_organizations = Swarm.Organizations.list_organizations(user)
+
+    case Enum.find(user_organizations, &(&1.name == username)) do
+      nil ->
+        {:error, "User does not have a personal organization"}
+
+      organization ->
+        create_repository(organization, attrs)
+    end
+  end
+
+  def create_repository(%Organization{} = organization, attrs) do
     %Repository{}
     |> Repository.changeset(attrs)
-    |> Ecto.Changeset.put_assoc(:users, [user])
-    |> Ecto.Changeset.validate_change(:owner, fn :owner, owner ->
-      if owner == username do
-        []
-      else
-        [owner: "must be the same as the user"]
-      end
-    end)
+    |> Ecto.Changeset.put_assoc(:organization, organization)
     |> Ecto.Changeset.cast_assoc(:projects, with: &Project.changeset/2)
     |> Repo.insert()
   end
 
   @doc """
-  Creates a list of repositories for a given user.
+  Creates a list of repositories for a given user through their personal organization.
+  If a repository already exists, it will be updated with the appropriate new values.
+
+  If provided an organization, creates a list of repositories for that organization.
   If a repository already exists, it will be updated with the appropriate new values.
 
   ## Examples
@@ -173,15 +215,36 @@ defmodule Swarm.Repositories do
       iex> create_repositories(user, [%{field: value}, %{field: value}])
       {:ok, [%Repository{}, ...]}
 
+      iex> create_repositories(organization, [%{field: value}, %{field: value}])
+      {:ok, [%Repository{}, ...]}
+
   """
-  def create_repositories(user, attrs_list) when is_list(attrs_list) do
+  def create_repositories(%User{username: username} = user, attrs_list)
+      when is_list(attrs_list) do
+    # Get the user's personal organization
+    user_organizations = Swarm.Organizations.list_organizations(user)
+
+    case Enum.find(user_organizations, &(&1.name == username)) do
+      nil ->
+        {:error, "User does not have a personal organization"}
+
+      organization ->
+        create_repositories(organization, attrs_list)
+    end
+  end
+
+  def create_repositories(%Organization{} = organization, attrs_list)
+      when is_list(attrs_list) do
     timestamp =
       NaiveDateTime.utc_now()
       |> NaiveDateTime.truncate(:second)
 
     attrs_list_timestamped =
       Enum.map(attrs_list, fn attrs ->
-        Map.put(attrs, :inserted_at, timestamp) |> Map.put(:updated_at, timestamp)
+        attrs
+        |> Map.put(:organization_id, organization.id)
+        |> Map.put(:inserted_at, timestamp)
+        |> Map.put(:updated_at, timestamp)
       end)
 
     Ecto.Multi.new()
@@ -199,32 +262,24 @@ defmodule Swarm.Repositories do
             "Expected to insert #{length(attrs_list)} repositories but inserted #{count}"}}
         end
     end)
-    # Postgres does not support RETURNING in INSERT
-    |> Ecto.Multi.run(:associate_user, fn repo, %{insert_repositories: {_count, nil}} ->
+    |> Ecto.Multi.run(:get_repositories, fn _repo, %{insert_repositories: {_count, nil}} ->
       new_repositories =
         Repo.all(
           from r in Repository,
             where:
-              fragment(
-                "(name, owner) IN (SELECT * FROM unnest(?::text[], ?::text[]))",
-                ^Enum.map(attrs_list, & &1.name),
-                ^Enum.map(attrs_list, & &1.owner)
-              )
+              r.organization_id == ^organization.id and
+                fragment(
+                  "(name, owner) IN (SELECT * FROM unnest(?::text[], ?::text[]))",
+                  ^Enum.map(attrs_list, & &1.name),
+                  ^Enum.map(attrs_list, & &1.owner)
+                )
         )
 
-      user
-      |> Repo.preload(:repositories)
-      |> Ecto.Changeset.change()
-      |> Ecto.Changeset.put_assoc(:repositories, new_repositories)
-      |> repo.update()
-      |> case do
-        {:ok, %User{}} -> {:ok, new_repositories}
-        {:error, _} = error -> error
-      end
+      {:ok, new_repositories}
     end)
     |> Repo.transaction()
     |> case do
-      {:ok, %{associate_user: repositories}} -> {:ok, repositories}
+      {:ok, %{get_repositories: repositories}} -> {:ok, repositories}
       {:error, _failed_operation, _failed_value, _changes_so_far} = error -> error
     end
   end
@@ -241,12 +296,10 @@ defmodule Swarm.Repositories do
       {:error, %Ecto.Changeset{}}
 
   """
-  def update_repository(user, id, attrs) do
-    user
-    |> Repo.preload(:repositories)
-    |> Map.get(:repositories)
-    |> Enum.find(&(&1.id == String.to_integer(id)))
-    |> case do
+  def update_repository(%User{} = user, id, attrs) do
+    user_repositories = list_repositories(user)
+
+    case Enum.find(user_repositories, &(&1.id == String.to_integer(id))) do
       nil -> {:error, :not_found}
       repository -> update_repository(repository, attrs)
     end
