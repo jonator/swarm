@@ -18,4 +18,16 @@ defmodule Swarm.Egress do
   def acknowledge(%Event{source: other_source}) do
     {:error, "Egress.acknowledge/1 received non-Linear event: #{other_source}"}
   end
+
+  def reply(
+        %{"linear_issue_id" => _, "linear_app_user_id" => _, "linear_comment_id" => _} =
+          external_ids,
+        message
+      ) do
+    LinearDispatch.reply(external_ids, message)
+  end
+
+  def reply(%Event{source: other_source}, _message) do
+    {:error, "Egress.reply/1 received non-Linear event: #{other_source}"}
+  end
 end

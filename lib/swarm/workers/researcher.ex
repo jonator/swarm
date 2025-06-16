@@ -17,6 +17,11 @@ defmodule Swarm.Workers.Researcher do
   alias Swarm.Git
   alias Swarm.Repositories.Repository
   alias Swarm.Services.GitHub
+  alias LangChain.Chains.LLMChain
+  alias LangChain.Message
+  alias LangChain.ChatModels.ChatAnthropic
+  alias Swarm.Tools.Git.Repo, as: ToolRepo
+  alias Swarm.Egress
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -56,17 +61,83 @@ defmodule Swarm.Workers.Researcher do
     Logger.info("Conducting research for agent #{agent.id}")
 
     FLAME.call(Swarm.FlamePool, fn ->
-      analyze_repository_and_context(agent)
+      with {:ok, git_repo} <- clone_repository(agent),
+           {:ok, plan} <- generate_llm_implementation_plan(agent, git_repo) do
+        Logger.info("Research completed for agent #{agent.id}")
+        {:ok, %{plan: plan}}
+      end
     end)
   end
 
-  defp analyze_repository_and_context(%Agent{} = agent) do
-    with {:ok, repo} <- clone_repository(agent),
-         {:ok, codebase_analysis} <- analyze_codebase_structure(repo),
-         {:ok, implementation_plan} <- generate_implementation_plan(agent, codebase_analysis),
-         {:ok, _} <- update_linear_issue_with_plan(agent, implementation_plan) do
-      Logger.info("Research completed for agent #{agent.id}")
-      {:ok, %{plan: implementation_plan, analysis: codebase_analysis}}
+  defp generate_llm_implementation_plan(agent, git_repo) do
+    Logger.debug("Generating implementation plan via LLM for agent #{agent.id}")
+
+    reply_tool =
+      LangChain.Function.new!(%{
+        name: "reply",
+        description:
+          "Reply to the user with the final research plan. Always call this tool with your final plan when you are done.",
+        parameters: [
+          LangChain.FunctionParam.new!(%{
+            name: "message",
+            type: :string,
+            description: "The message to send as the research plan reply.",
+            required: true
+          })
+        ],
+        function: fn %{"message" => message}, %{"external_ids" => external_ids} ->
+          if Map.get(external_ids, "linear_issue_id") do
+            Egress.reply(external_ids, message)
+          else
+            {:ok, :skipped}
+          end
+        end
+      })
+
+    tools = ToolRepo.readonly_tools() ++ [reply_tool]
+
+    messages = [
+      Message.new_system!("""
+      You are a software architect analyzing a codebase and generating a detailed implementation plan based on the user's context and the repository contents. Use the available tools to inspect files and gather information as needed.
+
+      When you are finished, call the reply tool with your final implementation plan. Do not output the plan directly; always use the reply tool to send your answer. If the context is incomplete, ask the user for more information.
+
+      Your plan should:
+      - Summarize the application context and requirements
+      - Identify key files, directories, and technologies
+      - Provide a step-by-step implementation plan
+      - Note any technical constraints or considerations
+      - Be actionable for a coding agent to follow
+      """),
+      Message.new_user!("""
+      Please analyze the repository and generate an implementation plan for the following context:
+      #{agent.context}
+      """)
+    ]
+
+    chat_model =
+      ChatAnthropic.new!(%{
+        model: "claude-3-5-sonnet-20241022",
+        max_tokens: 4096,
+        temperature: 0.5,
+        stream: false
+      })
+
+    case %{
+           llm: chat_model,
+           custom_context: %{"git_repo" => git_repo, "external_ids" => agent.external_ids},
+           verbose: Logger.level() == :debug
+         }
+         |> LLMChain.new!()
+         |> LLMChain.add_messages(messages)
+         |> LLMChain.add_tools(tools)
+         |> LLMChain.run_until_tool_used("reply") do
+      {:ok, updated_chain, _messages} ->
+        {:ok, updated_chain.last_message.content}
+
+      error ->
+        Logger.error("LLM plan generation failed: #{inspect(error)}")
+        {:error, "LLM plan generation failed: #{inspect(error)}"}
     end
   end
 
@@ -80,227 +151,9 @@ defmodule Swarm.Workers.Researcher do
          default_branch <- Map.get(repo_info, "default_branch", "main"),
          repo_url <- Repository.build_repository_url(repository),
          # Clone using the default branch
-         {:ok, repo} <- Git.Repo.open(repo_url, "research-#{agent_id}", default_branch) do
-      Logger.debug("Successfully cloned repository to: #{repo.path}")
-      {:ok, repo}
-    end
-  end
-
-  defp analyze_codebase_structure(repo) do
-    Logger.debug("Analyzing codebase structure for: #{repo.path}")
-
-    # Get repository index with common exclusions
-    exclude_patterns = [
-      ~r/node_modules/,
-      ~r/\.git/,
-      ~r/_build/,
-      ~r/deps/,
-      ~r/\.next/,
-      ~r/dist/,
-      ~r/build/,
-      ~r/target/,
-      ~r/\.log$/,
-      ~r/\.tmp$/
-    ]
-
-    case Git.Index.from(repo, exclude_patterns) do
-      {:ok, index} ->
-        # Analyze key files and structure
-        analysis = %{
-          file_count: count_files_in_index(index),
-          key_files: find_key_files(index),
-          project_type: detect_project_type(index),
-          main_directories: get_main_directories(index),
-          readme_content: get_readme_content(repo),
-          package_files: find_package_files(index)
-        }
-
-        Logger.debug("Codebase analysis complete: #{inspect(Map.keys(analysis))}")
-        {:ok, analysis}
-
-      error ->
-        Logger.error("Failed to create repository index: #{inspect(error)}")
-        error
-    end
-  end
-
-  defp count_files_in_index(_index) do
-    # This would depend on the Git.Index implementation
-    # For now, return a placeholder
-    0
-  end
-
-  defp find_key_files(_index) do
-    # Search for important configuration and entry files
-    _key_patterns = [
-      "package.json",
-      "package-lock.json",
-      "yarn.lock",
-      "Dockerfile",
-      "docker-compose.yml",
-      "README.md",
-      "README.txt",
-      "mix.exs",
-      "mix.lock",
-      "Gemfile",
-      "Gemfile.lock",
-      "requirements.txt",
-      "setup.py",
-      "pom.xml",
-      "build.gradle",
-      "next.config.js",
-      "tailwind.config.js",
-      "tsconfig.json",
-      "jsconfig.json"
-    ]
-
-    # This would use the index to search for these files
-    # For now, return placeholder
-    []
-  end
-
-  defp detect_project_type(index) do
-    cond do
-      nextjs_project?(index) -> "Next.js"
-      nodejs_project?(index) -> "Node.js/JavaScript"
-      elixir_project?(index) -> "Elixir"
-      ruby_project?(index) -> "Ruby"
-      python_project?(index) -> "Python"
-      java_maven_project?(index) -> "Java (Maven)"
-      java_gradle_project?(index) -> "Java (Gradle)"
-      true -> "Unknown"
-    end
-  end
-
-  defp nextjs_project?(_index) do
-    # has_file?(index, "package.json") && has_file?(index, "next.config.js")
-    false
-  end
-
-  defp nodejs_project?(_index) do
-    # has_file?(index, "package.json")
-    false
-  end
-
-  defp elixir_project?(_index) do
-    # has_file?(index, "mix.exs")
-    false
-  end
-
-  defp ruby_project?(_index) do
-    # has_file?(index, "Gemfile")
-    false
-  end
-
-  defp python_project?(_index) do
-    # has_file?(index, "requirements.txt")
-    false
-  end
-
-  defp java_maven_project?(_index) do
-    # has_file?(index, "pom.xml")
-    false
-  end
-
-  defp java_gradle_project?(_index) do
-    # has_file?(index, "build.gradle")
-    false
-  end
-
-  defp get_main_directories(_index) do
-    # Get top-level directories from the index
-    # Implementation depends on Git.Index API
-    []
-  end
-
-  defp get_readme_content(repo) do
-    readme_path = Path.join(repo.path, "README.md")
-
-    case File.read(readme_path) do
-      # Limit content size
-      {:ok, content} ->
-        String.slice(content, 0, 2000)
-
-      {:error, _} ->
-        # Try alternative README files
-        alt_readme = Path.join(repo.path, "README.txt")
-
-        case File.read(alt_readme) do
-          {:ok, content} -> String.slice(content, 0, 2000)
-          {:error, _} -> "No README found"
-        end
-    end
-  end
-
-  defp find_package_files(_index) do
-    # Find package management files
-    # Implementation depends on Git.Index API
-    []
-  end
-
-  defp generate_implementation_plan(agent, codebase_analysis) do
-    Logger.debug("Generating implementation plan for agent #{agent.id}")
-
-    plan = """
-    # Implementation Plan
-
-    ## Context Analysis
-    #{agent.context}
-
-    ## Repository Analysis
-    - Project Type: #{codebase_analysis.project_type}
-    - File Count: #{codebase_analysis.file_count}
-    - Key Files Found: #{Enum.join(codebase_analysis.key_files, ", ")}
-
-    ## README Content
-    #{codebase_analysis.readme_content}
-
-    ## Recommended Implementation Steps
-
-    1. **Analyze Requirements**: Review the issue description and comments for specific requirements
-    2. **Identify Target Files**: Determine which files need to be modified based on the request
-    3. **Plan Changes**: Create a detailed plan for the specific changes needed
-    4. **Implementation Strategy**: Determine the best approach for implementing the changes
-    5. **Testing Considerations**: Identify what testing might be needed
-
-    ## Technical Considerations
-
-    Based on the codebase analysis, this appears to be a #{codebase_analysis.project_type} project.
-
-    ## Next Steps
-
-    This research provides the foundation for implementation. A coding agent can now be spawned
-    with this context to implement the specific changes requested.
-
-    ---
-    *Generated by Swarm Research Agent at #{DateTime.utc_now()}*
-    """
-
-    {:ok, plan}
-  end
-
-  defp update_linear_issue_with_plan(agent, implementation_plan) do
-    if Map.get(agent.external_ids, "linear_issue_id") do
-      linear_issue_id = Map.get(agent.external_ids, "linear_issue_id")
-      Logger.debug("Updating Linear issue #{linear_issue_id} with implementation plan")
-
-      # Get the user's Linear app user ID from the agent context
-      # This would need to be stored or retrieved from the user/agent relationship
-      _comment_text = """
-      ## 🔍 Research Complete
-
-      I've analyzed the codebase and generated an implementation plan:
-
-      #{implementation_plan}
-      """
-
-      # Note: This would need the actual Linear app user ID
-      # For now, we'll just log that we would update it
-      Logger.info("Would update Linear issue #{linear_issue_id} with research findings")
-      {:ok, :updated}
-    else
-      Logger.debug("No Linear issue ID found, skipping Linear update")
-      {:ok, :skipped}
+         {:ok, git_repo} <- Git.Repo.open(repo_url, "research-#{agent_id}", default_branch) do
+      Logger.debug("Successfully cloned repository to: #{git_repo.path}")
+      {:ok, git_repo}
     end
   end
 end

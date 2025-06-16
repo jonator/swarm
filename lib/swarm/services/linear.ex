@@ -144,7 +144,7 @@ defmodule Swarm.Services.Linear do
             children {
               nodes {
                 id
-                body
+                bodyi
                 user {
                   displayName
                 }
@@ -199,6 +199,52 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  @doc """
+  Creates a comment on a Linear issue. If parent_id is provided, creates a reply to that comment.
+
+  Note: With Linear API, the parent comment ID is always the root comment ID on the issue (vs the immediate child comment ID).
+  """
+  def create_comment(%__MODULE__{access_token: %Token{token: access_token}}, issue_id, body) do
+    mutation(access_token, """
+      commentCreate(input: {issueId: \"#{issue_id}\", body: #{Jason.encode!(body)}}) {
+        comment {
+          id
+          body
+        }
+        success
+      }
+    """)
+  end
+
+  def create_comment(app_user_id, issue_id, body) do
+    with {:ok, linear} <- new(app_user_id) do
+      create_comment(linear, issue_id, body)
+    end
+  end
+
+  def create_comment(
+        %__MODULE__{access_token: %Token{token: access_token}},
+        issue_id,
+        body,
+        parent_id
+      ) do
+    mutation(access_token, """
+      commentCreate(input: {issueId: \"#{issue_id}\", body: #{Jason.encode!(body)}, parentId: \"#{parent_id}\"}) {
+        comment {
+          id
+          body
+        }
+        success
+      }
+    """)
+  end
+
+  def create_comment(app_user_id, issue_id, body, parent_id) do
+    with {:ok, linear} <- new(app_user_id) do
+      create_comment(linear, issue_id, body, parent_id)
+    end
+  end
+
   def has_access?(%User{} = user) do
     case access_token(user) do
       {:ok, %Token{token: _access_token}} ->
@@ -214,16 +260,44 @@ defmodule Swarm.Services.Linear do
   end
 
   defp mutation(access_token, mutation) do
-    post(access_token, mutation, "mutation")
+    case post(access_token, mutation, "mutation") do
+      {:ok, data} ->
+        {:ok, data}
+
+      {:error, %{status: _status, errors: errors}} ->
+        # Extract validation error messages from errors array
+        messages = Enum.map(errors, fn err -> err["message"] end)
+        {:error, %{validation_errors: messages, raw: errors}}
+
+      {:error, %{status: status, body: body}} ->
+        {:error, %{status: status, body: body}}
+
+      {:error, other} ->
+        {:error, other}
+    end
   end
 
   defp post(access_token, term, type) do
-    with {:ok, %Req.Response{status: 200, body: %{"data" => data}}} <-
-           Req.new(base_url: "https://api.linear.app/graphql")
-           |> Req.Request.put_header("Authorization", "Bearer #{access_token}")
-           |> AbsintheClient.attach()
-           |> Req.post(graphql: "#{type} { #{term} }") do
-      {:ok, data}
+    req =
+      Req.new(base_url: "https://api.linear.app/graphql")
+      |> Req.Request.put_header("Authorization", "Bearer #{access_token}")
+      |> AbsintheClient.attach()
+
+    case Req.post(req, graphql: "#{type} { #{term} }") do
+      {:ok, %Req.Response{status: 200, body: %{"data" => data}}} ->
+        {:ok, data}
+
+      {:ok, %Req.Response{status: status, body: %{"errors" => errors}}} when status >= 400 ->
+        {:error, %{status: status, errors: errors}}
+
+      {:ok, %Req.Response{status: status, body: body}} when status >= 400 ->
+        {:error, %{status: status, body: body}}
+
+      {:error, error} ->
+        {:error, %{error: error}}
+
+      _ ->
+        {:error, %{error: :unknown}}
     end
   end
 

@@ -16,6 +16,13 @@ defmodule Swarm.Tools.Git.Repo do
     ]
   end
 
+  def readonly_tools do
+    [
+      list_files(),
+      open_file()
+    ]
+  end
+
   def add_file do
     Function.new!(%{
       name: "add_file",

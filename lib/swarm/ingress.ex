@@ -12,6 +12,7 @@ defmodule Swarm.Ingress do
   alias Swarm.Ingress.SlackHandler
   alias Swarm.Ingress.ManualHandler
   alias Swarm.Workers
+  require Logger
 
   @doc """
   Main entry point for processing events from any source.

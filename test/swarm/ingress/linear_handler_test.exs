@@ -677,4 +677,59 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       end
     end
   end
+
+  describe "Swarm.Services.Linear.create_comment/3 and /4" do
+    test "creates a parent comment on an issue" do
+      with_mock Swarm.Services.Linear,
+        create_comment: fn "app_user_id", "issue_id", "Test parent comment" ->
+          {:ok,
+           %{
+             "commentCreate" => %{
+               "comment" => %{"id" => "c123", "body" => "Test parent comment"},
+               "success" => true
+             }
+           }}
+        end do
+        assert {:ok,
+                %{
+                  "commentCreate" => %{
+                    "comment" => %{"id" => "c123", "body" => "Test parent comment"},
+                    "success" => true
+                  }
+                }} =
+                 Swarm.Services.Linear.create_comment(
+                   "app_user_id",
+                   "issue_id",
+                   "Test parent comment"
+                 )
+      end
+    end
+
+    test "creates a reply comment on an issue" do
+      with_mock Swarm.Services.Linear,
+        create_comment: fn "app_user_id", "issue_id", "Test reply comment", "parent_id" ->
+          {:ok,
+           %{
+             "commentCreate" => %{
+               "comment" => %{"id" => "c456", "body" => "Test reply comment"},
+               "success" => true
+             }
+           }}
+        end do
+        assert {:ok,
+                %{
+                  "commentCreate" => %{
+                    "comment" => %{"id" => "c456", "body" => "Test reply comment"},
+                    "success" => true
+                  }
+                }} =
+                 Swarm.Services.Linear.create_comment(
+                   "app_user_id",
+                   "issue_id",
+                   "Test reply comment",
+                   "parent_id"
+                 )
+      end
+    end
+  end
 end
