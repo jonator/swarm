@@ -150,6 +150,7 @@ defmodule Swarm.Ingress.Event do
       %{}
       |> extract_linear_issue_id(data)
       |> extract_linear_comment_id(data)
+      |> extract_linear_parent_comment_id(data)
       |> extract_linear_document_id(data)
       |> extract_linear_team_id(data)
       |> extract_linear_project_id(data)
@@ -159,13 +160,11 @@ defmodule Swarm.Ingress.Event do
   end
 
   defp extract_external_ids(data, :slack) do
-    external_ids = %{}
-
     external_ids =
       if data["event"]["ts"] do
-        Map.put(external_ids, "slack_thread_id", data["event"]["ts"])
+        Map.put(%{}, "slack_thread_id", data["event"]["ts"])
       else
-        external_ids
+        %{}
       end
 
     {:ok, external_ids}
@@ -206,6 +205,14 @@ defmodule Swarm.Ingress.Event do
 
       true ->
         external_ids
+    end
+  end
+
+  defp extract_linear_parent_comment_id(external_ids, data) do
+    if data["notification"]["parentCommentId"] do
+      Map.put(external_ids, "linear_parent_comment_id", data["notification"]["parentCommentId"])
+    else
+      external_ids
     end
   end
 

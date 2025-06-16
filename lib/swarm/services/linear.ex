@@ -140,6 +140,7 @@ defmodule Swarm.Services.Linear do
             user {
               displayName
             }
+            createdAt
             children {
               nodes {
                 id
@@ -147,6 +148,7 @@ defmodule Swarm.Services.Linear do
                 user {
                   displayName
                 }
+                createdAt
               }
             }
           }

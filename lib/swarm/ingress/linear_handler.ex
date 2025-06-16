@@ -166,7 +166,15 @@ defmodule Swarm.Ingress.LinearHandler do
     issue = get_issue_from_context(context)
 
     context_text =
-      build_issue_context(issue, external_ids, "mentioned in comment #{comment["id"]}")
+      if external_ids["linear_parent_comment_id"] do
+        build_issue_context(
+          issue,
+          external_ids,
+          "mentioned in reply comment #{comment["id"]} (parent comment ID: #{external_ids["linear_parent_comment_id"]})"
+        )
+      else
+        build_issue_context(issue, external_ids, "mentioned in comment #{comment["id"]}")
+      end
 
     %{
       context: context_text
@@ -273,7 +281,7 @@ defmodule Swarm.Ingress.LinearHandler do
     comment_threads = get_issue_comment_threads(issue, external_ids)
 
     """
-    Linear Issue #{action} (#{issue["id"]}): #{issue["title"]}
+    Linear Issue #{action} (Issue ID: #{issue["id"]}): #{issue["title"]}
 
     Description:
     #{description}
@@ -342,9 +350,10 @@ defmodule Swarm.Ingress.LinearHandler do
          "id" => id,
          "body" => body,
          "user" => %{"displayName" => display_name},
-         "children" => %{"nodes" => children}
+         "children" => %{"nodes" => children},
+         "createdAt" => created_at
        }) do
-    formatted_comment = "- (#{id}) #{display_name}: #{body}"
+    formatted_comment = "- (#{id}) #{display_name} [#{format_datetime(created_at)}]: #{body}"
 
     case children do
       [] ->
@@ -355,15 +364,31 @@ defmodule Swarm.Ingress.LinearHandler do
           Enum.map_join(replies, "\n", fn %{
                                             "id" => reply_id,
                                             "body" => reply_body,
-                                            "user" => %{"displayName" => reply_display_name}
+                                            "user" => %{"displayName" => reply_display_name},
+                                            "createdAt" => reply_created_at
                                           } ->
-            "  - (#{reply_id}) #{reply_display_name}: #{reply_body}"
+            "  - (#{reply_id}) #{reply_display_name} [#{format_datetime(reply_created_at)}]: #{reply_body}"
           end)
 
         formatted_comment <> "\n" <> reply_text
     end
   end
 
-  defp format_comment(%{"id" => id, "body" => body, "user" => %{"displayName" => display_name}}),
-    do: "- (#{id}) #{display_name}: #{body}"
+  defp format_comment(%{
+         "id" => id,
+         "body" => body,
+         "user" => %{"displayName" => display_name},
+         "createdAt" => created_at
+       }),
+       do: "- (#{id}) #{display_name} [#{format_datetime(created_at)}]: #{body}"
+
+  defp format_datetime(datetime_string) do
+    case DateTime.from_iso8601(datetime_string) do
+      {:ok, datetime, _offset} ->
+        Calendar.strftime(datetime, "%Y-%m-%d %H:%M:%S")
+
+      _ ->
+        datetime_string
+    end
+  end
 end

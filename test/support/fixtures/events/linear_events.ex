@@ -276,4 +276,63 @@ defmodule Swarm.EventsFixtures do
     }
     """)
   end
+
+  def linear_issue_new_child_comment_params() do
+    Jason.decode!("""
+    {
+    "action": "issueCommentMention",
+    "appUserId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+    "createdAt": "2025-06-16T01:05:17.491Z",
+    "notification": {
+      "actor": {
+        "avatarUrl": "https://public.linear.app/f15f0e68-9424-4add-b7c6-1d318e455719/79589ad0-a8cf-4250-829c-807be084c051",
+        "email": "jonathanator0@gmail.com",
+        "id": "f15f0e68-9424-4add-b7c6-1d318e455719",
+        "name": "Jonathan Ator",
+        "url": "https://linear.app/swarmai/profiles/jonathanator0"
+      },
+      "actorId": "f15f0e68-9424-4add-b7c6-1d318e455719",
+      "archivedAt": null,
+      "comment": {
+        "body": "@swarmdev reply",
+        "id": "66bd6984-9908-4adf-9f7b-64b1cb23c88b",
+        "issueId": "71ee683d-74e4-4668-95f7-537af7734054",
+        "userId": "f15f0e68-9424-4add-b7c6-1d318e455719"
+      },
+      "commentId": "66bd6984-9908-4adf-9f7b-64b1cb23c88b",
+      "createdAt": "2025-06-16T01:05:17.460Z",
+      "externalUserActorId": null,
+      "id": "26804024-df66-4181-aeab-523f5aff0d0d",
+      "issue": {
+        "id": "71ee683d-74e4-4668-95f7-537af7734054",
+        "identifier": "SW-10",
+        "team": {
+          "id": "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2",
+          "key": "SW",
+          "name": "Swarm"
+        },
+        "teamId": "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2",
+        "title": "Improve README",
+        "url": "https://linear.app/swarmai/issue/SW-10/improve-readme"
+      },
+      "issueId": "71ee683d-74e4-4668-95f7-537af7734054",
+      "parentComment": {
+        "body": "TEST6",
+        "id": "33250e31-de7a-4e93-9bab-7800ee1a4028",
+        "issueId": "71ee683d-74e4-4668-95f7-537af7734054",
+        "userId": "f15f0e68-9424-4add-b7c6-1d318e455719"
+      },
+      "parentCommentId": "33250e31-de7a-4e93-9bab-7800ee1a4028",
+      "type": "issueCommentMention",
+      "updatedAt": "2025-06-16T01:05:17.460Z",
+      "userId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+    },
+    "oauthClientId": "766dc2d9-8ff7-4bc8-bf2b-c6e2ce32cb72",
+    "organizationId": "4fde7f37-de48-4d5c-93fb-473c8f24d4cb",
+    "type": "AppUserNotification",
+    "webhookId": "93acd642-4e76-4d91-ba82-8e6cb2700a3b",
+    "webhookTimestamp": 1750035917528
+    }
+    """)
+  end
 end
