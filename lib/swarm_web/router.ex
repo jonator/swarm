@@ -1,7 +1,6 @@
 defmodule SwarmWeb.Router do
   use SwarmWeb, :router
   import Oban.Web.Router
-  import Phoenix.Sync.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -43,6 +42,7 @@ defmodule SwarmWeb.Router do
       post "/github", SessionController, :github
       post "/linear", LinearController, :exchange_code
       get "/linear", LinearController, :has_access
+      get "/token", SessionController, :token
     end
 
     # Users
@@ -76,7 +76,7 @@ defmodule SwarmWeb.Router do
     scope "/agents" do
       pipe_through [:ensure_auth]
       post "/spawn", EventController, :spawn_agent
-      get "/", AgentController, :show
+      get "/", AgentController, :index
     end
 
     scope "/admin" do

@@ -74,7 +74,8 @@ if config_env() == :prod do
 
   # TODO: Update to domain when ready
   config :cors_plug,
-    origin: ["*"]
+    origin: ["*"],
+    expose: ["electric-offset", "electric-handle", "electric-schema", "electric-cursor"]
 
   # ## SSL Support
   #

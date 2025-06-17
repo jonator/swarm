@@ -33,7 +33,8 @@ config :swarm, SwarmWeb.Endpoint,
 
 config :cors_plug,
   origin: ["http://localhost:3000"],
-  credentials: true
+  credentials: true,
+  expose: ["electric-offset", "electric-handle", "electric-schema", "electric-cursor"]
 
 # ## SSL Support
 #
