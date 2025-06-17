@@ -31,7 +31,7 @@ defmodule Swarm.Application do
           log: :debug
         },
         # Start to serve requests, typically the last entry
-        !flame_parent && SwarmWeb.Endpoint
+        !flame_parent && {SwarmWeb.Endpoint, phoenix_sync: Phoenix.Sync.plug_opts()}
       ]
       |> Enum.filter(& &1)
 

@@ -3,14 +3,14 @@
 import { apiClientWithAuth } from '@/lib/client/authed'
 
 export async function submitLinearAuth(code: string) {
-  return apiClientWithAuth.post('users/auth/linear', {
+  return apiClientWithAuth.post('auth/linear', {
     searchParams: { code },
   })
 }
 
 export async function hasLinearAccess() {
   return apiClientWithAuth
-    .get('users/auth/linear')
+    .get('auth/linear')
     .json<{ has_access: boolean }>()
 }
 
@@ -29,7 +29,7 @@ export type LinearOrganization = {
 
 export async function getLinearOrganization() {
   return apiClientWithAuth
-    .get('users/linear/organization')
+    .get('linear/organization')
     .json<{ organization: LinearOrganization }>()
     .then(({ organization }) => organization)
 }

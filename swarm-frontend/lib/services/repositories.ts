@@ -18,7 +18,7 @@ type RepositoriesResponse = {
 
 export async function getRepositories() {
   return apiClientWithAuth
-    .get('users/repositories')
+    .get('repositories')
     .json<RepositoriesResponse>()
 }
 
@@ -36,11 +36,11 @@ export type CreateRepositoryParams =
 export async function createRepository(params: CreateRepositoryParams) {
   if ('github_repo_id' in params) {
     return apiClientWithAuth
-      .post('users/repositories', { json: params })
+      .post('repositories', { json: params })
       .json<{ repository: Repository }>()
   }
   return apiClientWithAuth
-    .post('users/repositories', { json: { repository: params } })
+    .post('repositories', { json: { repository: params } })
     .json<{ repository: Repository }>()
 }
 
@@ -48,12 +48,12 @@ export async function updateRepository(
   params: Partial<Repository> & { id: number },
 ) {
   return apiClientWithAuth
-    .patch(`users/repositories/${params.id}`, { json: params })
+    .patch(`repositories/${params.id}`, { json: params })
     .json<{ repository: Repository }>()
 }
 
 export async function migrateRepositories() {
   return apiClientWithAuth
-    .post('users/repositories/migrate')
+    .post('repositories/migrate')
     .json<RepositoriesResponse>()
 }
