@@ -367,6 +367,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           {:ok, @comment_mention_thread}
         end do
         assert {:ok, attrs} = LinearHandler.handle(event)
+
         assert attrs.source == :linear
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
 
@@ -600,8 +601,6 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           {:ok, @comprehensive_thread}
         end do
         assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
-
-        IO.inspect(attrs)
 
         assert attrs.user_id == user.id
         assert attrs.source == :linear

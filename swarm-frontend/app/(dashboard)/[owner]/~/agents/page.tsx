@@ -1,3 +1,4 @@
+import { AgentsList } from '@/components/agents'
 import Navbar from '@/components/navbar'
 import { getUser } from '@/lib/services/users'
 
@@ -21,15 +22,13 @@ export default async function OwnerAgentsPage({
 
       <div className='dashboard-container'>
         <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold'>Agents</h1>
-            <p className='text-muted-foreground'>
-              All agents across repositories for {owner}
-            </p>
-          </div>
+          <h1 className='text-2xl font-bold'>Agents</h1>
+          <p className='text-muted-foreground'>
+            All agents across repositories for {owner}
+          </p>
         </div>
 
-        {/* Content will be implemented later */}
+        <AgentsList params={{ organization_id: '1' }} />
       </div>
     </>
   )

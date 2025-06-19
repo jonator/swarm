@@ -290,7 +290,6 @@ defmodule Swarm.Ingress.LinearHandler do
     #{comment_threads}
 
     Priority: #{issue["priority"] || "No priority set"}
-    State: #{get_in(issue, ["state", "name"]) || "Unknown"}
     Team: #{get_in(issue, ["team", "name"]) || "Unknown"}
     """
   end
@@ -307,10 +306,12 @@ defmodule Swarm.Ingress.LinearHandler do
       {:ok, %{"issue" => %{"documentContent" => %{"content" => content}}}} ->
         content
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("Failed to fetch issue description - API error: #{inspect(reason)}")
         "Unable to fetch issue description - API error"
 
-      {:unauthorized, _reason} ->
+      {:unauthorized, reason} ->
+        Logger.error("Failed to fetch issue description - unauthorized: #{inspect(reason)}")
         "Unable to fetch issue description - unauthorized"
 
       {:ok, %{status: status}} when status != 200 ->

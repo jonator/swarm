@@ -24,11 +24,21 @@ defmodule SwarmWeb.AgentController do
     end
   end
 
-  def index(conn, _params, user) do
-    user_repos = Swarm.Repositories.list_repositories(user)
-    repo_ids = Enum.map(user_repos, & &1.id)
+  def index(conn, %{"organization_id" => organization_id} = params, user) do
+    user_orgs = Swarm.Organizations.list_organizations(user)
+    organization_id = String.to_integer(organization_id)
 
-    agents_query = from(a in Agent, where: a.repository_id in ^repo_ids)
-    sync_render(conn, %{}, agents_query)
+    case Enum.find(user_orgs, &(&1.id == organization_id)) do
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Organization not found or not accessible"})
+
+      org ->
+        repos = Swarm.Repositories.list_repositories(org)
+        repo_ids = Enum.map(repos, & &1.id)
+        agents_query = from(a in Agent, where: a.repository_id in ^repo_ids)
+        sync_render(conn, params, agents_query)
+    end
   end
 end

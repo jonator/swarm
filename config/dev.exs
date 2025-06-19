@@ -73,7 +73,13 @@ config :swarm, SwarmWeb.Endpoint,
 config :swarm, dev_routes: true
 
 # Do not include metadata nor timestamps in development logs
-config :logger, :console, format: "[$level] $message\n"
+config :logger, :console,
+  format: "[$level] $message\n",
+  compile_time_purge_matching: [
+    # Suppress electric debug logs, see: https://github.com/electric-sql/phoenix_sync/issues/61
+    [application: :electric, level_lower_than: :error],
+    [application: :phoenix_sync, level_lower_than: :error]
+  ]
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

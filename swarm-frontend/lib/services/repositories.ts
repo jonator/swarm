@@ -17,9 +17,7 @@ type RepositoriesResponse = {
 }
 
 export async function getRepositories() {
-  return apiClientWithAuth
-    .get('repositories')
-    .json<RepositoriesResponse>()
+  return apiClientWithAuth.get('repositories').json<RepositoriesResponse>()
 }
 
 export type CreateRepositoryParams =
@@ -56,4 +54,10 @@ export async function migrateRepositories() {
   return apiClientWithAuth
     .post('repositories/migrate')
     .json<RepositoriesResponse>()
+}
+
+export async function getRepositoryById(id: number) {
+  return apiClientWithAuth
+    .get(`repositories/${id}`)
+    .json<{ repository: Repository }>()
 }

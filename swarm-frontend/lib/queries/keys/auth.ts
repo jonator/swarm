@@ -5,4 +5,6 @@ export const temporaryTokenQuery = () =>
   queryOptions({
     queryKey: ['auth', 'temporary-token'],
     queryFn: () => temporaryToken(),
+    staleTime: 1000 * 60 * 60 * 1, // 1 hour
+    gcTime: 1000 * 60 * 60 * 1, // 1 hour
   })
