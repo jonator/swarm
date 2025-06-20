@@ -26,8 +26,8 @@ defmodule Swarm.Agents.Agent do
     field :source, Ecto.Enum, values: [:manual, :linear, :slack, :github]
     field :type, Ecto.Enum, values: [:researcher, :coder, :code_reviewer]
     field :external_ids, :map, default: %{}
-    field :started_at, :utc_datetime
-    field :completed_at, :utc_datetime
+    field :started_at, :naive_datetime
+    field :completed_at, :naive_datetime
     belongs_to :oban_job, Oban.Job
     belongs_to :user, User
     belongs_to :repository, Repository

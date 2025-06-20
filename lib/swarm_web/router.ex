@@ -36,10 +36,11 @@ defmodule SwarmWeb.Router do
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
+    post "/auth/github", SessionController, :github
+
     # Auth
     scope "/auth" do
       pipe_through [:ensure_auth]
-      post "/github", SessionController, :github
       post "/linear", LinearController, :exchange_code
       get "/linear", LinearController, :has_access
       get "/token", SessionController, :token

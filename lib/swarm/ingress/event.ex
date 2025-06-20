@@ -178,15 +178,24 @@ defmodule Swarm.Ingress.Event do
     cond do
       # New notification-based format
       data["notification"]["issue"] ->
-        Map.put(external_ids, "linear_issue_id", data["notification"]["issue"]["id"])
+        external_ids
+        |> Map.put("linear_issue_id", data["notification"]["issue"]["id"])
+        |> Map.put("linear_issue_identifier", data["notification"]["issue"]["identifier"])
+        |> Map.put("linear_issue_url", data["notification"]["issue"]["url"])
 
       # Direct issue format
       data["data"] && data["type"] == "Issue" ->
-        Map.put(external_ids, "linear_issue_id", data["data"]["id"])
+        external_ids
+        |> Map.put("linear_issue_id", data["data"]["id"])
+        |> Map.put("linear_issue_identifier", data["data"]["identifier"])
+        |> Map.put("linear_issue_url", data["data"]["url"])
 
       # Legacy format
       data["data"]["issue"] ->
-        Map.put(external_ids, "linear_issue_id", data["data"]["issue"]["id"])
+        external_ids
+        |> Map.put("linear_issue_id", data["data"]["issue"]["id"])
+        |> Map.put("linear_issue_identifier", data["data"]["issue"]["identifier"])
+        |> Map.put("linear_issue_url", data["data"]["issue"]["url"])
 
       true ->
         external_ids

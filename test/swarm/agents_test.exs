@@ -51,14 +51,14 @@ defmodule Swarm.AgentsTest do
       assert agent.status == :pending
       assert agent.type == :researcher
       assert agent.context == "some context"
-      assert agent.started_at == ~U[2025-06-08 17:18:32Z]
+      assert agent.started_at == ~N[2025-06-08 17:18:32]
       assert agent.source == :manual
       assert agent.external_ids["github_pull_request_id"] == "some github_pull_request_id"
       assert agent.external_ids["github_issue_id"] == "some github_issue_id"
       assert agent.external_ids["linear_issue_id"] == "some linear_issue_id"
       assert agent.external_ids["linear_document_id"] == "some linear_document_id"
       assert agent.external_ids["slack_thread_id"] == "some slack_thread_id"
-      assert agent.completed_at == ~U[2025-06-08 17:18:32Z]
+      assert agent.completed_at == ~N[2025-06-08 17:18:32]
     end
 
     test "create_agent/1 with invalid data returns error changeset" do
@@ -73,7 +73,7 @@ defmodule Swarm.AgentsTest do
         status: :running,
         type: :coder,
         context: "some updated context",
-        started_at: ~U[2025-06-08 17:18:32.081174Z],
+        started_at: ~N[2025-06-08 17:18:32],
         source: :linear,
         external_ids: %{
           "github_pull_request_id" => "some updated github_pull_request_id",
@@ -82,7 +82,7 @@ defmodule Swarm.AgentsTest do
           "linear_document_id" => "some updated linear_document_id",
           "slack_thread_id" => "some updated slack_thread_id"
         },
-        completed_at: ~U[2025-06-08 17:18:32.081174Z]
+        completed_at: ~N[2025-06-08 17:18:32]
       }
 
       assert {:ok, %Agent{} = agent} = Agents.update_agent(agent, update_attrs)

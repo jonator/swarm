@@ -17,7 +17,6 @@ import {
   Code,
   FileText,
   Github,
-  Zap,
   MessageSquare,
   User as UserIcon,
   GitBranch,
@@ -27,6 +26,9 @@ import {
 import { cn } from '@/lib/utils/shadcn'
 import Link from 'next/link'
 import { DateTime } from 'luxon'
+import Image from 'next/image'
+import { useTheme } from 'next-themes'
+import { useState, useEffect } from 'react'
 
 const statusMap = {
   completed: {
@@ -69,17 +71,40 @@ const typeMap = {
   },
 }
 
+const LinearLogo = ({ className }: { className?: string }) => {
+  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const logoSrc = mounted
+    ? resolvedTheme === 'dark'
+      ? '/linear-light-logo.svg'
+      : '/linear-dark-logo.svg'
+    : '/linear-dark-logo.svg'
+
+  return (
+    <Image
+      src={logoSrc}
+      alt='Linear'
+      className={className}
+      width={16}
+      height={16}
+    />
+  )
+}
+
 const sourceMap = {
   github: { label: 'GitHub', icon: Github },
-  linear: { label: 'Linear', icon: Zap },
+  linear: { label: 'Linear', icon: null },
   slack: { label: 'Slack', icon: MessageSquare },
   manual: { label: 'Manual', icon: UserIcon },
 }
 
 export function AgentsList({ params }: { params: GetAgentsParams }) {
   const { data: agents = [], isLoading, error } = useAgents({ ...params })
-
-  console.log(DateTime)
 
   if (isLoading) {
     return (
@@ -196,16 +221,17 @@ export function AgentsList({ params }: { params: GetAgentsParams }) {
                     <ExternalLink className='w-3 h-3 ml-0.5' />
                   </Link>
                 )}
-                {agent.external_ids?.linear_issue_id && (
+                {agent.external_ids?.linear_issue_url && (
                   <Link
-                    href={`https://linear.app/issue/${agent.external_ids.linear_issue_id}`}
+                    href={agent.external_ids.linear_issue_url}
                     target='_blank'
                     rel='noopener noreferrer'
                     className='inline-flex items-center gap-1 text-purple-400 hover:underline focus:outline-none'
                     aria-label='View Linear Issue'
                   >
-                    <Zap className='w-4 h-4' />{' '}
-                    {agent.external_ids.linear_issue_id}
+                    <LinearLogo className='w-4 h-4' />
+                    {agent.external_ids.linear_issue_identifier ||
+                      agent.external_ids.linear_issue_id}
                     <ExternalLink className='w-3 h-3 ml-0.5' />
                   </Link>
                 )}
