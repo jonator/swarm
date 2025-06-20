@@ -91,14 +91,14 @@ defmodule Swarm.AgentsTest do
       assert agent.status == :running
       assert agent.type == :coder
       assert agent.context == "some updated context"
-      assert agent.started_at == ~U[2025-06-08 17:18:32Z]
+      assert agent.started_at == ~N[2025-06-08 17:18:32]
       assert agent.source == :linear
       assert agent.external_ids["github_pull_request_id"] == "some updated github_pull_request_id"
       assert agent.external_ids["github_issue_id"] == "some updated github_issue_id"
       assert agent.external_ids["linear_issue_id"] == "some updated linear_issue_id"
       assert agent.external_ids["linear_document_id"] == "some updated linear_document_id"
       assert agent.external_ids["slack_thread_id"] == "some updated slack_thread_id"
-      assert agent.completed_at == ~U[2025-06-08 17:18:32Z]
+      assert agent.completed_at == ~N[2025-06-08 17:18:32]
     end
 
     test "update_agent/2 with invalid data returns error changeset" do
