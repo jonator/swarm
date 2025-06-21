@@ -157,25 +157,23 @@ defmodule Swarm.Ingress.GitHubHandler do
         # In test environment, fetch serially to avoid complexity
         description_res =
           if is_nil(issue_body) or issue_body == "" do
-            {:ok,
-             GitHub.issue_body(
-               github_service,
-               organization.name,
-               repository.name,
-               issue["number"]
-             )}
+            GitHub.issue_body(
+              github_service,
+              organization.name,
+              repository.name,
+              issue["number"]
+            )
           else
-            {:ok, {:ok, issue_body}}
+            {:ok, issue_body}
           end
 
         comments_res =
-          {:ok,
-           GitHub.issue_comments(
-             github_service,
-             organization.name,
-             repository.name,
-             issue["number"]
-           )}
+          GitHub.issue_comments(
+            github_service,
+            organization.name,
+            repository.name,
+            issue["number"]
+          )
 
         [description_res, comments_res]
       else
@@ -211,21 +209,27 @@ defmodule Swarm.Ingress.GitHubHandler do
 
     description =
       case Enum.at(results, 0) do
-        {:ok, {:ok, desc}} ->
+        {:ok, desc} ->
           desc
 
-        _ ->
-          Logger.warning("Failed to retrieve issue description for issue ##{issue["number"]}")
+        error ->
+          Logger.warning(
+            "Failed to retrieve issue description for issue ##{issue["number"]}: #{inspect(error)}"
+          )
+
           ""
       end
 
     comments =
       case Enum.at(results, 1) do
-        {:ok, {:ok, comms}} ->
+        {:ok, comms} ->
           comms
 
-        _ ->
-          Logger.warning("Failed to retrieve comments for issue ##{issue["number"]}")
+        error ->
+          Logger.warning(
+            "Failed to retrieve comments for issue ##{issue["number"]}: #{inspect(error)}"
+          )
+
           []
       end
 

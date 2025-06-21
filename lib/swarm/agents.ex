@@ -192,7 +192,10 @@ defmodule Swarm.Agents do
     conditions =
       if github_id = Map.get(external_ids, "github_issue_id") do
         [
-          dynamic([a], fragment("?->>'github_issue_id' = ?", a.external_ids, ^github_id))
+          dynamic(
+            [a],
+            fragment("?->>'github_issue_id' = ?", a.external_ids, ^to_string(github_id))
+          )
           | conditions
         ]
       else
@@ -203,7 +206,14 @@ defmodule Swarm.Agents do
     conditions =
       if pr_id = Map.get(external_ids, "github_pull_request_id") do
         [
-          dynamic([a], fragment("?->>'github_pull_request_id' = ?", a.external_ids, ^pr_id))
+          dynamic(
+            [a],
+            fragment(
+              "?->>'github_pull_request_id' = ?",
+              a.external_ids,
+              ^to_string(pr_id)
+            )
+          )
           | conditions
         ]
       else

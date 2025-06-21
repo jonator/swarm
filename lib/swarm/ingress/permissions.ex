@@ -5,7 +5,6 @@ defmodule Swarm.Ingress.Permissions do
   This module validates that users have the necessary permissions to:
   - Access repositories mentioned in events
   - Spawn agents in their name
-  - Perform actions on external services
   """
 
   alias Swarm.Accounts
@@ -25,8 +24,7 @@ defmodule Swarm.Ingress.Permissions do
   """
   def validate_user_access(%Event{} = event) do
     with {:ok, user} <- find_user(event),
-         :ok <- validate_repository_access(user, event),
-         :ok <- validate_service_access(user, event) do
+         :ok <- validate_repository_access(user, event) do
       {:ok, user}
     end
   end
@@ -98,49 +96,6 @@ defmodule Swarm.Ingress.Permissions do
       nil -> {:error, "User does not have access to repository: #{repo_id}"}
       _repository -> :ok
     end
-  end
-
-  @doc """
-  Validates that a user has the necessary service access for the event source.
-  """
-  def validate_service_access(%User{} = user, %Event{source: :github}) do
-    # Check if user has GitHub access token
-    case Accounts.get_token(user, :access, :github) do
-      nil ->
-        {:error, "User does not have GitHub access"}
-
-      token ->
-        if Swarm.Accounts.Token.expired?(token) do
-          {:error, "User's GitHub access token has expired"}
-        else
-          :ok
-        end
-    end
-  end
-
-  def validate_service_access(%User{} = user, %Event{source: :linear}) do
-    # Check if user has Linear access token
-    case Accounts.get_token(user, :access, :linear) do
-      nil ->
-        {:error, "User does not have Linear access"}
-
-      token ->
-        if Swarm.Accounts.Token.expired?(token) do
-          {:error, "User's Linear access token has expired"}
-        else
-          :ok
-        end
-    end
-  end
-
-  def validate_service_access(%User{}, %Event{source: :slack}) do
-    # TODO: Implement Slack access validation when Slack integration is added
-    {:error, "Slack integration not yet implemented"}
-  end
-
-  def validate_service_access(%User{}, %Event{source: :manual}) do
-    # Manual events don't require external service access
-    :ok
   end
 
   # Helper functions for finding users by external identifiers
