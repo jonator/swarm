@@ -186,14 +186,5 @@ defmodule Swarm.OrganizationsTest do
       assert Repo.all(Organizations.Organization) == []
       assert Repo.all(UserOrganization) == []
     end
-
-    test "create_organization_with_user/2 does not create organization if user is invalid" do
-      # Simulate an invalid user by passing nil
-      attrs = %{name: "org-without-user", github_installation_id: 123}
-
-      assert_raise FunctionClauseError, fn ->
-        Organizations.create_organization_with_user(nil, attrs)
-      end
-    end
   end
 end

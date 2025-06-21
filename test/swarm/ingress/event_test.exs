@@ -174,9 +174,53 @@ defmodule Swarm.Ingress.EventTest do
       assert event.type == "issue"
       assert event.repository_external_id == "github:958906859"
       assert event.external_ids["github_issue_id"] == 3_165_166_522
+      assert event.external_ids["github_issue_number"] == 7
+      assert event.external_ids["github_issue_url"] == "https://github.com/jonator/swarm/issues/7"
       assert event.external_ids["github_sender_login"] == "jonator"
       assert event.external_ids["github_repository_id"] == 958_906_859
       refute Map.has_key?(event.external_ids, "github_pull_request_id")
+    end
+
+    test "creates event from GitHub issue opened with mention" do
+      event_data = GitHubEventsFixtures.github_issue_opened_mentioned_event()
+
+      assert {:ok, event} = Event.new(event_data, :github)
+
+      assert event.source == :github
+      assert event.type == "issue"
+      assert event.repository_external_id == "github:958906859"
+      assert event.external_ids["github_issue_id"] == 3_165_166_522
+      assert event.external_ids["github_issue_number"] == 7
+      assert event.external_ids["github_issue_url"] == "https://github.com/jonator/swarm/issues/7"
+      assert event.external_ids["github_sender_login"] == "jonator"
+      assert event.external_ids["github_repository_id"] == 958_906_859
+      refute Map.has_key?(event.external_ids, "github_pull_request_id")
+
+      # Verify context extraction
+      assert event.context.action == "opened"
+      assert event.context.issue["body"] == "Hey @swarmdev can you do this"
+      assert String.contains?(event.context.issue["body"], "@swarmdev")
+    end
+
+    test "creates event from GitHub issue edited with mention" do
+      event_data = GitHubEventsFixtures.github_issue_edited_event()
+
+      assert {:ok, event} = Event.new(event_data, :github)
+
+      assert event.source == :github
+      assert event.type == "issue"
+      assert event.repository_external_id == "github:958906859"
+      assert event.external_ids["github_issue_id"] == 3_161_734_342
+      assert event.external_ids["github_issue_number"] == 5
+      assert event.external_ids["github_issue_url"] == "https://github.com/jonator/swarm/issues/5"
+      assert event.external_ids["github_sender_login"] == "jonator"
+      assert event.external_ids["github_repository_id"] == 958_906_859
+      refute Map.has_key?(event.external_ids, "github_pull_request_id")
+
+      # Verify context extraction
+      assert event.context.action == "edited"
+      assert event.context.issue["body"] == "@swarmdev test"
+      assert String.contains?(event.context.issue["body"], "@swarmdev")
     end
 
     test "creates event from GitHub issue comment created" do
@@ -189,6 +233,8 @@ defmodule Swarm.Ingress.EventTest do
       assert event.repository_external_id == "github:958906859"
       assert event.external_ids["github_comment_id"] == 2_993_623_398
       assert event.external_ids["github_issue_id"] == 3_161_734_342
+      assert event.external_ids["github_issue_number"] == 5
+      assert event.external_ids["github_issue_url"] == "https://github.com/jonator/swarm/issues/5"
       assert event.external_ids["github_sender_login"] == "jonator"
       assert event.external_ids["github_repository_id"] == 958_906_859
       refute Map.has_key?(event.external_ids, "github_pull_request_id")
