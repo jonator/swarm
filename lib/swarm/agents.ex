@@ -7,6 +7,7 @@ defmodule Swarm.Agents do
   alias Swarm.Repo
 
   alias Swarm.Agents.Agent
+  alias Swarm.Accounts.User
 
   @doc """
   Returns the list of agents.
@@ -20,6 +21,37 @@ defmodule Swarm.Agents do
   def list_agents do
     Repo.all(Agent)
   end
+
+  def list_agents(%User{} = user, params \\ %{}) do
+    user_organization_ids =
+      user
+      |> Repo.preload(:organizations)
+      |> Map.get(:organizations)
+      |> Enum.map(& &1.id)
+
+    # Base query for agents accessible by the user
+    query =
+      from a in Agent,
+        join: r in assoc(a, :repository),
+        where: r.organization_id in ^user_organization_ids
+
+    # Apply filters from params
+    query
+    |> apply_filters(params)
+    |> Repo.all()
+  end
+
+  defp apply_filters(query, %{"repository_id" => repository_id}) do
+    from [a, r] in query,
+      where: r.id == ^repository_id
+  end
+
+  defp apply_filters(query, %{"organization_id" => organization_id}) do
+    from [a, r] in query,
+      where: r.organization_id == ^organization_id
+  end
+
+  defp apply_filters(query, _), do: query
 
   @doc """
   Gets a single agent.

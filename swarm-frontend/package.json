@@ -13,8 +13,6 @@
     "knip:fix": "knip --fix"
   },
   "dependencies": {
-    "@electric-sql/client": "^1.0.4",
-    "@electric-sql/react": "^1.0.4",
     "@hookform/resolvers": "^5.0.1",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-checkbox": "^1.3.2",
