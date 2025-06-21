@@ -45,13 +45,13 @@ defmodule Swarm.Workers do
            create_or_update_agent(agent_attrs, agent_type, agent_name, event) do
       case action do
         :created ->
-          with {:ok, msg} <- Egress.acknowledge(event, agent_attrs.repository),
-               {:ok, job} <- schedule_agent_worker(agent) do
+          with {:ok, job} <- schedule_agent_worker(agent),
+               {:ok, msg} <- Egress.acknowledge(event, agent_attrs.repository) do
             Logger.info("Successfully spawned #{agent_type} agent #{agent.id}")
             {:ok, agent, job, msg}
           else
             {:error, reason} = error ->
-              Logger.error("Failed to acknowledge event or schedule agent: #{reason}")
+              Logger.error("Failed to schedule agent or acknowledge event: #{reason}")
               error
           end
 
