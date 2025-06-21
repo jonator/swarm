@@ -43,7 +43,7 @@ if config_env() == :prod do
     pool_size: pool_size,
     socket_options: maybe_ipv6
 
-  config :swarm, github_app_username: "swarm"
+  config :swarm, github_app_name: "swarmaidev"
 
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you

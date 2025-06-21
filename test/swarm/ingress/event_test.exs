@@ -90,7 +90,7 @@ defmodule Swarm.Ingress.EventTest do
       assert event.context.notification["type"] == "issueCommentMention"
 
       assert event.context.notification["comment"]["body"] ==
-               "This is a mention comment @swarmdev "
+               "This is a mention comment @swarm-ai-dev "
 
       assert event.context.notification["comment"]["id"] == "1572d3ac-fca9-4713-84e3-4a104c6674fd"
       assert event.context.notification["issue"]["identifier"] == "SW-10"
@@ -198,8 +198,8 @@ defmodule Swarm.Ingress.EventTest do
 
       # Verify context extraction
       assert event.context.action == "opened"
-      assert event.context.issue["body"] == "Hey @swarmdev can you do this"
-      assert String.contains?(event.context.issue["body"], "@swarmdev")
+      assert event.context.issue["body"] == "Hey @swarm-ai-dev can you do this"
+      assert String.contains?(event.context.issue["body"], "@swarm-ai-dev")
     end
 
     test "creates event from GitHub issue edited with mention" do
@@ -219,8 +219,8 @@ defmodule Swarm.Ingress.EventTest do
 
       # Verify context extraction
       assert event.context.action == "edited"
-      assert event.context.issue["body"] == "@swarmdev test"
-      assert String.contains?(event.context.issue["body"], "@swarmdev")
+      assert event.context.issue["body"] == "@swarm-ai-dev test"
+      assert String.contains?(event.context.issue["body"], "@swarm-ai-dev")
     end
 
     test "creates event from GitHub issue comment created" do
@@ -241,11 +241,11 @@ defmodule Swarm.Ingress.EventTest do
 
       # Verify context extraction
       assert event.context.action == "created"
-      assert event.context.comment["body"] == "Test comment 3 @swarmdev"
+      assert event.context.comment["body"] == "Test comment 3 @swarm-ai-dev"
       assert event.context.comment["id"] == 2_993_623_398
       assert event.context.issue["id"] == 3_161_734_342
       # Verify mention detection
-      assert String.contains?(event.context.comment["body"], "@swarmdev")
+      assert String.contains?(event.context.comment["body"], "@swarm-ai-dev")
     end
 
     test "returns error for unknown GitHub event type" do

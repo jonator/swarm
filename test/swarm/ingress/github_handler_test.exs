@@ -15,7 +15,7 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
       "user" => %{"login" => "another_user"}
     },
     %{
-      "body" => "Hey @swarmdev, can you look at this?",
+      "body" => "Hey @swarm-ai-dev, can you look at this?",
       "user" => %{"login" => "jonator"}
     },
     %{
@@ -84,7 +84,7 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
         assert attrs.external_ids["github_issue_id"] == 3_161_734_342
 
         assert String.contains?(attrs.context, "GitHub Issue edited: Test5")
-        assert String.contains?(attrs.context, "Description:\n@swarmdev test")
+        assert String.contains?(attrs.context, "Description:\n@swarm-ai-dev test")
         assert String.contains?(attrs.context, "Comments:")
 
         assert String.contains?(
@@ -92,7 +92,10 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
                  "- @another_user: This is a comment without a mention."
                )
 
-        assert String.contains?(attrs.context, "- @jonator: Hey @swarmdev, can you look at this?")
+        assert String.contains?(
+                 attrs.context,
+                 "- @jonator: Hey @swarm-ai-dev, can you look at this?"
+               )
 
         assert String.contains?(
                  attrs.context,
@@ -133,7 +136,7 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
 
         assert String.contains?(
                  attrs.context,
-                 "Description:\nHey @swarmdev can you do this"
+                 "Description:\nHey @swarm-ai-dev can you do this"
                )
 
         assert String.contains?(attrs.context, "Comments:")
@@ -143,7 +146,10 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
                  "- @another_user: This is a comment without a mention."
                )
 
-        assert String.contains?(attrs.context, "- @jonator: Hey @swarmdev, can you look at this?")
+        assert String.contains?(
+                 attrs.context,
+                 "- @jonator: Hey @swarm-ai-dev, can you look at this?"
+               )
 
         assert String.contains?(
                  attrs.context,
@@ -181,7 +187,7 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
         assert attrs.external_ids["github_issue_id"] == 3_161_734_342
 
         assert String.contains?(attrs.context, "GitHub Issue created: Test5")
-        assert String.contains?(attrs.context, "Description:\n@swarmdev test")
+        assert String.contains?(attrs.context, "Description:\n@swarm-ai-dev test")
         assert String.contains?(attrs.context, "Comments:")
 
         assert String.contains?(
@@ -189,7 +195,10 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
                  "- @another_user: This is a comment without a mention."
                )
 
-        assert String.contains?(attrs.context, "- @jonator: Hey @swarmdev, can you look at this?")
+        assert String.contains?(
+                 attrs.context,
+                 "- @jonator: Hey @swarm-ai-dev, can you look at this?"
+               )
 
         assert String.contains?(
                  attrs.context,

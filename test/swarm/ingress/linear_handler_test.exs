@@ -16,13 +16,13 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           %{
             "id" => "5baced2d-7373-4861-ab9b-4dcc50f751e5",
             "body" => "TESTREPLY! [link](https://www.google.com/maps)",
-            "user" => %{"displayName" => "swarmdev"},
+            "user" => %{"displayName" => "swarm-ai-dev"},
             "createdAt" => "2025-06-16T00:37:35.618Z",
             "children" => %{"nodes" => []}
           },
           %{
             "id" => "1194b8de-a41c-4000-a6fc-a4b85d930e84",
-            "body" => "@swarmdev test",
+            "body" => "@swarm-ai-dev test",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-11T00:41:37.712Z",
             "children" => %{
@@ -30,13 +30,13 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                 %{
                   "id" => "359cf172-a0e5-4fd3-9659-be6002d1b6d9",
                   "body" => "TESTREPLY! [link](https://www.google.com/maps)",
-                  "user" => %{"displayName" => "swarmdev"},
+                  "user" => %{"displayName" => "swarm-ai-dev"},
                   "createdAt" => "2025-06-16T00:36:44.240Z"
                 },
                 %{
                   "id" => "1bdd962a-7ba1-4afe-b7cc-11ba780f21ce",
                   "body" => "TESTREPLY!",
-                  "user" => %{"displayName" => "swarmdev"},
+                  "user" => %{"displayName" => "swarm-ai-dev"},
                   "createdAt" => "2025-06-16T00:34:12.590Z"
                 }
               ]
@@ -67,7 +67,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
               "nodes" => [
                 %{
                   "id" => "66bd6984-9908-4adf-9f7b-64b1cb23c88b",
-                  "body" => "@swarmdev reply",
+                  "body" => "@swarm-ai-dev reply",
                   "user" => %{"displayName" => "jonathanator0"},
                   "createdAt" => "2025-06-16T01:05:17.164Z"
                 },
@@ -185,7 +185,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           },
           %{
             "id" => "1572d3ac-fca9-4713-84e3-4a104c6674fd",
-            "body" => "This is a mention comment @swarmdev ",
+            "body" => "This is a mention comment @swarm-ai-dev ",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-07T14:15:00.364Z",
             "children" => %{"nodes" => []}
@@ -239,7 +239,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           },
           %{
             "id" => "1572d3ac-fca9-4713-84e3-4a104c6674fd",
-            "body" => "@swarmdev let's make this README comprehensive and user-friendly",
+            "body" => "@swarm-ai-dev let's make this README comprehensive and user-friendly",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-07T14:20:00.364Z",
             "children" => %{"nodes" => []}
@@ -263,7 +263,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           },
           %{
             "id" => "1572d3ac-fca9-4713-84e3-4a104c6674fd",
-            "body" => "This is a mention comment @swarmdev",
+            "body" => "This is a mention comment @swarm-ai-dev",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-07T14:20:00.364Z",
             "children" => %{"nodes" => []}
@@ -376,7 +376,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                  "Linear Issue mentioned in comment 1572d3ac-fca9-4713-84e3-4a104c6674fd (Issue ID: 71ee683d-74e4-4668-95f7-537af7734054): Improve README"
                )
 
-        assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
+        assert String.contains?(attrs.context, "This is a mention comment @swarm-ai-dev")
       end
     end
 
@@ -525,7 +525,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
-        assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
+        assert String.contains?(attrs.context, "This is a mention comment @swarm-ai-dev")
       end
     end
 
@@ -562,7 +562,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                  "mentioned in reply comment 66bd6984-9908-4adf-9f7b-64b1cb23c88b (parent comment ID: 33250e31-de7a-4e93-9bab-7800ee1a4028)"
                )
 
-        assert String.contains?(attrs.context, "@swarmdev reply")
+        assert String.contains?(attrs.context, "@swarm-ai-dev reply")
         assert String.contains?(attrs.context, "TEST6")
         assert String.contains?(attrs.context, "test6reply")
       end
@@ -587,7 +587,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
-        assert String.contains?(attrs.context, "@swarmdev")
+        assert String.contains?(attrs.context, "@swarm-ai-dev")
       end
     end
 

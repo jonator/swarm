@@ -33,15 +33,15 @@ defmodule Swarm.Egress do
     LinearDispatch.reply(external_ids, message)
   end
 
+  def reply(external_ids, _message) do
+    {:error, "Egress.reply/2 received non-supported external_ids: #{inspect(external_ids)}"}
+  end
+
   def reply(
         %{"github_issue_number" => _} = external_ids,
         %Repository{} = repository,
         message
       ) do
     GitHubDispatch.reply(external_ids, repository, message)
-  end
-
-  def reply(%Event{source: other_source}, _message) do
-    {:error, "Egress.reply/1 received non-supported event source: #{other_source}"}
   end
 end

@@ -272,7 +272,7 @@ defmodule Swarm.Ingress.GitHubHandler do
 
   defp mentions_swarm?(comment) do
     body = comment["body"] || ""
-    github_app_username = Application.fetch_env!(:swarm, :github_app_username)
+    github_app_username = Application.fetch_env!(:swarm, :github_app_name)
     String.contains?(String.downcase(body), "@#{github_app_username}")
   end
 end
