@@ -45,7 +45,7 @@ defmodule Swarm.Workers do
            create_or_update_agent(agent_attrs, agent_type, agent_name, event) do
       case action do
         :created ->
-          with {:ok, msg} <- Egress.acknowledge(event),
+          with {:ok, msg} <- Egress.acknowledge(event, agent_attrs.repository),
                {:ok, job} <- schedule_agent_worker(agent) do
             Logger.info("Successfully spawned #{agent_type} agent #{agent.id}")
             {:ok, agent, job, msg}

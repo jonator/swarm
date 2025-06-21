@@ -448,61 +448,6 @@ defmodule Swarm.Ingress.LinearHandlerTest do
     end
   end
 
-  describe "find_repository_for_linear_event/2" do
-    setup do
-      user =
-        user_fixture(%{
-          email: "test-repo-#{:rand.uniform(10000)}@example.com",
-          username: "test-repo-user-#{:rand.uniform(10000)}"
-        })
-
-      {:ok, user: user}
-    end
-
-    test "finds repository by team ID mapping", %{user: user} do
-      repository =
-        repository_fixture(user, %{
-          name: "Swarm Repo",
-          owner: user.username,
-          external_id: "github:#{:rand.uniform(10000)}",
-          linear_team_external_ids: ["2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"]
-        })
-
-      # Create event with matching team ID
-      params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
-
-      assert {:ok, found_repo} = LinearHandler.find_repository_for_linear_event(user, event)
-      assert found_repo.id == repository.id
-    end
-
-    test "returns error when no team mapping exists", %{user: user} do
-      # Create repository without matching team ID
-      _repo =
-        repository_fixture(user, %{
-          name: "Test Repo",
-          owner: user.username,
-          external_id: "github:#{:rand.uniform(10000)}",
-          linear_team_external_ids: ["different-team-id"]
-        })
-
-      params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
-
-      assert {:error,
-              "No repository found with Linear team ID: 2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"} =
-               LinearHandler.find_repository_for_linear_event(user, event)
-    end
-
-    test "returns error when user has no repositories", %{user: user} do
-      params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
-
-      assert {:error, "No repositories found for user"} =
-               LinearHandler.find_repository_for_linear_event(user, event)
-    end
-  end
-
   describe "build_agent_attributes/3" do
     setup do
       user =

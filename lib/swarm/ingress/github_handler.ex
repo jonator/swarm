@@ -13,8 +13,6 @@ defmodule Swarm.Ingress.GitHubHandler do
 
   alias Swarm.Ingress.Event
   alias Swarm.Ingress.Permissions
-  alias Swarm.Repositories
-  alias Swarm.Repositories.Repository
   alias Swarm.Services.GitHub
 
   @doc """
@@ -33,8 +31,7 @@ defmodule Swarm.Ingress.GitHubHandler do
 
     # Check if event is relevant first
     if relevant_event?(event) do
-      with {:ok, user} <- Permissions.validate_user_access(event),
-           {:ok, repository, organization} <- find_repository_and_organization(user, event),
+      with {:ok, user, repository, organization} <- Permissions.validate_user_access(event),
            {:ok, agent_attrs} <- build_agent_attributes(event, user, repository, organization) do
         {:ok, agent_attrs}
       else
@@ -84,26 +81,6 @@ defmodule Swarm.Ingress.GitHubHandler do
 
   def relevant_event?(_event) do
     false
-  end
-
-  @doc """
-  Finds an existing repository from GitHub event data.
-  """
-  def find_repository_and_organization(user, %Event{repository_external_id: repo_id}) do
-    case Repositories.get_user_repository(user, repo_id) do
-      nil ->
-        {:error, "Repository not found in your account"}
-
-      %Repository{organization: nil} ->
-        {:error, "Repository does not have an organization"}
-
-      repository ->
-        {:ok, repository, repository.organization}
-    end
-  end
-
-  def find_repository_and_organization(_user, %Event{}) do
-    {:error, "No repository ID found in GitHub event"}
   end
 
   @doc """

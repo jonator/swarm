@@ -3,6 +3,7 @@ defmodule Swarm.Egress do
   Egress module for sending messages or data to external systems.
   """
 
+  alias Swarm.Repositories.Repository
   alias Swarm.Ingress.Event
   alias Swarm.Egress.LinearDispatch
   alias Swarm.Egress.GitHubDispatch
@@ -12,15 +13,15 @@ defmodule Swarm.Egress do
 
   Per recommendation: https://linear.app/developers/agents#recommendations
   """
-  def acknowledge(%Event{source: :linear} = event) do
+  def acknowledge(%Event{source: :linear} = event, _repository) do
     LinearDispatch.acknowledge(event)
   end
 
-  def acknowledge(%Event{source: :github} = event) do
-    GitHubDispatch.acknowledge(event)
+  def acknowledge(%Event{source: :github} = event, %Repository{} = repository) do
+    GitHubDispatch.acknowledge(event, repository)
   end
 
-  def acknowledge(%Event{source: other_source}) do
+  def acknowledge(%Event{source: other_source}, _repository) do
     {:error, "Egress.acknowledge/1 received non-supported event source: #{other_source}"}
   end
 

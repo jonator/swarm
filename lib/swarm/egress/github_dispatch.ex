@@ -4,33 +4,52 @@ defmodule Swarm.Egress.GitHubDispatch do
   """
 
   alias Swarm.Ingress.Event
+  alias Swarm.Repo
+  alias Swarm.Repositories.Repository
+  alias Swarm.Services.GitHub
 
   @acknowledge_emoji "eyes"
 
-  def acknowledge(%Event{
-        source: :github,
-        external_ids: %{
-          "github_repo_full_name" => _repo_full_name,
-          "github_issue_number" => _issue_number,
-          "github_comment_id" => _comment_id
-        }
-      }) do
-    # TODO: GitHub.create_comment_reaction(org, repo_full_name, comment_id, @acknowledge_emoji)
-    {:ok, "not implemented"}
+  def acknowledge(
+        %Event{
+          source: :github,
+          external_ids: %{
+            "github_issue_number" => _issue_number,
+            "github_comment_id" => comment_id
+          }
+        },
+        %Repository{} = repository
+      ) do
+    repository = Repo.preload(repository, :organization)
+
+    GitHub.comment_reaction_create(
+      repository.organization,
+      repository.name,
+      comment_id,
+      %{content: @acknowledge_emoji}
+    )
   end
 
-  def acknowledge(%Event{
-        source: :github,
-        external_ids: %{
-          "github_repo_full_name" => _repo_full_name,
-          "github_issue_number" => _issue_number
-        }
-      }) do
-    # TODO: GitHub.create_issue_reaction(org, repo_full_name, issue_number, @acknowledge_emoji)
-    {:ok, "not implemented"}
+  def acknowledge(
+        %Event{
+          source: :github,
+          external_ids: %{
+            "github_issue_number" => issue_number
+          }
+        },
+        %Repository{} = repository
+      ) do
+    repository = Repo.preload(repository, :organization)
+
+    GitHub.issue_reaction_create(
+      repository.organization,
+      repository.name,
+      issue_number,
+      %{content: @acknowledge_emoji}
+    )
   end
 
-  def acknowledge(event) do
+  def acknowledge(event, _repository) do
     {:error, "Egress.GitHub.acknowledge/1 - event not supported: #{inspect(event)}"}
   end
 

@@ -299,6 +299,34 @@ defmodule Swarm.Services.GitHub do
     end
   end
 
+  def comment_reaction_create(%Organization{name: name} = org, repo, comment_id, body) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      comment_reaction_create(client, name, repo, comment_id, body)
+    end
+  end
+
+  def comment_reaction_create(%__MODULE__{client: client}, owner, repo, comment_id, body) do
+    # https://developer.github.com/v3/reactions/#create-reaction-for-an-issue-comment
+    case Tentacat.Issues.Comments.Reactions.create(client, owner, repo, comment_id, body) do
+      {201, reaction, _} -> {:ok, reaction}
+      error -> error
+    end
+  end
+
+  def issue_reaction_create(%Organization{name: name} = org, repo, issue_id, body) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      issue_reaction_create(client, name, repo, issue_id, body)
+    end
+  end
+
+  def issue_reaction_create(%__MODULE__{client: client}, owner, repo, issue_id, body) do
+    # https://developer.github.com/v3/reactions/#create-reaction-for-an-issue
+    case Tentacat.Issues.Reactions.create(client, owner, repo, issue_id, body) do
+      {201, reaction, _} -> {:ok, reaction}
+      error -> error
+    end
+  end
+
   defp access_token(%User{} = user) do
     case Accounts.get_token(user, :access, :github) do
       # could have been cleaned up due to expiration

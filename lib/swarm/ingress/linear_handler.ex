@@ -13,7 +13,6 @@ defmodule Swarm.Ingress.LinearHandler do
 
   alias Swarm.Ingress.Event
   alias Swarm.Ingress.Permissions
-  alias Swarm.Repositories
   alias Swarm.Services.Linear
 
   @doc """
@@ -32,8 +31,7 @@ defmodule Swarm.Ingress.LinearHandler do
 
     # Check if event is relevant first
     if relevant_event?(event) do
-      with {:ok, user} <- Permissions.validate_user_access(event),
-           {:ok, repository} <- find_repository_for_linear_event(user, event) do
+      with {:ok, user, repository, _organization} <- Permissions.validate_user_access(event) do
         build_agent_attributes(event, user, repository)
       end
     else
@@ -50,78 +48,6 @@ defmodule Swarm.Ingress.LinearHandler do
   def relevant_event?(%Event{type: "issueMention"}), do: true
   def relevant_event?(%Event{type: "documentMention"}), do: true
   def relevant_event?(_), do: false
-
-  @doc """
-  Finds the repository associated with a Linear event.
-
-  Linear events need to be mapped to repositories, which can be done through:
-  1. Linear team external IDs stored in repository records
-  2. Project associations
-  3. Manual configuration
-  """
-  def find_repository_for_linear_event(user, %Event{type: type, external_ids: external_ids}) do
-    case external_ids["linear_team_id"] do
-      nil ->
-        if type == "documentMention" && external_ids["linear_project_id"] do
-          find_repository_by_project_id(
-            user,
-            external_ids["linear_app_user_id"],
-            external_ids["linear_project_id"]
-          )
-        else
-          {:error, "No team information found in Linear event"}
-        end
-
-      team_id ->
-        find_repository_by_team_id(user, team_id)
-    end
-  end
-
-  defp find_repository_by_team_id(user, team_id) do
-    # Look for repositories that have this Linear team ID in their external IDs
-    case Repositories.list_repositories(user) do
-      [] ->
-        {:error, "No repositories found for user"}
-
-      repositories ->
-        matching_repo =
-          Enum.find(repositories, fn repo ->
-            team_id in (repo.linear_team_external_ids || [])
-          end)
-
-        case matching_repo do
-          nil ->
-            {:error, "No repository found with Linear team ID: #{team_id}"}
-
-          repository ->
-            {:ok, repository}
-        end
-    end
-  end
-
-  defp find_repository_by_project_id(user, workspace_id, project_id) do
-    case Linear.project(workspace_id, project_id) do
-      {:ok, %{"project" => %{"teams" => %{"nodes" => teams}}}} ->
-        case teams do
-          [] ->
-            {:error,
-             "No teams available for finding repository with Linear project ID: #{project_id}"}
-
-          [team] ->
-            find_repository_by_team_id(user, team["id"])
-
-          [team | _] ->
-            Logger.warning(
-              "Multiple teams available for finding repository with Linear project ID: #{project_id}, using first team: #{team["id"]}"
-            )
-
-            find_repository_by_team_id(user, team["id"])
-        end
-
-      {:error, _reason} ->
-        {:error, "No repository found with Linear project ID: #{project_id}"}
-    end
-  end
 
   @doc """
   Builds agent attributes from the Linear event data.
