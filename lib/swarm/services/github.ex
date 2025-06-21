@@ -263,6 +263,27 @@ defmodule Swarm.Services.GitHub do
   end
 
   @doc """
+  Creates a comment on a GitHub issue.
+  """
+  def create_issue_comment(%Organization{name: name} = org, repo, issue_number, body) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      create_issue_comment(client, name, repo, issue_number, body)
+    end
+  end
+
+  def create_issue_comment(%__MODULE__{client: client}, owner, repo, issue_number, body) do
+    comment = %{"body" => body}
+
+    case Tentacat.Issues.Comments.create(client, owner, repo, issue_number, comment) do
+      {201, comment, _} ->
+        {:ok, comment}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
   Creates a pull request for the given organization and repository.
 
   Pull Request body example:

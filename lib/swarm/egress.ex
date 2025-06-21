@@ -34,11 +34,11 @@ defmodule Swarm.Egress do
   end
 
   def reply(
-        %{"github_issue_number" => _, "github_repo_full_name" => _} =
-          external_ids,
+        %{"github_issue_number" => _} = external_ids,
+        %Repository{} = repository,
         message
       ) do
-    GitHubDispatch.reply(external_ids, message)
+    GitHubDispatch.reply(external_ids, repository, message)
   end
 
   def reply(%Event{source: other_source}, _message) do

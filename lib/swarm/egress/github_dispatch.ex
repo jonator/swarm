@@ -57,17 +57,26 @@ defmodule Swarm.Egress.GitHubDispatch do
   Reply to a GitHub issue event.
   """
   def reply(
-        %{
-          "github_repo_full_name" => _repo_full_name,
-          "github_issue_number" => _issue_number
-        },
-        _message
+        %{"github_issue_number" => issue_number},
+        %Repository{} = repository,
+        message
       ) do
-    # TODO: GitHub.create_issue_comment(org, repo_full_name, issue_number, message)
-    {:ok, "not implemented"}
+    repository = Swarm.Repo.preload(repository, :organization)
+
+    with {:ok, _comment} <-
+           GitHub.create_issue_comment(
+             repository.organization,
+             repository.name,
+             issue_number,
+             message
+           ) do
+      {:ok, "Replied to issue #{issue_number} on #{repository.owner}/#{repository.name}"}
+    else
+      error -> {:error, "Failed to reply to GitHub issue: #{inspect(error)}"}
+    end
   end
 
-  def reply(event, _message) do
-    {:error, "Egress.GitHub.reply/1 - event not supported: #{inspect(event)}"}
+  def reply(external_ids, _repository, _message) do
+    {:error, "Egress.GitHub.reply/3 - external_ids not supported: #{inspect(external_ids)}"}
   end
 end
