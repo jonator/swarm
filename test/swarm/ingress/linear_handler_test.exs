@@ -6,7 +6,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
   alias Swarm.Ingress.Event
   import Swarm.AccountsFixtures
   import Swarm.RepositoriesFixtures
-  import Swarm.EventsFixtures
+  import Swarm.LinearEventsFixtures
 
   @comprehensive_thread %{
     "issue" => %{

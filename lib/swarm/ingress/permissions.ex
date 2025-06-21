@@ -54,10 +54,10 @@ defmodule Swarm.Ingress.Permissions do
     end
   end
 
-  def find_user(%Event{source: :github, context: context}) do
-    sender = get_in(context, [:sender, "login"])
+  def find_user(%Event{source: :github, external_ids: external_ids}) do
+    sender_login = Map.get(external_ids, "github_sender_login")
 
-    case sender do
+    case sender_login do
       nil -> {:error, "No sender found in GitHub event"}
       username -> find_user_by_github_username(username)
     end

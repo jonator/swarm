@@ -161,6 +161,108 @@ defmodule Swarm.Services.GitHub do
   end
 
   @doc """
+  Returns the body for the given issue.
+
+  ## Example
+
+  `
+  {:ok, body} = GitHub.issue_body(github_service, "elixir-lang", "elixir", 2974)
+  `
+
+  ## Response
+
+  `
+  {:ok, "This is the description of the issue"}
+  `
+
+  """
+  def issue_body(%__MODULE__{client: client}, owner, repo, issue_number) do
+    case Tentacat.Issues.find(client, owner, repo, issue_number) do
+      {200, %{"body" => body}, _} ->
+        {:ok, body}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Returns the comments for the given issue.
+
+  ## Example
+
+  `
+  {:ok, comments} = GitHub.issue_comments(github_service, "elixir-lang", "elixir", 2974)
+  `
+
+  ## Example
+
+  `
+  {:ok, comments} = GitHub.issue_comments(github_service, "elixir-lang", "elixir", 2974)
+  `
+
+  Returns a list of comment maps with fields like in the :ok tuple:
+  `
+  [
+    %{
+      "author_association" => "OWNER",
+      "body" => "Test comment",
+      "created_at" => "2025-06-21T03:02:05Z",
+      "html_url" => "https://github.com/jonator/swarm/issues/5#issuecomment-2993277196",
+      "id" => 2993277196,
+      "issue_url" => "https://api.github.com/repos/jonator/swarm/issues/5",
+      "node_id" => "IC_kwDOOSfB686yackM",
+      "performed_via_github_app" => nil,
+      "reactions" => %{
+        "+1" => 0,
+        "-1" => 0,
+        "confused" => 0,
+        "eyes" => 0,
+        "heart" => 0,
+        "hooray" => 0,
+        "laugh" => 0,
+        "rocket" => 0,
+        "total_count" => 0,
+        "url" => "https://api.github.com/repos/jonator/swarm/issues/comments/2993277196/reactions"
+      },
+      "updated_at" => "2025-06-21T03:02:05Z",
+      "url" => "https://api.github.com/repos/jonator/swarm/issues/comments/2993277196",
+      "user" => %{
+        "avatar_url" => "https://avatars.githubusercontent.com/u/4606373?v=4",
+        "events_url" => "https://api.github.com/users/jonator/events{/privacy}",
+        "followers_url" => "https://api.github.com/users/jonator/followers",
+        "following_url" => "https://api.github.com/users/jonator/following{/other_user}",
+        "gists_url" => "https://api.github.com/users/jonator/gists{/gist_id}",
+        "gravatar_id" => "",
+        "html_url" => "https://github.com/jonator",
+        "id" => 4606373,
+        "login" => "jonator",
+        "node_id" => "MDQ6VXNlcjQ2MDYzNzM=",
+        "organizations_url" => "https://api.github.com/users/jonator/orgs",
+        "received_events_url" => "https://api.github.com/users/jonator/received_events",
+        "repos_url" => "https://api.github.com/users/jonator/repos",
+        "site_admin" => false,
+        "starred_url" => "https://api.github.com/users/jonator/starred{/owner}{/repo}",
+        "subscriptions_url" => "https://api.github.com/users/jonator/subscriptions",
+        "type" => "User",
+        "url" => "https://api.github.com/users/jonator",
+        "user_view_type" => "public"
+      }
+    }
+  ]
+  `
+  """
+  def issue_comments(%__MODULE__{client: client}, owner, repo, issue_number) do
+    case Tentacat.Issues.Comments.list(client, owner, repo, issue_number) do
+      {200, comments, _} ->
+        {:ok, comments}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
   Creates a pull request for the given organization and repository.
 
   Pull Request body example:

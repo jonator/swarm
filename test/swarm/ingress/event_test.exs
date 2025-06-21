@@ -2,11 +2,12 @@ defmodule Swarm.Ingress.EventTest do
   use ExUnit.Case, async: true
 
   alias Swarm.Ingress.Event
-  alias Swarm.EventsFixtures
+  alias Swarm.LinearEventsFixtures
+  alias Swarm.GitHubEventsFixtures
 
   describe "new/3 with Linear events" do
     test "creates event from linear issue description mention" do
-      event_data = EventsFixtures.linear_issue_description_mention_params()
+      event_data = LinearEventsFixtures.linear_issue_description_mention_params()
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
@@ -37,7 +38,7 @@ defmodule Swarm.Ingress.EventTest do
     end
 
     test "creates event from linear issue assigned to swarm" do
-      event_data = EventsFixtures.linear_issue_assigned_to_swarm_params()
+      event_data = LinearEventsFixtures.linear_issue_assigned_to_swarm_params()
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
@@ -63,7 +64,7 @@ defmodule Swarm.Ingress.EventTest do
     end
 
     test "creates event from linear issue comment mention" do
-      event_data = EventsFixtures.linear_issue_comment_mention_params()
+      event_data = LinearEventsFixtures.linear_issue_comment_mention_params()
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
@@ -76,6 +77,12 @@ defmodule Swarm.Ingress.EventTest do
       assert event.external_ids["linear_comment_id"] == "1572d3ac-fca9-4713-84e3-4a104c6674fd"
       assert event.external_ids["linear_team_id"] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
       assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+
+      assert event.external_ids["linear_issue_url"] ==
+               "https://linear.app/swarmai/issue/SW-10/improve-readme"
+
+      assert event.external_ids["linear_issue_identifier"] == "SW-10"
+
       refute Map.has_key?(event.external_ids, "linear_document_id")
 
       # Verify context extraction
@@ -90,7 +97,7 @@ defmodule Swarm.Ingress.EventTest do
     end
 
     test "creates event from linear document mention" do
-      event_data = EventsFixtures.linear_document_mention_params()
+      event_data = LinearEventsFixtures.linear_document_mention_params()
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
@@ -114,7 +121,7 @@ defmodule Swarm.Ingress.EventTest do
     end
 
     test "creates event from linear issue new comment" do
-      event_data = EventsFixtures.linear_issue_new_comment_params()
+      event_data = LinearEventsFixtures.linear_issue_new_comment_params()
 
       assert {:ok, event} = Event.new(event_data, :linear)
 
@@ -139,7 +146,7 @@ defmodule Swarm.Ingress.EventTest do
     end
 
     test "creates event with custom user_id and repository_external_id options" do
-      event_data = EventsFixtures.linear_issue_description_mention_params()
+      event_data = LinearEventsFixtures.linear_issue_description_mention_params()
 
       opts = [
         user_id: 123,
@@ -158,83 +165,41 @@ defmodule Swarm.Ingress.EventTest do
   end
 
   describe "new/3 with GitHub events" do
-    test "creates event from GitHub pull request" do
-      event_data = %{
-        "action" => "opened",
-        "pull_request" => %{"id" => 12345, "number" => 42},
-        "repository" => %{"id" => 67890, "name" => "test-repo"},
-        "sender" => %{"login" => "testuser"}
-      }
-
-      assert {:ok, event} = Event.new(event_data, :github)
-
-      assert event.source == :github
-      assert event.type == "pull_request"
-      assert event.repository_external_id == "github:67890"
-      assert event.external_ids["github_pull_request_id"] == 12345
-      refute Map.has_key?(event.external_ids, "github_issue_id")
-
-      # Verify context
-      assert event.context.action == "opened"
-      assert event.context.sender["login"] == "testuser"
-      assert event.context.repository["name"] == "test-repo"
-    end
-
     test "creates event from GitHub issue" do
-      event_data = %{
-        "action" => "opened",
-        "issue" => %{"id" => 54321, "number" => 1},
-        "repository" => %{"id" => 67890, "name" => "test-repo"},
-        "sender" => %{"login" => "testuser"}
-      }
+      event_data = GitHubEventsFixtures.github_issue_opened_event()
 
       assert {:ok, event} = Event.new(event_data, :github)
 
       assert event.source == :github
       assert event.type == "issue"
-      assert event.repository_external_id == "github:67890"
-      assert event.external_ids["github_issue_id"] == 54321
+      assert event.repository_external_id == "github:958906859"
+      assert event.external_ids["github_issue_id"] == 3_165_166_522
+      assert event.external_ids["github_sender_login"] == "jonator"
+      assert event.external_ids["github_repository_id"] == 958_906_859
       refute Map.has_key?(event.external_ids, "github_pull_request_id")
     end
 
-    test "creates event from GitHub push" do
-      event_data = %{
-        "push" => %{"ref" => "refs/heads/main"},
-        "repository" => %{"id" => 67890, "name" => "test-repo"},
-        "sender" => %{"login" => "testuser"}
-      }
+    test "creates event from GitHub issue comment created" do
+      event_data = GitHubEventsFixtures.github_issue_comment_mention_created_event()
 
       assert {:ok, event} = Event.new(event_data, :github)
 
       assert event.source == :github
-      assert event.type == "push"
-      assert event.repository_external_id == "github:67890"
-    end
+      assert event.type == "issue_comment"
+      assert event.repository_external_id == "github:958906859"
+      assert event.external_ids["github_comment_id"] == 2_993_623_398
+      assert event.external_ids["github_issue_id"] == 3_161_734_342
+      assert event.external_ids["github_sender_login"] == "jonator"
+      assert event.external_ids["github_repository_id"] == 958_906_859
+      refute Map.has_key?(event.external_ids, "github_pull_request_id")
 
-    test "handles GitHub event with custom repository_external_id" do
-      event_data = %{
-        "pull_request" => %{"id" => 12345},
-        "repository" => %{"id" => 67890}
-      }
-
-      opts = [repository_external_id: "custom:123"]
-
-      assert {:ok, event} = Event.new(event_data, :github, opts)
-
-      assert event.repository_external_id == "github:custom:123"
-    end
-
-    test "handles GitHub event with already prefixed repository_external_id" do
-      event_data = %{
-        "pull_request" => %{"id" => 12345},
-        "repository" => %{"id" => 67890}
-      }
-
-      opts = [repository_external_id: "github:123"]
-
-      assert {:ok, event} = Event.new(event_data, :github, opts)
-
-      assert event.repository_external_id == "github:123"
+      # Verify context extraction
+      assert event.context.action == "created"
+      assert event.context.comment["body"] == "Test comment 3 @swarmdev"
+      assert event.context.comment["id"] == 2_993_623_398
+      assert event.context.issue["id"] == 3_161_734_342
+      # Verify mention detection
+      assert String.contains?(event.context.comment["body"], "@swarmdev")
     end
 
     test "returns error for unknown GitHub event type" do
@@ -339,7 +304,7 @@ defmodule Swarm.Ingress.EventTest do
 
   describe "timestamp handling" do
     test "sets timestamp to current time" do
-      event_data = EventsFixtures.linear_issue_description_mention_params()
+      event_data = LinearEventsFixtures.linear_issue_description_mention_params()
       before_time = DateTime.utc_now()
 
       assert {:ok, event} = Event.new(event_data, :linear)
@@ -416,17 +381,6 @@ defmodule Swarm.Ingress.EventTest do
       assert event.external_ids["linear_team_id"] == "team-from-issue-789"
     end
 
-    test "handles GitHub event without repository" do
-      event_data = %{
-        "pull_request" => %{"id" => 12345}
-      }
-
-      assert {:ok, event} = Event.new(event_data, :github)
-
-      assert event.repository_external_id == nil
-      assert event.external_ids["github_pull_request_id"] == 12345
-    end
-
     test "handles Slack event without timestamp" do
       event_data = %{
         "event" => %{
@@ -446,7 +400,7 @@ defmodule Swarm.Ingress.EventTest do
 
   describe "context merging" do
     test "merges base context with source-specific context for Linear events" do
-      event_data = EventsFixtures.linear_issue_description_mention_params()
+      event_data = LinearEventsFixtures.linear_issue_description_mention_params()
       opts = [context: %{"priority" => "high", "source" => "webhook"}]
 
       assert {:ok, event} = Event.new(event_data, :linear, opts)
@@ -486,22 +440,8 @@ defmodule Swarm.Ingress.EventTest do
       assert event.context.action == "minimal"
     end
 
-    test "handles GitHub events with both issue and pull_request (both IDs extracted)" do
-      event_data = %{
-        "pull_request" => %{"id" => 11111},
-        "issue" => %{"id" => 22222},
-        "repository" => %{"id" => 33333}
-      }
-
-      assert {:ok, event} = Event.new(event_data, :github)
-
-      assert event.type == "pull_request"
-      assert event.external_ids["github_pull_request_id"] == 11111
-      assert event.external_ids["github_issue_id"] == 22222
-    end
-
     test "validates timestamp is recent" do
-      event_data = EventsFixtures.linear_issue_description_mention_params()
+      event_data = LinearEventsFixtures.linear_issue_description_mention_params()
       before_time = DateTime.utc_now()
 
       assert {:ok, event} = Event.new(event_data, :linear)

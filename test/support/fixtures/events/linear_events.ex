@@ -1,4 +1,4 @@
-defmodule Swarm.EventsFixtures do
+defmodule Swarm.LinearEventsFixtures do
   @moduledoc """
   This module defines test helpers for creating
   entities via the `Swarm.Events` context.

@@ -72,6 +72,8 @@ config :swarm, SwarmWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :swarm, dev_routes: true
 
+config :swarm, github_app_username: "swarmdev"
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :console,
   format: "[$level] $message\n",
