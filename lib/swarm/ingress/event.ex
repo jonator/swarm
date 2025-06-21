@@ -129,6 +129,7 @@ defmodule Swarm.Ingress.Event do
   # Extract external IDs for tracking purposes conforming to Agent struct fields
   defp extract_external_ids(data, :github) do
     %{}
+    |> extract_github_installation_id(data)
     |> extract_github_repository_id(data)
     |> extract_github_sender_login(data)
     |> extract_github_pull_request_id(data)
@@ -164,6 +165,14 @@ defmodule Swarm.Ingress.Event do
 
   defp extract_external_ids(_data, :manual) do
     {:ok, %{}}
+  end
+
+  defp extract_github_installation_id(external_ids, data) do
+    if data["installation"] && data["installation"]["id"] do
+      Map.put(external_ids, "github_installation_id", data["installation"]["id"])
+    else
+      external_ids
+    end
   end
 
   defp extract_github_repository_id(external_ids, data) do

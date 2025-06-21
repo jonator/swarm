@@ -5,6 +5,7 @@ defmodule Swarm.Egress do
 
   alias Swarm.Ingress.Event
   alias Swarm.Egress.LinearDispatch
+  alias Swarm.Egress.GitHubDispatch
 
   @doc """
   Acknowledge a message.
@@ -15,19 +16,31 @@ defmodule Swarm.Egress do
     LinearDispatch.acknowledge(event)
   end
 
+  def acknowledge(%Event{source: :github} = event) do
+    GitHubDispatch.acknowledge(event)
+  end
+
   def acknowledge(%Event{source: other_source}) do
-    {:error, "Egress.acknowledge/1 received non-Linear event: #{other_source}"}
+    {:error, "Egress.acknowledge/1 received non-supported event source: #{other_source}"}
   end
 
   def reply(
-        %{"linear_issue_id" => _, "linear_app_user_id" => _, "linear_comment_id" => _} =
+        %{"linear_issue_id" => _, "linear_app_user_id" => _} =
           external_ids,
         message
       ) do
     LinearDispatch.reply(external_ids, message)
   end
 
+  def reply(
+        %{"github_issue_number" => _, "github_repo_full_name" => _} =
+          external_ids,
+        message
+      ) do
+    GitHubDispatch.reply(external_ids, message)
+  end
+
   def reply(%Event{source: other_source}, _message) do
-    {:error, "Egress.reply/1 received non-Linear event: #{other_source}"}
+    {:error, "Egress.reply/1 received non-supported event source: #{other_source}"}
   end
 end
