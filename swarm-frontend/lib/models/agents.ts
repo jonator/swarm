@@ -19,7 +19,7 @@ export type Agent = {
   oban_job_id?: string
   repository_id: number
   project_id?: number
-  user_id?: number
+  user_id: number
   created_at: DateTime
   updated_at: DateTime
 }

@@ -59,7 +59,9 @@ defmodule Swarm.Agents.Agent do
       :context,
       :status,
       :source,
-      :type
+      :type,
+      :repository_id,
+      :user_id
     ])
   end
 end

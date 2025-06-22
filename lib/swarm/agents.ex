@@ -36,7 +36,6 @@ defmodule Swarm.Agents do
         join: o in assoc(r, :organization),
         where: o.id in ^user_organization_ids
 
-    # Apply filters from params
     query
     |> apply_filters(params)
     |> Repo.all()

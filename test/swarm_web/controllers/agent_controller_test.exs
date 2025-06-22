@@ -40,7 +40,7 @@ defmodule SwarmWeb.AgentControllerTest do
       user: user,
       repository: repository
     } do
-      agent = agent_fixture(%{user_id: user.id, repository_id: repository.id})
+      agent = agent_fixture(%{user: user, repository_id: repository.id})
       conn = get(conn, ~p"/api/agents")
 
       assert [returned_agent] = json_response(conn, 200)["agents"]

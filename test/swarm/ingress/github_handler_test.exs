@@ -4,7 +4,6 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
 
   alias Swarm.Ingress.GitHubHandler
   alias Swarm.Ingress.Event
-  alias Swarm.Accounts
   alias Swarm.Services.GitHub
   import Swarm.AccountsFixtures
   import Swarm.RepositoriesFixtures
@@ -30,7 +29,7 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
       user = user_fixture(%{username: "jonator", email: "jonator@test.com"})
 
       {:ok, _token} =
-        Accounts.save_token(user, %{
+        Swarm.Accounts.save_token(user, %{
           type: :access,
           context: :github,
           token: "test-token",

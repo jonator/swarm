@@ -22,11 +22,15 @@ defmodule Swarm.AgentsTest do
     }
 
     test "get_agent!/1 returns the agent with given id" do
-      agent = agent_fixture()
+      user = user_fixture()
+      agent = agent_fixture(%{user: user})
       assert Agents.get_agent!(agent.id) == agent
     end
 
     test "create_agent/1 with valid data creates a agent" do
+      user = user_fixture()
+      repo = repository_fixture(user)
+
       valid_attrs = %{
         name: "some name",
         status: :pending,
@@ -34,6 +38,8 @@ defmodule Swarm.AgentsTest do
         context: "some context",
         started_at: ~U[2025-06-08 17:18:32.081174Z],
         source: :manual,
+        repository_id: repo.id,
+        user_id: user.id,
         external_ids: %{
           "github_pull_request_id" => "some github_pull_request_id",
           "github_issue_id" => "some github_issue_id",
@@ -51,6 +57,8 @@ defmodule Swarm.AgentsTest do
       assert agent.context == "some context"
       assert agent.started_at == ~N[2025-06-08 17:18:32]
       assert agent.source == :manual
+      assert agent.repository_id == repo.id
+      assert agent.user_id == user.id
       assert agent.external_ids["github_pull_request_id"] == "some github_pull_request_id"
       assert agent.external_ids["github_issue_id"] == "some github_issue_id"
       assert agent.external_ids["linear_issue_id"] == "some linear_issue_id"
@@ -60,11 +68,15 @@ defmodule Swarm.AgentsTest do
     end
 
     test "create_agent/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = Agents.create_agent(@invalid_attrs)
+      repo = repository_fixture()
+
+      assert {:error, %Ecto.Changeset{}} =
+               Agents.create_agent(Map.put(@invalid_attrs, :repository_id, repo.id))
     end
 
     test "update_agent/2 with valid data updates the agent" do
-      agent = agent_fixture()
+      user = user_fixture()
+      agent = agent_fixture(%{user: user})
 
       update_attrs = %{
         name: "some updated name",
@@ -100,27 +112,36 @@ defmodule Swarm.AgentsTest do
     end
 
     test "update_agent/2 with invalid data returns error changeset" do
-      agent = agent_fixture()
+      user = user_fixture()
+      agent = agent_fixture(%{user: user})
       assert {:error, %Ecto.Changeset{}} = Agents.update_agent(agent, @invalid_attrs)
       assert agent == Agents.get_agent!(agent.id)
     end
 
     test "delete_agent/1 deletes the agent" do
-      agent = agent_fixture()
+      user = user_fixture()
+      agent = agent_fixture(%{user: user})
       assert {:ok, %Agent{}} = Agents.delete_agent(agent)
       assert_raise Ecto.NoResultsError, fn -> Agents.get_agent!(agent.id) end
     end
 
     test "change_agent/1 returns a agent changeset" do
-      agent = agent_fixture()
+      user = user_fixture()
+      agent = agent_fixture(%{user: user})
       assert %Ecto.Changeset{} = Agents.change_agent(agent)
     end
   end
 
   describe "find_pending_agent_with_any_ids/1" do
-    test "finds pending agent with matching linear_issue_id" do
+    setup do
+      user = user_fixture()
+      %{user: user}
+    end
+
+    test "finds pending agent with matching linear_issue_id", %{user: user} do
       existing_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"linear_issue_id" => "issue-123", "linear_app_user_id" => "user-456"}
         })
@@ -130,9 +151,10 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
     end
 
-    test "finds pending agent with matching github_issue_id" do
+    test "finds pending agent with matching github_issue_id", %{user: user} do
       existing_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"github_issue_id" => "gh-issue-789"}
         })
@@ -142,9 +164,10 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
     end
 
-    test "finds pending agent with matching github_pull_request_id" do
+    test "finds pending agent with matching github_pull_request_id", %{user: user} do
       existing_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"github_pull_request_id" => "pr-456"}
         })
@@ -154,9 +177,10 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
     end
 
-    test "finds pending agent with matching slack_thread_id" do
+    test "finds pending agent with matching slack_thread_id", %{user: user} do
       existing_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"slack_thread_id" => "thread-789"}
         })
@@ -166,8 +190,9 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
     end
 
-    test "returns nil when no matching IDs found" do
+    test "returns nil when no matching IDs found", %{user: user} do
       agent_fixture(%{
+        user: user,
         status: :pending,
         external_ids: %{"linear_issue_id" => "different-issue"}
       })
@@ -177,8 +202,9 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
     end
 
-    test "returns nil when agent exists but is not pending" do
+    test "returns nil when agent exists but is not pending", %{user: user} do
       agent_fixture(%{
+        user: user,
         status: :completed,
         external_ids: %{"linear_issue_id" => "issue-123"}
       })
@@ -188,16 +214,17 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
     end
 
-    test "returns nil when external_ids is missing" do
-      agent_fixture(%{status: :pending})
+    test "returns nil when external_ids is missing", %{user: user} do
+      agent_fixture(%{user: user, status: :pending})
 
       agent_attrs = %{external_ids: %{"linear_issue_id" => "issue-123"}}
 
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
     end
 
-    test "returns nil when agent_attrs has no external_ids" do
+    test "returns nil when agent_attrs has no external_ids", %{user: user} do
       agent_fixture(%{
+        user: user,
         status: :pending,
         external_ids: %{"linear_issue_id" => "issue-123"}
       })
@@ -207,9 +234,10 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == nil
     end
 
-    test "finds agent with multiple matching IDs" do
+    test "finds agent with multiple matching IDs", %{user: user} do
       existing_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{
             "linear_issue_id" => "issue-123",
@@ -227,9 +255,10 @@ defmodule Swarm.AgentsTest do
       assert Agents.find_pending_agent_with_any_ids(agent_attrs) == existing_agent
     end
 
-    test "finds agent when only one ID matches among multiple" do
+    test "finds agent when only one ID matches among multiple", %{user: user} do
       existing_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"linear_issue_id" => "issue-123"}
         })
@@ -246,21 +275,29 @@ defmodule Swarm.AgentsTest do
   end
 
   describe "list_pending_agents_with_overlapping_attrs/1" do
-    test "returns all pending agents with matching linear_issue_id" do
+    setup do
+      user = user_fixture()
+      %{user: user}
+    end
+
+    test "returns all pending agents with matching linear_issue_id", %{user: user} do
       agent1 =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"linear_issue_id" => "issue-123"}
         })
 
       agent2 =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"linear_issue_id" => "issue-123"}
         })
 
       # Non-matching agent
       agent_fixture(%{
+        user: user,
         status: :pending,
         external_ids: %{"linear_issue_id" => "different-issue"}
       })
@@ -273,8 +310,9 @@ defmodule Swarm.AgentsTest do
       assert agent2 in result
     end
 
-    test "returns empty list when no matching agents found" do
+    test "returns empty list when no matching agents found", %{user: user} do
       agent_fixture(%{
+        user: user,
         status: :pending,
         external_ids: %{"linear_issue_id" => "different-issue"}
       })
@@ -284,19 +322,22 @@ defmodule Swarm.AgentsTest do
       assert Agents.list_pending_agents_with_overlapping_attrs(agent_attrs) == []
     end
 
-    test "only returns pending agents" do
+    test "only returns pending agents", %{user: user} do
       agent_fixture(%{
+        user: user,
         status: :completed,
         external_ids: %{"linear_issue_id" => "issue-123"}
       })
 
       agent_fixture(%{
+        user: user,
         status: :failed,
         external_ids: %{"linear_issue_id" => "issue-123"}
       })
 
       pending_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"linear_issue_id" => "issue-123"}
         })
@@ -307,21 +348,24 @@ defmodule Swarm.AgentsTest do
       assert result == [pending_agent]
     end
 
-    test "returns agents matching any of multiple ID types" do
+    test "returns agents matching any of multiple ID types", %{user: user} do
       linear_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"linear_issue_id" => "issue-123"}
         })
 
       github_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"github_issue_id" => "gh-issue-456"}
         })
 
       slack_agent =
         agent_fixture(%{
+          user: user,
           status: :pending,
           external_ids: %{"slack_thread_id" => "thread-789"}
         })
@@ -351,13 +395,13 @@ defmodule Swarm.AgentsTest do
       repo3 = repository_fixture(other_org, %{name: "repo3", owner: other_org.name})
       repo4 = repository_fixture(other_org, %{name: "repo1", owner: other_org.name})
 
-      agent1 = agent_fixture(%{repository_id: repo1.id})
-      agent2 = agent_fixture(%{repository_id: repo2.id})
-      agent3 = agent_fixture(%{repository_id: repo3.id})
-      agent4 = agent_fixture(%{repository_id: repo4.id})
-      agent5 = agent_fixture(%{repository_id: repo1.id})
-      agent6 = agent_fixture(%{repository_id: repo3.id})
-      agent7 = agent_fixture(%{repository_id: repo3.id})
+      agent1 = agent_fixture(%{repository_id: repo1.id, user: user})
+      agent2 = agent_fixture(%{repository_id: repo2.id, user: user})
+      agent3 = agent_fixture(%{repository_id: repo3.id, user: user})
+      agent4 = agent_fixture(%{repository_id: repo4.id, user: user})
+      agent5 = agent_fixture(%{repository_id: repo1.id, user: user})
+      agent6 = agent_fixture(%{repository_id: repo3.id, user: user})
+      agent7 = agent_fixture(%{repository_id: repo3.id, user: user})
 
       # This agent should not be in the list for `user`
       other_user = user_fixture(%{username: "another-user"})
@@ -365,7 +409,8 @@ defmodule Swarm.AgentsTest do
       other_user_repo =
         repository_fixture(other_user, %{name: "other_user_repo", owner: other_user.username})
 
-      _agent_for_other_user = agent_fixture(%{repository_id: other_user_repo.id})
+      _agent_for_other_user =
+        agent_fixture(%{user: other_user, repository_id: other_user_repo.id})
 
       %{
         user: user,
