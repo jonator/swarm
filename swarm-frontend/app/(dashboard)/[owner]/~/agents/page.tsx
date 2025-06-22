@@ -28,7 +28,7 @@ export default async function OwnerAgentsPage({
           </p>
         </div>
 
-        <AgentsList params={{ organization_id: '1' }} />
+        <AgentsList organization_name={owner} />
       </div>
     </>
   )

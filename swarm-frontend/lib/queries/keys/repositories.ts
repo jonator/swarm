@@ -1,9 +1,12 @@
 import { queryOptions } from '@tanstack/react-query'
-import { getRepositories } from '../../services/repositories'
+import {
+  getRepositories,
+  type RepositoriesRequest,
+} from '../../services/repositories'
 
-export const repositoriesQuery = () =>
+export const repositoriesQuery = (params?: RepositoriesRequest) =>
   queryOptions({
-    queryKey: ['repositories', 'all'],
-    queryFn: () => getRepositories(),
+    queryKey: params ? ['repositories', params.owner] : ['repositories'],
+    queryFn: () => getRepositories(params),
     staleTime: 30_000, // 30 seconds
   })

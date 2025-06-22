@@ -7,16 +7,27 @@ export type Repository = {
   id: number
   name: string
   owner: string
+  organization_id: number
   linear_team_external_ids: string[]
   created_at: string
   updated_at: string
+}
+
+export type RepositoriesRequest = {
+  owner: string
 }
 
 type RepositoriesResponse = {
   repositories: Repository[]
 }
 
-export async function getRepositories() {
+export async function getRepositories(params?: RepositoriesRequest) {
+  if (params && 'owner' in params) {
+    return apiClientWithAuth
+      .get('repositories', { searchParams: { owner: params.owner! } })
+      .json<RepositoriesResponse>()
+  }
+
   return apiClientWithAuth.get('repositories').json<RepositoriesResponse>()
 }
 

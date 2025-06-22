@@ -5,6 +5,7 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
   alias Swarm.Ingress.GitHubHandler
   alias Swarm.Ingress.Event
   alias Swarm.Accounts
+  alias Swarm.Services.GitHub
   import Swarm.AccountsFixtures
   import Swarm.RepositoriesFixtures
   import Swarm.GitHubEventsFixtures
@@ -68,10 +69,10 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
       params = github_issue_edited_event()
       {:ok, event} = Event.new(params, :github)
 
-      with_mock Swarm.Services.GitHub,
+      with_mock GitHub,
         new: fn organization ->
           assert organization.name == "jonator"
-          {:ok, %Swarm.Services.GitHub{client: Tentacat.Client.new()}}
+          {:ok, %GitHub{client: Tentacat.Client.new()}}
         end,
         issue_comments: fn _client, "jonator", "swarm", 5 ->
           {:ok, @github_issue_comments}
@@ -117,10 +118,10 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
       params = github_issue_opened_mentioned_event()
       {:ok, event} = Event.new(params, :github)
 
-      with_mock Swarm.Services.GitHub,
+      with_mock GitHub,
         new: fn organization ->
           assert organization.name == "jonator"
-          {:ok, %Swarm.Services.GitHub{client: Tentacat.Client.new()}}
+          {:ok, %GitHub{client: Tentacat.Client.new()}}
         end,
         issue_comments: fn _client, "jonator", "swarm", 7 ->
           {:ok, @github_issue_comments}
@@ -171,10 +172,10 @@ defmodule Swarm.Ingress.GitHubHandlerTest do
       params = github_issue_comment_mention_created_event()
       {:ok, event} = Event.new(params, :github)
 
-      with_mock Swarm.Services.GitHub,
+      with_mock GitHub,
         new: fn organization ->
           assert organization.name == "jonator"
-          {:ok, %Swarm.Services.GitHub{client: Tentacat.Client.new()}}
+          {:ok, %GitHub{client: Tentacat.Client.new()}}
         end,
         issue_comments: fn _client, "jonator", "swarm", 5 ->
           {:ok, @github_issue_comments}

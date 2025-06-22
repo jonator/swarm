@@ -23,7 +23,8 @@ defmodule SwarmWeb.RepositoryJSON do
       owner: repository.owner,
       linear_team_external_ids: repository.linear_team_external_ids,
       created_at: repository.inserted_at,
-      updated_at: repository.updated_at
+      updated_at: repository.updated_at,
+      organization_id: repository.organization_id
     }
   end
 end

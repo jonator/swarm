@@ -5,17 +5,17 @@ defmodule SwarmWeb.UserJSON do
   Renders a list of users.
   """
   def index(%{users: users}) do
-    %{data: for(user <- users, do: data(user))}
+    %{users: for(user <- users, do: user(user))}
   end
 
   @doc """
   Renders a single user.
   """
   def show(%{user: user}) do
-    %{data: data(user)}
+    %{user: user(user)}
   end
 
-  defp data(%User{} = user) do
+  defp user(%User{} = user) do
     %{
       id: user.id,
       email: user.email,

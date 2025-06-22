@@ -1,5 +1,10 @@
-import { DateTime } from "luxon"
-import type { AgentSource, AgentStatus, AgentType, ResponseAgent } from "../services/agents"
+import { DateTime } from 'luxon'
+import type {
+  AgentSource,
+  AgentStatus,
+  AgentType,
+  ResponseAgent,
+} from '../services/agents'
 
 export type Agent = {
   id: string

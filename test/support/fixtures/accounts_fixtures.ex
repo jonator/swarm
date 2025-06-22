@@ -10,7 +10,7 @@ defmodule Swarm.AccountsFixtures do
   def user_fixture(
         attrs \\ %{
           email: "test@test.com",
-          username: "User",
+          username: "user",
           avatar_url: "https://example.com/avatar.jpg",
           role: "user"
         }

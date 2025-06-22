@@ -33,7 +33,8 @@ defmodule Swarm.Agents do
     query =
       from a in Agent,
         join: r in assoc(a, :repository),
-        where: r.organization_id in ^user_organization_ids
+        join: o in assoc(r, :organization),
+        where: o.id in ^user_organization_ids
 
     # Apply filters from params
     query
@@ -41,17 +42,25 @@ defmodule Swarm.Agents do
     |> Repo.all()
   end
 
-  defp apply_filters(query, %{"repository_id" => repository_id}) do
-    from [a, r] in query,
-      where: r.id == ^repository_id
+  defp apply_filters(query, params) do
+    query
+    |> apply_repository_name_filter(Map.get(params, "repository_name"))
+    |> apply_organization_name_filter(Map.get(params, "organization_name"))
   end
 
-  defp apply_filters(query, %{"organization_id" => organization_id}) do
-    from [a, r] in query,
-      where: r.organization_id == ^organization_id
+  defp apply_repository_name_filter(query, repository_name)
+       when is_binary(repository_name) and repository_name != "" do
+    where(query, [_, r, _], r.name == ^repository_name)
   end
 
-  defp apply_filters(query, _), do: query
+  defp apply_repository_name_filter(query, _), do: query
+
+  defp apply_organization_name_filter(query, organization_name)
+       when is_binary(organization_name) and organization_name != "" do
+    where(query, [_, _, o], o.name == ^organization_name)
+  end
+
+  defp apply_organization_name_filter(query, _), do: query
 
   @doc """
   Gets a single agent.

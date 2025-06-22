@@ -58,6 +58,12 @@ defmodule SwarmWeb.Router do
       resources "/", RepositoryController, only: [:index, :create, :update]
     end
 
+    # Organizations
+    scope "/organizations" do
+      pipe_through [:ensure_auth]
+      resources "/", OrganizationController, only: [:index, :create, :update]
+    end
+
     # GitHub
     scope "/github" do
       pipe_through [:ensure_auth]

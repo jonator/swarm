@@ -7,8 +7,8 @@ defmodule SwarmWeb.RepositoryController do
 
   action_fallback SwarmWeb.FallbackController
 
-  def index(conn, _params, user) do
-    repositories = Repositories.list_repositories(user)
+  def index(conn, params, user) do
+    repositories = Repositories.list_repositories(user, params)
     render(conn, :index, repositories: repositories)
   end
 

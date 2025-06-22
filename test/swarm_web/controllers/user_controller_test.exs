@@ -43,26 +43,27 @@ defmodule SwarmWeb.UserControllerTest do
     test "lists all users", %{conn: conn} do
       conn = get(conn, ~p"/api/admin/users")
 
-      assert length(json_response(conn, 200)["data"]) == 1
+      assert length(json_response(conn, 200)["users"]) == 1
     end
   end
 
   describe "create user" do
     test "renders user when data is valid", %{conn: conn} do
       conn = post(conn, ~p"/api/admin/users", %{user: @create_attrs})
-      assert %{"id" => id} = json_response(conn, 201)["data"]
+      assert %{"id" => id} = json_response(conn, 201)["user"]
 
       conn = get(conn, ~p"/api/admin/users/#{id}")
-      response = json_response(conn, 200)["data"]
+      response = json_response(conn, 200)["user"]
+
       assert %{
-        "id" => ^id,
-        "avatar_url" => "https://example.com/avatar.jpg",
-        "email" => "create@email.com",
-        "username" => "createuser",
-        "role" => "user",
-        "created_at" => _,
-        "updated_at" => _
-      } = response
+               "id" => ^id,
+               "avatar_url" => "https://example.com/avatar.jpg",
+               "email" => "create@email.com",
+               "username" => "createuser",
+               "role" => "user",
+               "created_at" => _,
+               "updated_at" => _
+             } = response
     end
 
     test "renders errors when data is invalid", %{conn: conn} do
@@ -71,7 +72,13 @@ defmodule SwarmWeb.UserControllerTest do
     end
 
     test "renders errors when avatar_url is too long", %{conn: conn} do
-      attrs = Map.put(@create_attrs, :avatar_url, "https://" <> String.duplicate("a", 300) <> ".com/image.jpg")
+      attrs =
+        Map.put(
+          @create_attrs,
+          :avatar_url,
+          "https://" <> String.duplicate("a", 300) <> ".com/image.jpg"
+        )
+
       conn = post(conn, ~p"/api/admin/users", %{user: attrs})
       assert json_response(conn, 422)["errors"] != %{}
     end
@@ -88,19 +95,20 @@ defmodule SwarmWeb.UserControllerTest do
 
     test "renders user when data is valid", %{conn: conn, user: %User{id: id}} do
       conn = put(conn, ~p"/api/admin/users/#{id}", %{user: @update_attrs})
-      assert %{"id" => ^id} = json_response(conn, 200)["data"]
+      assert %{"id" => ^id} = json_response(conn, 200)["user"]
 
       conn = get(conn, ~p"/api/admin/users/#{id}")
-      response = json_response(conn, 200)["data"]
+      response = json_response(conn, 200)["user"]
+
       assert %{
-        "id" => ^id,
-        "avatar_url" => "https://example.com/updated_avatar.jpg",
-        "email" => "updated@email.com",
-        "username" => "updateduser",
-        "role" => "user",
-        "created_at" => _,
-        "updated_at" => _
-      } = response
+               "id" => ^id,
+               "avatar_url" => "https://example.com/updated_avatar.jpg",
+               "email" => "updated@email.com",
+               "username" => "updateduser",
+               "role" => "user",
+               "created_at" => _,
+               "updated_at" => _
+             } = response
     end
 
     test "renders errors when data is invalid", %{conn: conn, user: %User{id: id}} do

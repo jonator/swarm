@@ -103,8 +103,8 @@ const sourceMap = {
   manual: { label: 'Manual', icon: UserIcon },
 }
 
-export function AgentsList({ params }: { params: GetAgentsParams }) {
-  const { data: agents = [], isLoading, error } = useAgents({ ...params })
+export function AgentsList(props: GetAgentsParams) {
+  const { data: agents = [], isLoading, error } = useAgents(props)
 
   if (isLoading) {
     return (

@@ -1,7 +1,6 @@
 'use server'
 
 import { apiClientWithAuth } from '@/lib/client/authed'
-import { DateTime } from 'luxon'
 
 export type AgentStatus = 'pending' | 'running' | 'completed' | 'failed'
 export type AgentSource = 'manual' | 'linear' | 'slack' | 'github'
@@ -31,10 +30,10 @@ export type AgentsResponse = {
 
 export type GetAgentsParams =
   | {
-      repository_id: string
+      repository_name: string
     }
   | {
-      organization_id: string
+      organization_name: string
     }
 
 export async function getAgents(params: GetAgentsParams) {
