@@ -1,4 +1,5 @@
 'use client'
+
 import {
   Card,
   CardHeader,
@@ -25,9 +26,7 @@ import {
 import { cn } from '@/lib/utils/shadcn'
 import Link from 'next/link'
 import { DateTime } from 'luxon'
-import Image from 'next/image'
-import { useTheme } from 'next-themes'
-import { useState, useEffect } from 'react'
+import { LinearLogo } from './linear-logo'
 
 const statusMap = {
   completed: {
@@ -68,31 +67,6 @@ const typeMap = {
     color: 'bg-secondary text-secondary-foreground border border-border',
     icon: FileText,
   },
-}
-
-const LinearLogo = ({ className }: { className?: string }) => {
-  const [mounted, setMounted] = useState(false)
-  const { resolvedTheme } = useTheme()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const logoSrc = mounted
-    ? resolvedTheme === 'dark'
-      ? '/linear-light-logo.svg'
-      : '/linear-dark-logo.svg'
-    : '/linear-dark-logo.svg'
-
-  return (
-    <Image
-      src={logoSrc}
-      alt='Linear'
-      className={className}
-      width={16}
-      height={16}
-    />
-  )
 }
 
 const sourceMap = {
