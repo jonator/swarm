@@ -85,6 +85,7 @@ defmodule Swarm.Services.GitHub do
 
   def installation_repositories(%User{} = user, target_type)
       when target_type in ["User", "Organization"] do
+    # TODO: this should iterate over installations, at least in Organizations case
     with {:ok, %__MODULE__{} = client} <- new(user),
          {:ok, %{"installations" => installations}} <- installations(client),
          %{"id" => installation_id} <-
@@ -99,9 +100,30 @@ defmodule Swarm.Services.GitHub do
 
   def installation_repositories(%__MODULE__{client: client}, installation_id) do
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-    with {200, repositories, _} <-
-           Tentacat.App.Installations.list_repositories_for_user(client, installation_id) do
-      {:ok, repositories}
+    response = Tentacat.App.Installations.list_repositories_for_user(client, installation_id)
+
+    case flatten_maybe_paginated_response(response, "repositories") do
+      {:ok, repos} -> {:ok, %{"repositories" => repos}}
+      error -> error
+    end
+  end
+
+  defp flatten_maybe_paginated_response(response, key) do
+    case response do
+      {200, pages, _} when is_list(pages) ->
+        all_items =
+          Enum.flat_map(pages, fn
+            {200, %{^key => items}, _} -> items
+            _ -> []
+          end)
+
+        {:ok, all_items}
+
+      {200, %{^key => items}, _} ->
+        {:ok, items}
+
+      error ->
+        error
     end
   end
 
