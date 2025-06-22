@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useTheme } from 'next-themes'
 import Image from 'next/image'
+import { useEffect, useState } from 'react'
 
 export const LinearLogo = ({ className }: { className?: string }) => {
   const [mounted, setMounted] = useState(false)
@@ -27,4 +27,4 @@ export const LinearLogo = ({ className }: { className?: string }) => {
       height={16}
     />
   )
-} 
+}

@@ -1,6 +1,9 @@
 import { AgentsList } from '@/components/agents'
 import Navbar from '@/components/navbar'
+import { getQueryClient } from '@/config/tanstack-query'
+import { agentsQuery } from '@/lib/queries/keys/agents'
 import { getUser } from '@/lib/services/users'
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
 
 export default async function OwnerAgentsPage({
   params,
@@ -8,8 +11,11 @@ export default async function OwnerAgentsPage({
   const { owner } = await params
   const { user } = await getUser()
 
+  const queryClient = getQueryClient()
+  await queryClient.prefetchQuery(agentsQuery({ organization_name: owner }))
+
   return (
-    <>
+    <HydrationBoundary state={dehydrate(queryClient)}>
       <Navbar
         user={user}
         pathname={`/${owner}`}
@@ -30,6 +36,6 @@ export default async function OwnerAgentsPage({
 
         <AgentsList organization_name={owner} />
       </div>
-    </>
+    </HydrationBoundary>
   )
 }

@@ -9,9 +9,7 @@ export async function submitLinearAuth(code: string) {
 }
 
 export async function hasLinearAccess() {
-  return apiClientWithAuth
-    .get('auth/linear')
-    .json<{ has_access: boolean }>()
+  return apiClientWithAuth.get('auth/linear').json<{ has_access: boolean }>()
 }
 
 type LinearTeam = {

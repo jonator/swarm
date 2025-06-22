@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { repositoriesQuery } from '../keys/repositories'
 import { getRepositoryById } from '../../services/repositories'
+import { repositoriesQuery } from '../keys/repositories'
 
 export const useRepositories = () => {
   return useQuery({

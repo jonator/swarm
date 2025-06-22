@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query'
 import {
-  getRepositories,
   type RepositoriesRequest,
+  getRepositories,
 } from '../../services/repositories'
 
 export const repositoriesQuery = (params?: RepositoriesRequest) =>

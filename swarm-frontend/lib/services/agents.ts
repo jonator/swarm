@@ -7,7 +7,7 @@ export type AgentSource = 'manual' | 'linear' | 'slack' | 'github'
 export type AgentType = 'researcher' | 'coder' | 'code_reviewer'
 
 export type ResponseAgent = {
-  id: string
+  id: number
   name: string
   context: string
   status: AgentStatus

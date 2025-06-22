@@ -50,6 +50,7 @@ defmodule SwarmWeb.Router do
     scope "/users" do
       pipe_through [:ensure_auth]
       get "/", UserController, :show
+      get "/:id", UserController, :show
     end
 
     # Repositories

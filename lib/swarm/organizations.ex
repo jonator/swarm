@@ -7,6 +7,7 @@ defmodule Swarm.Organizations do
   alias Swarm.Repo
 
   alias Swarm.Organizations.Organization
+  alias Swarm.Accounts
   alias Swarm.Accounts.User
   alias Swarm.Accounts.UserOrganization
 
@@ -51,6 +52,51 @@ defmodule Swarm.Organizations do
 
   """
   def get_organization!(id), do: Repo.get!(Organization, id)
+
+  @doc """
+  Gets a user by ID if they share an organization with the given user.
+  Includes the same user if they are a member of the organization.
+
+  Returns `nil` if the user doesn't exist or doesn't share any organizations.
+
+  ## Examples
+
+      iex> get_shared_user(user, 123)
+      %User{}
+
+      iex> get_shared_user(user, 456)
+      nil
+
+  """
+  def get_shared_user(%User{} = user, shared_user_id) do
+    if user.id == shared_user_id do
+      user
+    else
+      user_org_ids =
+        user
+        |> Repo.preload(:organizations)
+        |> Map.get(:organizations)
+        |> Enum.map(& &1.id)
+
+      case Accounts.get_user(shared_user_id) do
+        nil ->
+          nil
+
+        shared_user ->
+          shared_user_org_ids =
+            shared_user
+            |> Repo.preload(:organizations)
+            |> Map.get(:organizations)
+            |> Enum.map(& &1.id)
+
+          if Enum.any?(user_org_ids, fn org_id -> org_id in shared_user_org_ids end) do
+            shared_user
+          else
+            nil
+          end
+      end
+    end
+  end
 
   @doc """
   Gets an organization by GitHub installation ID.

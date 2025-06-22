@@ -1,32 +1,34 @@
 'use client'
 
+import { LinearLogo } from '@/components/linear-logo'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
-} from './ui/card'
+} from '@/components/ui/card'
 import type { Agent } from '@/lib/models/agents'
+import { useUser } from '@/lib/queries/hooks/users'
+import { cn } from '@/lib/utils/shadcn'
 import {
+  Calendar,
   CheckCircle,
-  Play,
   Clock,
-  XCircle,
-  Search,
   Code,
+  ExternalLink,
   FileText,
+  GitBranch,
   Github,
   MessageSquare,
+  Play,
+  Search,
   User as UserIcon,
-  GitBranch,
-  Calendar,
-  ExternalLink,
+  XCircle,
 } from 'lucide-react'
-import { cn } from '@/lib/utils/shadcn'
-import Link from 'next/link'
 import { DateTime } from 'luxon'
-import { LinearLogo } from './linear-logo'
+import Link from 'next/link'
 
 const statusMap = {
   completed: {
@@ -77,11 +79,11 @@ const sourceMap = {
 }
 
 export function AgentCard({ agent }: { agent: Agent }) {
+  const { user } = useUser(agent.user_id)
   const StatusIcon = statusMap[agent.status]?.icon
   const TypeIcon = typeMap[agent.type]?.icon
   const SourceIcon = sourceMap[agent.source]?.icon
   const repoLabel = agent.repository_id ? `Repo #${agent.repository_id}` : ''
-  const userLabel = agent.user_id ? `User #${agent.user_id}` : ''
   const startedAgo = agent.started_at ? agent.started_at.toRelative() : ''
   const isActive = agent.status === 'running' || agent.status === 'pending'
   const durationLabel = isActive
@@ -136,10 +138,15 @@ export function AgentCard({ agent }: { agent: Agent }) {
               {repoLabel}
             </span>
           )}
-          {userLabel && (
-            <span className='inline-flex items-center gap-1'>
-              <UserIcon className='h-4 w-4 text-muted-foreground' aria-hidden />
-              {userLabel}
+          {user && (
+            <span className='inline-flex items-center gap-1.5'>
+              <Avatar className='h-4 w-4'>
+                <AvatarImage src={user.avatar_url} alt={user.username} />
+                <AvatarFallback>
+                  {user.username.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {user.username}
             </span>
           )}
           {startedAgo && (
