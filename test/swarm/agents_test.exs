@@ -2,7 +2,10 @@ defmodule Swarm.AgentsTest do
   use Swarm.DataCase
 
   alias Swarm.Agents
+  alias Swarm.Organizations
   import Swarm.AgentsFixtures
+  import Swarm.AccountsFixtures
+  import Swarm.RepositoriesFixtures
 
   describe "agents" do
     alias Swarm.Agents.Agent
@@ -17,11 +20,6 @@ defmodule Swarm.AgentsTest do
       external_ids: nil,
       completed_at: nil
     }
-
-    test "list_agents/0 returns all agents" do
-      agent = agent_fixture()
-      assert Agents.list_agents() == [agent]
-    end
 
     test "get_agent!/1 returns the agent with given id" do
       agent = agent_fixture()
@@ -341,6 +339,108 @@ defmodule Swarm.AgentsTest do
       assert linear_agent in result
       assert github_agent in result
       assert slack_agent in result
+    end
+  end
+
+  describe "list_agents/2" do
+    setup do
+      user = user_fixture()
+      repo1 = repository_fixture(user, %{name: "repo1", owner: user.username})
+      repo2 = repository_fixture(user, %{name: "repo2", owner: user.username})
+      {:ok, other_org} = Organizations.get_or_create_organization(user, "other_org", 123_456)
+      repo3 = repository_fixture(other_org, %{name: "repo3", owner: other_org.name})
+      repo4 = repository_fixture(other_org, %{name: "repo1", owner: other_org.name})
+
+      agent1 = agent_fixture(%{repository_id: repo1.id})
+      agent2 = agent_fixture(%{repository_id: repo2.id})
+      agent3 = agent_fixture(%{repository_id: repo3.id})
+      agent4 = agent_fixture(%{repository_id: repo4.id})
+      agent5 = agent_fixture(%{repository_id: repo1.id})
+      agent6 = agent_fixture(%{repository_id: repo3.id})
+      agent7 = agent_fixture(%{repository_id: repo3.id})
+
+      # This agent should not be in the list for `user`
+      other_user = user_fixture(%{username: "another-user"})
+
+      other_user_repo =
+        repository_fixture(other_user, %{name: "other_user_repo", owner: other_user.username})
+
+      _agent_for_other_user = agent_fixture(%{repository_id: other_user_repo.id})
+
+      %{
+        user: user,
+        other_org: other_org,
+        agents: [agent1, agent2, agent3, agent4, agent5, agent6, agent7]
+      }
+    end
+
+    test "with no params returns all user agents", %{
+      user: user,
+      agents: [agent1, agent2, agent3, agent4, agent5, agent6, agent7]
+    } do
+      agents = Agents.list_agents(user, %{})
+      assert length(agents) == 7
+      assert agent1 in agents
+      assert agent2 in agents
+      assert agent3 in agents
+      assert agent4 in agents
+      assert agent5 in agents
+      assert agent6 in agents
+      assert agent7 in agents
+    end
+
+    test "with organization_name param returns agents for that organization", %{
+      user: user,
+      other_org: other_org,
+      agents: [agent1, agent2, agent3, agent4, agent5, agent6, agent7]
+    } do
+      agents = Agents.list_agents(user, %{"organization_name" => other_org.name})
+      assert length(agents) == 4
+      assert agent3 in agents
+      assert agent4 in agents
+      assert agent6 in agents
+      assert agent7 in agents
+      assert agent1 not in agents
+      assert agent2 not in agents
+      assert agent5 not in agents
+    end
+
+    test "with repository_name param returns agents for that repository", %{
+      user: user,
+      agents: [agent1, _, _, agent4, agent5, _, _]
+    } do
+      agents = Agents.list_agents(user, %{"repository_name" => "repo1"})
+      assert length(agents) == 3
+      assert agent1 in agents
+      assert agent4 in agents
+      assert agent5 in agents
+    end
+
+    test "with organization_name and repository_name returns agents for that repo in that org", %{
+      user: user,
+      other_org: other_org,
+      agents: [agent1, _, agent3, agent4, _, agent6, agent7]
+    } do
+      agents_for_repo_in_org =
+        Agents.list_agents(user, %{
+          "organization_name" => other_org.name,
+          "repository_name" => "repo1"
+        })
+
+      assert length(agents_for_repo_in_org) == 1
+      assert agent4 in agents_for_repo_in_org
+      assert agent1 not in agents_for_repo_in_org
+
+      agents_for_other_repo_in_org =
+        Agents.list_agents(user, %{
+          "organization_name" => other_org.name,
+          "repository_name" => "repo3"
+        })
+
+      assert length(agents_for_other_repo_in_org) == 3
+      assert agent3 in agents_for_other_repo_in_org
+      assert agent6 in agents_for_other_repo_in_org
+      assert agent7 in agents_for_other_repo_in_org
     end
   end
 end
