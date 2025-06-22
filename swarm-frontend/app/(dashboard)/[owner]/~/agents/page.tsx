@@ -6,7 +6,7 @@ export default async function OwnerAgentsPage({
   params,
 }: { params: Promise<{ owner: string }> }) {
   const { owner } = await params
-  const { data: user } = await getUser()
+  const { user } = await getUser()
 
   return (
     <>

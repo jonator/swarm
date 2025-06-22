@@ -5,7 +5,7 @@ export default async function RepoPage({
   params,
 }: { params: Promise<{ owner: string; repo: string }> }) {
   const { owner, repo } = await params
-  const { data: user } = await getUser()
+  const { user } = await getUser()
 
   return (
     <>

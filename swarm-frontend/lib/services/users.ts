@@ -8,5 +8,5 @@ export type User = {
 }
 
 export async function getUser() {
-  return apiClientWithAuth.get('users').json<{ data: User }>()
+  return apiClientWithAuth.get('users').json<{ user: User }>()
 }
