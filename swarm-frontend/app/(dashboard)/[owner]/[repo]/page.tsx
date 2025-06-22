@@ -14,6 +14,7 @@ export default async function RepoPage({
         pathname={`/${owner}/${repo}`}
         tabs={[
           { label: 'Overview', href: `/${owner}/${repo}`, active: true },
+          { label: 'Agents', href: `/${owner}/${repo}/agents` },
           { label: 'Settings', href: `/${owner}/${repo}/settings` },
         ]}
       />
