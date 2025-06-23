@@ -56,7 +56,7 @@ defmodule SwarmWeb.Router do
     # Repositories
     scope "/repositories" do
       pipe_through [:ensure_auth]
-      resources "/", RepositoryController, only: [:index, :create, :update]
+      resources "/", RepositoryController, only: [:index, :show, :create, :update]
     end
 
     # Organizations

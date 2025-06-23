@@ -85,9 +85,9 @@ export default function Navbar({
             pathname={pathname}
             hierarchy={[
               {
-                label: 'Teams',
+                label: 'Organizations',
                 onCreateClick: () => console.log('Create new team'),
-                createCta: 'Create Team',
+                createCta: 'Create Organization',
               },
               {
                 label: 'Repositories',

@@ -13,22 +13,28 @@ export type Repository = {
   updated_at: string
 }
 
-export type RepositoriesRequest = {
+export type GetRepositoriesParams = {
   owner: string
 }
 
-type RepositoriesResponse = {
-  repositories: Repository[]
-}
-
-export async function getRepositories(params?: RepositoriesRequest) {
+export async function getRepositories(params?: GetRepositoriesParams) {
   if (params && 'owner' in params) {
     return apiClientWithAuth
       .get('repositories', { searchParams: { owner: params.owner! } })
-      .json<RepositoriesResponse>()
+      .json<{
+        repositories: Repository[]
+      }>()
   }
 
-  return apiClientWithAuth.get('repositories').json<RepositoriesResponse>()
+  return apiClientWithAuth.get('repositories').json<{
+    repositories: Repository[]
+  }>()
+}
+
+export async function getRepository(id: number) {
+  return apiClientWithAuth
+    .get(`repositories/${id}`)
+    .json<{ repository: Repository }>()
 }
 
 export type CreateRepositoryParams =
@@ -64,11 +70,5 @@ export async function updateRepository(
 export async function migrateRepositories() {
   return apiClientWithAuth
     .post('repositories/migrate')
-    .json<RepositoriesResponse>()
-}
-
-export async function getRepositoryById(id: number) {
-  return apiClientWithAuth
-    .get(`repositories/${id}`)
-    .json<{ repository: Repository }>()
+    .json<{ repositories: Repository[] }>()
 }

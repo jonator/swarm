@@ -12,6 +12,18 @@ defmodule SwarmWeb.RepositoryController do
     render(conn, :index, repositories: repositories)
   end
 
+  def show(conn, %{"id" => id}, user) do
+    case Repositories.get_user_repository(user, id) do
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Repository not found"})
+
+      repository ->
+        render(conn, :show, repository: repository)
+    end
+  end
+
   def create(conn, %{"repository" => params}, user) do
     with {:ok, repository} <- Repositories.create_repository(user, params) do
       conn

@@ -3,6 +3,6 @@ import { queryOptions } from '@tanstack/react-query'
 
 export const usersQuery = (params: GetUserParams = {}) =>
   queryOptions({
-    queryKey: params.id ? ['users', params.id.toString()] : ['users'],
+    queryKey: params.id ? ['users', params.id.toString()] : ['users', 'list'],
     queryFn: () => getUser(params),
   })

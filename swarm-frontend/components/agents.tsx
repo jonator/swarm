@@ -4,7 +4,6 @@ import type { GetAgentsParams } from '@/lib/services/agents'
 import { AgentCard } from './agent-card'
 
 export function AgentsList(props: GetAgentsParams) {
-  console.log('AgentsList', props)
   const { data: agents = [], isLoading, error } = useAgents(props)
 
   if (isLoading) {

@@ -10,21 +10,21 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import type { Agent } from '@/lib/models/agents'
+import { useRepository } from '@/lib/queries/hooks/repositories'
 import { useUser } from '@/lib/queries/hooks/users'
 import { cn } from '@/lib/utils/shadcn'
 import {
+  BookIcon,
   Calendar,
   CheckCircle,
   Clock,
   Code,
   ExternalLink,
   FileText,
-  GitBranch,
   Github,
   MessageSquare,
   Play,
   Search,
-  User as UserIcon,
   XCircle,
 } from 'lucide-react'
 import { DateTime } from 'luxon'
@@ -71,27 +71,20 @@ const typeMap = {
   },
 }
 
-const sourceMap = {
-  github: { label: 'GitHub', icon: Github },
-  linear: { label: 'Linear', icon: null },
-  slack: { label: 'Slack', icon: MessageSquare },
-  manual: { label: 'Manual', icon: UserIcon },
-}
-
 export function AgentCard({ agent }: { agent: Agent }) {
-  const { user } = useUser(agent.user_id)
+  const { data: user } = useUser(agent.user_id)
+  const { data: repository } = useRepository(agent.repository_id)
+
   const StatusIcon = statusMap[agent.status]?.icon
   const TypeIcon = typeMap[agent.type]?.icon
-  const SourceIcon = sourceMap[agent.source]?.icon
-  const repoLabel = agent.repository_id ? `Repo #${agent.repository_id}` : ''
   const startedAgo = agent.started_at ? agent.started_at.toRelative() : ''
   const isActive = agent.status === 'running' || agent.status === 'pending'
   const durationLabel = isActive
     ? agent.started_at
-      ? `Running for ${DateTime.now().diff(agent.started_at).toHuman({ listStyle: 'long' })}`
+      ? `Running for ${DateTime.now().diff(agent.started_at, 'minutes').toHuman({ listStyle: 'short' })}`
       : ''
     : agent.completed_at && agent.started_at
-      ? `Completed in ${agent.completed_at.diff(agent.started_at).toHuman({ listStyle: 'long' })}`
+      ? `Completed in ${agent.completed_at.diff(agent.started_at).toHuman({ listStyle: 'short' })}`
       : null
 
   return (
@@ -129,13 +122,20 @@ export function AgentCard({ agent }: { agent: Agent }) {
           {agent.context}
         </CardDescription>
         <div className='mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground'>
-          {repoLabel && (
+          {repository && (
             <span className='inline-flex items-center gap-1'>
-              <GitBranch
-                className='h-4 w-4 text-muted-foreground'
-                aria-hidden
-              />
-              {repoLabel}
+              <BookIcon className='h-4 w-4 text-muted-foreground' aria-hidden />
+              {repository ? (
+                <>
+                  <span className='text-muted-foreground'>
+                    {repository.owner}
+                  </span>
+                  <span> / </span>
+                  <span className='font-bold'>{repository.name}</span>
+                </>
+              ) : (
+                ''
+              )}
             </span>
           )}
           {user && (
@@ -161,15 +161,6 @@ export function AgentCard({ agent }: { agent: Agent }) {
               {durationLabel}
             </span>
           )}
-          <span className='inline-flex items-center gap-1'>
-            {SourceIcon && (
-              <SourceIcon
-                className='h-4 w-4 text-muted-foreground'
-                aria-hidden
-              />
-            )}
-            {sourceMap[agent.source]?.label}
-          </span>
           {/* External Links */}
           {agent.external_ids?.github_pr_id && (
             <Link

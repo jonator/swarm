@@ -7,5 +7,7 @@ type Organization = {
 }
 
 export async function getOrganizations() {
-  return apiClientWithAuth.get('organizations').json<Organization>()
+  return apiClientWithAuth.get('organizations').json<{
+    organizations: Organization[]
+  }>()
 }

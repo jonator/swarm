@@ -7,7 +7,7 @@ import type {
 } from '../services/agents'
 
 export type Agent = {
-  id: string
+  id: number
   name: string
   context: string
   status: AgentStatus

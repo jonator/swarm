@@ -1,16 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { usersQuery } from '../keys/users'
 
-export function useUser(id?: number) {
-  const q = usersQuery({ id }).queryKey
-  console.log('useUser', q)
-
-  const query = useQuery({
+export const useUser = (id?: number) =>
+  useQuery({
     ...usersQuery({ id }),
+    select: (data) => data.user,
     enabled: !!id,
   })
-
-  const user = query.data && 'user' in query.data ? query.data.user : undefined
-
-  return { ...query, user }
-}
