@@ -27,11 +27,8 @@ import {
   Search,
   XCircle,
 } from 'lucide-react'
-import {
-  format,
-  formatDistanceStrict,
-  formatDistanceToNowStrict,
-} from 'date-fns'
+import { formatDistanceStrict, formatDistanceToNowStrict } from 'date-fns'
+import { format, toZonedTime } from 'date-fns-tz'
 import Link from 'next/link'
 
 const statusMap = {
@@ -75,14 +72,30 @@ const typeMap = {
   },
 }
 
-export function AgentCard({ agent, now }: { agent: Agent; now: Date }) {
+export function AgentCard({
+  agent,
+  now,
+  timeZone,
+}: {
+  agent: Agent
+  now: Date
+  timeZone: string
+}) {
   const { data: user } = useUser(agent.user_id)
   const { data: repository } = useRepository(agent.repository_id)
 
+  // Always treat as UTC, then convert for display
+  const startedAtZoned = agent.started_at
+    ? toZonedTime(agent.started_at, timeZone)
+    : undefined
+  const completedAtZoned = agent.completed_at
+    ? toZonedTime(agent.completed_at, timeZone)
+    : undefined
+
   const StatusIcon = statusMap[agent.status]?.icon
   const TypeIcon = typeMap[agent.type]?.icon
-  const startedAgo = agent.started_at
-    ? formatDistanceToNowStrict(agent.started_at, { addSuffix: true })
+  const startedAgo = startedAtZoned
+    ? formatDistanceToNowStrict(startedAtZoned, { addSuffix: true })
     : ''
   const isActive = agent.status === 'running' || agent.status === 'pending'
   const durationLabel = isActive
@@ -90,20 +103,14 @@ export function AgentCard({ agent, now }: { agent: Agent; now: Date }) {
       ? `Running for ${formatDistanceStrict(now, agent.started_at)}`
       : ''
     : agent.completed_at && agent.started_at
-      ? `Completed in ${formatDistanceStrict(
-          agent.completed_at,
-          agent.started_at,
-        )}`
+      ? `Completed in ${formatDistanceStrict(agent.completed_at, agent.started_at)}`
       : null
 
   let durationTitle = ''
-  if (isActive && agent.started_at) {
-    durationTitle = `Started at: ${format(agent.started_at, 'PPpp')}`
-  } else if (!isActive && agent.started_at && agent.completed_at) {
-    durationTitle = `Started: ${format(
-      agent.started_at,
-      'PPpp',
-    )}\nCompleted: ${format(agent.completed_at, 'PPpp')}`
+  if (isActive && startedAtZoned) {
+    durationTitle = `Started at: ${format(startedAtZoned, 'PPpp', { timeZone })}`
+  } else if (!isActive && startedAtZoned && completedAtZoned) {
+    durationTitle = `Started: ${format(startedAtZoned, 'PPpp', { timeZone })}\nCompleted: ${format(completedAtZoned, 'PPpp', { timeZone })}`
   }
 
   return (
@@ -168,10 +175,10 @@ export function AgentCard({ agent, now }: { agent: Agent; now: Date }) {
               {user.username}
             </span>
           )}
-          {startedAgo && agent.started_at && (
+          {startedAgo && startedAtZoned && (
             <span
               className='inline-flex items-center gap-1'
-              title={format(agent.started_at, 'PPpp')}
+              title={format(startedAtZoned, 'PPpp', { timeZone })}
             >
               <Calendar className='h-4 w-4 text-muted-foreground' aria-hidden />
               {startedAgo}

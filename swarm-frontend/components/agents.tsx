@@ -3,8 +3,10 @@ import { useAgents } from '@/lib/queries/hooks/agents'
 import type { GetAgentsParams } from '@/lib/services/agents'
 import { AgentCard } from './agent-card'
 
-export function AgentsList(props: GetAgentsParams & { now: Date }) {
-  const { now, ...agentParams } = props
+export function AgentsList(
+  props: GetAgentsParams & { now: Date; timeZone: string },
+) {
+  const { now, timeZone, ...agentParams } = props
   const { data: agents = [], isLoading, error } = useAgents(agentParams)
 
   if (isLoading) {
@@ -30,7 +32,7 @@ export function AgentsList(props: GetAgentsParams & { now: Date }) {
   return (
     <section className='flex flex-col gap-4 w-full py-8 px-2 md:px-0'>
       {agents.map((agent) => (
-        <AgentCard agent={agent} key={agent.id} now={now} />
+        <AgentCard agent={agent} key={agent.id} now={now} timeZone={timeZone} />
       ))}
     </section>
   )

@@ -3,13 +3,22 @@ import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
 import { agentsQuery } from '@/lib/queries/keys/agents'
 import { getUser } from '@/lib/services/users'
+import { getNow } from '@/lib/utils/date'
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
+import { headers } from 'next/headers'
 
 export default async function OwnerAgentsPage({
   params,
 }: { params: Promise<{ owner: string; repo: string }> }) {
-  const [{ owner, repo }, { user }] = await Promise.all([params, getUser()])
-  const now = new Date()
+  const [{ owner, repo }, { user }, headerList] = await Promise.all([
+    params,
+    getUser(),
+    headers(),
+  ])
+  const now = getNow()
+  const timeZone =
+    headerList.get('x-vercel-ip-timezone') ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone
 
   const queryClient = getQueryClient()
   await queryClient.prefetchQuery(
@@ -47,6 +56,7 @@ export default async function OwnerAgentsPage({
           organization_name={owner}
           repository_name={repo}
           now={now}
+          timeZone={timeZone}
         />
       </div>
     </HydrationBoundary>
