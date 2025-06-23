@@ -27,7 +27,11 @@ import {
   Search,
   XCircle,
 } from 'lucide-react'
-import { DateTime } from 'luxon'
+import {
+  format,
+  formatDistanceStrict,
+  formatDistanceToNowStrict,
+} from 'date-fns'
 import Link from 'next/link'
 
 const statusMap = {
@@ -71,21 +75,36 @@ const typeMap = {
   },
 }
 
-export function AgentCard({ agent }: { agent: Agent }) {
+export function AgentCard({ agent, now }: { agent: Agent; now: Date }) {
   const { data: user } = useUser(agent.user_id)
   const { data: repository } = useRepository(agent.repository_id)
 
   const StatusIcon = statusMap[agent.status]?.icon
   const TypeIcon = typeMap[agent.type]?.icon
-  const startedAgo = agent.started_at ? agent.started_at.toRelative() : ''
+  const startedAgo = agent.started_at
+    ? formatDistanceToNowStrict(agent.started_at, { addSuffix: true })
+    : ''
   const isActive = agent.status === 'running' || agent.status === 'pending'
   const durationLabel = isActive
     ? agent.started_at
-      ? `Running for ${DateTime.now().diff(agent.started_at, 'minutes').toHuman({ listStyle: 'short' })}`
+      ? `Running for ${formatDistanceStrict(now, agent.started_at)}`
       : ''
     : agent.completed_at && agent.started_at
-      ? `Completed in ${agent.completed_at.diff(agent.started_at).toHuman({ listStyle: 'short' })}`
+      ? `Completed in ${formatDistanceStrict(
+          agent.completed_at,
+          agent.started_at,
+        )}`
       : null
+
+  let durationTitle = ''
+  if (isActive && agent.started_at) {
+    durationTitle = `Started at: ${format(agent.started_at, 'PPpp')}`
+  } else if (!isActive && agent.started_at && agent.completed_at) {
+    durationTitle = `Started: ${format(
+      agent.started_at,
+      'PPpp',
+    )}\nCompleted: ${format(agent.completed_at, 'PPpp')}`
+  }
 
   return (
     <Card
@@ -149,14 +168,20 @@ export function AgentCard({ agent }: { agent: Agent }) {
               {user.username}
             </span>
           )}
-          {startedAgo && (
-            <span className='inline-flex items-center gap-1'>
+          {startedAgo && agent.started_at && (
+            <span
+              className='inline-flex items-center gap-1'
+              title={format(agent.started_at, 'PPpp')}
+            >
               <Calendar className='h-4 w-4 text-muted-foreground' aria-hidden />
               {startedAgo}
             </span>
           )}
           {durationLabel && (
-            <span className='inline-flex items-center gap-1'>
+            <span
+              className='inline-flex items-center gap-1'
+              title={durationTitle}
+            >
               <Clock className='h-4 w-4 text-muted-foreground' aria-hidden />
               {durationLabel}
             </span>

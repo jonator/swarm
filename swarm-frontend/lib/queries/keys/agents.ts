@@ -16,10 +16,8 @@ export const agentsQuery = (params: GetAgentsParams) =>
     refetchInterval: 1000 * 5, // 5 seconds
     select: (data) => {
       const parsedData = data.agents.map(parseAgent)
-      return parsedData.sort((a, b) =>
-        (a.created_at?.toMillis?.() ?? 0) < (b.created_at?.toMillis?.() ?? 0)
-          ? 1
-          : -1,
+      return parsedData.sort(
+        (a, b) => b.created_at.getTime() - a.created_at.getTime(),
       )
     },
   })

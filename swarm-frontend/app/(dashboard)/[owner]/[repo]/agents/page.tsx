@@ -9,6 +9,7 @@ export default async function OwnerAgentsPage({
   params,
 }: { params: Promise<{ owner: string; repo: string }> }) {
   const [{ owner, repo }, { user }] = await Promise.all([params, getUser()])
+  const now = new Date()
 
   const queryClient = getQueryClient()
   await queryClient.prefetchQuery(
@@ -42,7 +43,11 @@ export default async function OwnerAgentsPage({
           </p>
         </div>
 
-        <AgentsList organization_name={owner} repository_name={repo} />
+        <AgentsList
+          organization_name={owner}
+          repository_name={repo}
+          now={now}
+        />
       </div>
     </HydrationBoundary>
   )
