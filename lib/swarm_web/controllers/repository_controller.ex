@@ -7,9 +7,21 @@ defmodule SwarmWeb.RepositoryController do
 
   action_fallback SwarmWeb.FallbackController
 
-  def index(conn, _params, user) do
-    repositories = Repositories.list_repositories(user)
+  def index(conn, params, user) do
+    repositories = Repositories.list_repositories(user, params)
     render(conn, :index, repositories: repositories)
+  end
+
+  def show(conn, %{"id" => id}, user) do
+    case Repositories.get_user_repository(user, id) do
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Repository not found"})
+
+      repository ->
+        render(conn, :show, repository: repository)
+    end
   end
 
   def create(conn, %{"repository" => params}, user) do

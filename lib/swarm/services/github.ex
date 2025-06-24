@@ -85,6 +85,7 @@ defmodule Swarm.Services.GitHub do
 
   def installation_repositories(%User{} = user, target_type)
       when target_type in ["User", "Organization"] do
+    # TODO: this should iterate over installations, at least in Organizations case
     with {:ok, %__MODULE__{} = client} <- new(user),
          {:ok, %{"installations" => installations}} <- installations(client),
          %{"id" => installation_id} <-
@@ -99,9 +100,30 @@ defmodule Swarm.Services.GitHub do
 
   def installation_repositories(%__MODULE__{client: client}, installation_id) do
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#list-repositories-for-the-authenticated-user
-    with {200, repositories, _} <-
-           Tentacat.App.Installations.list_repositories_for_user(client, installation_id) do
-      {:ok, repositories}
+    response = Tentacat.App.Installations.list_repositories_for_user(client, installation_id)
+
+    case flatten_maybe_paginated_response(response, "repositories") do
+      {:ok, repos} -> {:ok, %{"repositories" => repos}}
+      error -> error
+    end
+  end
+
+  defp flatten_maybe_paginated_response(response, key) do
+    case response do
+      {200, pages, _} when is_list(pages) ->
+        all_items =
+          Enum.flat_map(pages, fn
+            {200, %{^key => items}, _} -> items
+            _ -> []
+          end)
+
+        {:ok, all_items}
+
+      {200, %{^key => items}, _} ->
+        {:ok, items}
+
+      error ->
+        error
     end
   end
 
@@ -161,6 +183,129 @@ defmodule Swarm.Services.GitHub do
   end
 
   @doc """
+  Returns the body for the given issue.
+
+  ## Example
+
+  `
+  {:ok, body} = GitHub.issue_body(github_service, "elixir-lang", "elixir", 2974)
+  `
+
+  ## Response
+
+  `
+  {:ok, "This is the description of the issue"}
+  `
+
+  """
+  def issue_body(%__MODULE__{client: client}, owner, repo, issue_number) do
+    case Tentacat.Issues.find(client, owner, repo, issue_number) do
+      {200, %{"body" => body}, _} ->
+        {:ok, body}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Returns the comments for the given issue.
+
+  ## Example
+
+  `
+  {:ok, comments} = GitHub.issue_comments(github_service, "elixir-lang", "elixir", 2974)
+  `
+
+  ## Example
+
+  `
+  {:ok, comments} = GitHub.issue_comments(github_service, "elixir-lang", "elixir", 2974)
+  `
+
+  Returns a list of comment maps with fields like in the :ok tuple:
+  `
+  [
+    %{
+      "author_association" => "OWNER",
+      "body" => "Test comment",
+      "created_at" => "2025-06-21T03:02:05Z",
+      "html_url" => "https://github.com/jonator/swarm/issues/5#issuecomment-2993277196",
+      "id" => 2993277196,
+      "issue_url" => "https://api.github.com/repos/jonator/swarm/issues/5",
+      "node_id" => "IC_kwDOOSfB686yackM",
+      "performed_via_github_app" => nil,
+      "reactions" => %{
+        "+1" => 0,
+        "-1" => 0,
+        "confused" => 0,
+        "eyes" => 0,
+        "heart" => 0,
+        "hooray" => 0,
+        "laugh" => 0,
+        "rocket" => 0,
+        "total_count" => 0,
+        "url" => "https://api.github.com/repos/jonator/swarm/issues/comments/2993277196/reactions"
+      },
+      "updated_at" => "2025-06-21T03:02:05Z",
+      "url" => "https://api.github.com/repos/jonator/swarm/issues/comments/2993277196",
+      "user" => %{
+        "avatar_url" => "https://avatars.githubusercontent.com/u/4606373?v=4",
+        "events_url" => "https://api.github.com/users/jonator/events{/privacy}",
+        "followers_url" => "https://api.github.com/users/jonator/followers",
+        "following_url" => "https://api.github.com/users/jonator/following{/other_user}",
+        "gists_url" => "https://api.github.com/users/jonator/gists{/gist_id}",
+        "gravatar_id" => "",
+        "html_url" => "https://github.com/jonator",
+        "id" => 4606373,
+        "login" => "jonator",
+        "node_id" => "MDQ6VXNlcjQ2MDYzNzM=",
+        "organizations_url" => "https://api.github.com/users/jonator/orgs",
+        "received_events_url" => "https://api.github.com/users/jonator/received_events",
+        "repos_url" => "https://api.github.com/users/jonator/repos",
+        "site_admin" => false,
+        "starred_url" => "https://api.github.com/users/jonator/starred{/owner}{/repo}",
+        "subscriptions_url" => "https://api.github.com/users/jonator/subscriptions",
+        "type" => "User",
+        "url" => "https://api.github.com/users/jonator",
+        "user_view_type" => "public"
+      }
+    }
+  ]
+  `
+  """
+  def issue_comments(%__MODULE__{client: client}, owner, repo, issue_number) do
+    case Tentacat.Issues.Comments.list(client, owner, repo, issue_number) do
+      {200, comments, _} ->
+        {:ok, comments}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
+  Creates a comment on a GitHub issue.
+  """
+  def create_issue_comment(%Organization{name: name} = org, repo, issue_number, body) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      create_issue_comment(client, name, repo, issue_number, body)
+    end
+  end
+
+  def create_issue_comment(%__MODULE__{client: client}, owner, repo, issue_number, body) do
+    comment = %{"body" => body}
+
+    case Tentacat.Issues.Comments.create(client, owner, repo, issue_number, comment) do
+      {201, comment, _} ->
+        {:ok, comment}
+
+      error ->
+        error
+    end
+  end
+
+  @doc """
   Creates a pull request for the given organization and repository.
 
   Pull Request body example:
@@ -194,6 +339,34 @@ defmodule Swarm.Services.GitHub do
     # https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
     with {201, %{"number" => number}, _} <- Tentacat.Pulls.create(client, owner, repo, attrs) do
       {:ok, number}
+    end
+  end
+
+  def comment_reaction_create(%Organization{name: name} = org, repo, comment_id, body) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      comment_reaction_create(client, name, repo, comment_id, body)
+    end
+  end
+
+  def comment_reaction_create(%__MODULE__{client: client}, owner, repo, comment_id, body) do
+    # https://developer.github.com/v3/reactions/#create-reaction-for-an-issue-comment
+    case Tentacat.Issues.Comments.Reactions.create(client, owner, repo, comment_id, body) do
+      {201, reaction, _} -> {:ok, reaction}
+      error -> error
+    end
+  end
+
+  def issue_reaction_create(%Organization{name: name} = org, repo, issue_id, body) do
+    with {:ok, %__MODULE__{} = client} <- new(org) do
+      issue_reaction_create(client, name, repo, issue_id, body)
+    end
+  end
+
+  def issue_reaction_create(%__MODULE__{client: client}, owner, repo, issue_id, body) do
+    # https://developer.github.com/v3/reactions/#create-reaction-for-an-issue
+    case Tentacat.Issues.Reactions.create(client, owner, repo, issue_id, body) do
+      {201, reaction, _} -> {:ok, reaction}
+      error -> error
     end
   end
 

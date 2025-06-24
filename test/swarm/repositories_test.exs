@@ -2,6 +2,7 @@ defmodule Swarm.RepositoriesTest do
   use Swarm.DataCase
 
   alias Swarm.Repositories
+  alias Swarm.Organizations
 
   describe "repositories" do
     alias Swarm.Repositories.Repository
@@ -16,6 +17,73 @@ defmodule Swarm.RepositoriesTest do
       assert Repositories.list_repositories() == [repository]
     end
 
+    test "list_repositories/2 with no params returns all user repositories" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      repository1 = repository_fixture(user, %{owner: user.username})
+      repository2 = repository_fixture(user, %{owner: user.username})
+      {:ok, other_org} = Organizations.get_or_create_organization(user, "other_org", 123_456)
+      repository3 = repository_fixture(other_org, %{owner: other_org.name})
+
+      repositories = Repositories.list_repositories(user, %{})
+      assert length(repositories) == 3
+      assert repository1 in repositories
+      assert repository2 in repositories
+      assert repository3 in repositories
+    end
+
+    test "list_repositories/2 with owner param matching user username returns user repositories" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      repository1 = repository_fixture(user, %{owner: user.username})
+      repository2 = repository_fixture(user, %{owner: user.username})
+      {:ok, other_org} = Organizations.get_or_create_organization(user, "other_org", 123_456)
+      repository3 = repository_fixture(other_org, %{owner: other_org.name})
+
+      repositories = Repositories.list_repositories(user, %{"owner" => user.username})
+      assert length(repositories) == 2
+      assert repository1 in repositories
+      assert repository2 in repositories
+      assert repository3 not in repositories
+    end
+
+    test "list_repositories/2 with owner param for different owner returns only that owner's repositories" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      repository1 = repository_fixture(user, %{owner: user.username})
+      repository2 = repository_fixture(user, %{owner: user.username})
+      {:ok, other_org} = Organizations.get_or_create_organization(user, "other_org", 123_456)
+      repository3 = repository_fixture(other_org, %{owner: other_org.name})
+
+      repositories = Repositories.list_repositories(user, %{"owner" => "other_org"})
+      assert length(repositories) == 1
+      assert repository3 in repositories
+      assert repository1 not in repositories
+      assert repository2 not in repositories
+    end
+
+    test "list_repositories/2 with empty owner param returns all user repositories" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      repository1 = repository_fixture(user, %{owner: user.username})
+      repository2 = repository_fixture(user, %{owner: user.username})
+      {:ok, other_org} = Organizations.get_or_create_organization(user, "other_org", 123_456)
+      repository3 = repository_fixture(other_org, %{owner: other_org.name})
+
+      repositories = Repositories.list_repositories(user, %{"owner" => ""})
+      assert length(repositories) == 3
+      assert repository1 in repositories
+      assert repository2 in repositories
+      assert repository3 in repositories
+    end
+
+    test "list_repositories/2 with user and nil params returns all user repositories" do
+      user = Swarm.AccountsFixtures.user_fixture()
+      repository1 = repository_fixture(user)
+      repository2 = repository_fixture(user)
+
+      repositories = Repositories.list_repositories(user)
+      assert length(repositories) == 2
+      assert repository1 in repositories
+      assert repository2 in repositories
+    end
+
     test "get_repository!/1 returns the repository with given id" do
       repository = repository_fixture()
 
@@ -25,12 +93,12 @@ defmodule Swarm.RepositoriesTest do
     test "create_repository/1 with valid data creates a repository" do
       user = Swarm.AccountsFixtures.user_fixture()
       _organization = personal_organization_fixture(user)
-      valid_attrs = %{external_id: "github:123456", name: "name", owner: "some_owner"}
+      valid_attrs = %{external_id: "github:123456", name: "name", owner: user.username}
 
       assert {:ok, %Repository{} = repository} = Repositories.create_repository(user, valid_attrs)
       assert repository.external_id == "github:123456"
       assert repository.name == "name"
-      assert repository.owner == "some_owner"
+      assert repository.owner == user.username
     end
 
     test "create_repository/1 with valid data including project creates a repository & project" do
@@ -40,14 +108,14 @@ defmodule Swarm.RepositoriesTest do
       valid_attrs = %{
         external_id: "github:789012",
         name: "name",
-        owner: "some_owner",
+        owner: "user",
         projects: [%{type: :nextjs, root_dir: "path", name: "my-project"}]
       }
 
       assert {:ok, %Repository{} = repository} = Repositories.create_repository(user, valid_attrs)
       assert repository.external_id == "github:789012"
       assert repository.name == "name"
-      assert repository.owner == "some_owner"
+      assert repository.owner == "user"
     end
 
     test "create_repository/1 with invalid data returns error changeset" do
@@ -165,7 +233,7 @@ defmodule Swarm.RepositoriesTest do
       _organization = personal_organization_fixture(user)
 
       # Create first repository
-      attrs = %{external_id: "github:123456", name: "repo_name", owner: "owner_name"}
+      attrs = %{external_id: "github:123456", name: "repo_name", owner: user.username}
       assert {:ok, %Repository{}} = Repositories.create_repository(user, attrs)
 
       # Try to create another repository with same external_id (should fail)
@@ -173,7 +241,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: "different_name",
-                 owner: "different_owner"
+                 owner: user.username
                })
 
       assert [
@@ -186,7 +254,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github:654321",
                  name: "repo_name",
-                 owner: "owner_name"
+                 owner: user.username
                })
     end
 
@@ -199,7 +267,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: "ab",
-                 owner: "owner"
+                 owner: user.username
                })
 
       assert {:name,
@@ -213,7 +281,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: long_name,
-                 owner: "owner"
+                 owner: user.username
                })
 
       assert {:name,
@@ -230,7 +298,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: "invalid@name",
-                 owner: "owner"
+                 owner: user.username
                })
 
       assert changeset.errors[:name]
@@ -244,7 +312,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github:123456",
                  name: "admin",
-                 owner: "owner"
+                 owner: user.username
                })
 
       assert {:name, {"is reserved", [validation: :exclusion, enum: ["admin", "system", "root"]]}} in changeset.errors
@@ -266,7 +334,7 @@ defmodule Swarm.RepositoriesTest do
       _organization = personal_organization_fixture(user)
 
       # Valid format
-      valid_attrs = %{external_id: "github:123456", name: "test-repo", owner: "testuser"}
+      valid_attrs = %{external_id: "github:123456", name: "test-repo", owner: "user"}
       assert {:ok, %Repository{}} = Repositories.create_repository(user, valid_attrs)
 
       # Invalid format (missing colon)
@@ -274,7 +342,7 @@ defmodule Swarm.RepositoriesTest do
                Repositories.create_repository(user, %{
                  external_id: "github123456",
                  name: "test-repo",
-                 owner: "testuser"
+                 owner: "user"
                })
 
       assert changeset.errors[:external_id]

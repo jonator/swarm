@@ -38,7 +38,8 @@ defmodule Swarm.Ingress.Event do
   def new(event_data, source, opts \\ []) when is_atom(source) do
     with {:ok, type} <- extract_event_type(event_data, source),
          {:ok, user_id} <- extract_user_id(event_data, source, opts),
-         {:ok, repository_external_id} <- extract_repository_id(event_data, source, opts),
+         {:ok, repository_external_id} <-
+           extract_repository_external_id(event_data, source, opts),
          {:ok, external_ids} <- extract_external_ids(event_data, source),
          {:ok, context} <- extract_context(event_data, source, opts) do
       event = %__MODULE__{
@@ -59,6 +60,7 @@ defmodule Swarm.Ingress.Event do
   # Extract event type based on source
   defp extract_event_type(data, :github) do
     cond do
+      data["comment"] && data["issue"] -> {:ok, "issue_comment"}
       data["pull_request"] -> {:ok, "pull_request"}
       data["issue"] -> {:ok, "issue"}
       data["push"] -> {:ok, "push"}
@@ -101,7 +103,7 @@ defmodule Swarm.Ingress.Event do
   end
 
   # Extract repository ID based on source
-  defp extract_repository_id(data, :github, opts) do
+  defp extract_repository_external_id(data, :github, opts) do
     case Keyword.get(opts, :repository_external_id) do
       nil ->
         repo_id = get_in(data, ["repository", "id"])
@@ -120,43 +122,34 @@ defmodule Swarm.Ingress.Event do
     end
   end
 
-  defp extract_repository_id(_data, _source, opts) do
+  defp extract_repository_external_id(_data, _source, opts) do
     {:ok, Keyword.get(opts, :repository_external_id)}
   end
 
   # Extract external IDs for tracking purposes conforming to Agent struct fields
   defp extract_external_ids(data, :github) do
-    external_ids = %{}
-
-    external_ids =
-      if data["pull_request"] do
-        Map.put(external_ids, "github_pull_request_id", data["pull_request"]["id"])
-      else
-        external_ids
-      end
-
-    external_ids =
-      if data["issue"] do
-        Map.put(external_ids, "github_issue_id", data["issue"]["id"])
-      else
-        external_ids
-      end
-
-    {:ok, external_ids}
+    %{}
+    |> extract_github_installation_id(data)
+    |> extract_github_repository_id(data)
+    |> extract_github_sender_login(data)
+    |> extract_github_pull_request_id(data)
+    |> extract_github_issue_id(data)
+    |> extract_github_issue_number(data)
+    |> extract_github_issue_url(data)
+    |> extract_github_comment_id(data)
+    |> then(&{:ok, &1})
   end
 
   defp extract_external_ids(data, :linear) do
-    external_ids =
-      %{}
-      |> extract_linear_issue_id(data)
-      |> extract_linear_comment_id(data)
-      |> extract_linear_parent_comment_id(data)
-      |> extract_linear_document_id(data)
-      |> extract_linear_team_id(data)
-      |> extract_linear_project_id(data)
-      |> extract_linear_app_user_id(data)
-
-    {:ok, external_ids}
+    %{}
+    |> extract_linear_issue_id(data)
+    |> extract_linear_comment_id(data)
+    |> extract_linear_parent_comment_id(data)
+    |> extract_linear_document_id(data)
+    |> extract_linear_team_id(data)
+    |> extract_linear_project_id(data)
+    |> extract_linear_app_user_id(data)
+    |> then(&{:ok, &1})
   end
 
   defp extract_external_ids(data, :slack) do
@@ -174,19 +167,92 @@ defmodule Swarm.Ingress.Event do
     {:ok, %{}}
   end
 
+  defp extract_github_installation_id(external_ids, data) do
+    if data["installation"] && data["installation"]["id"] do
+      Map.put(external_ids, "github_installation_id", data["installation"]["id"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_repository_id(external_ids, data) do
+    if data["repository"] && data["repository"]["id"] do
+      Map.put(external_ids, "github_repository_id", data["repository"]["id"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_sender_login(external_ids, data) do
+    if data["sender"] && data["sender"]["login"] do
+      Map.put(external_ids, "github_sender_login", data["sender"]["login"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_pull_request_id(external_ids, data) do
+    if data["pull_request"] do
+      Map.put(external_ids, "github_pull_request_id", data["pull_request"]["id"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_issue_id(external_ids, data) do
+    if data["issue"] do
+      Map.put(external_ids, "github_issue_id", data["issue"]["id"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_issue_number(external_ids, data) do
+    if data["issue"] do
+      Map.put(external_ids, "github_issue_number", data["issue"]["number"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_issue_url(external_ids, data) do
+    if data["issue"] do
+      Map.put(external_ids, "github_issue_url", data["issue"]["html_url"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_comment_id(external_ids, data) do
+    if data["comment"] do
+      Map.put(external_ids, "github_comment_id", data["comment"]["id"])
+    else
+      external_ids
+    end
+  end
+
   defp extract_linear_issue_id(external_ids, data) do
     cond do
       # New notification-based format
       data["notification"]["issue"] ->
-        Map.put(external_ids, "linear_issue_id", data["notification"]["issue"]["id"])
+        external_ids
+        |> Map.put("linear_issue_id", data["notification"]["issue"]["id"])
+        |> Map.put("linear_issue_identifier", data["notification"]["issue"]["identifier"])
+        |> Map.put("linear_issue_url", data["notification"]["issue"]["url"])
 
       # Direct issue format
       data["data"] && data["type"] == "Issue" ->
-        Map.put(external_ids, "linear_issue_id", data["data"]["id"])
+        external_ids
+        |> Map.put("linear_issue_id", data["data"]["id"])
+        |> Map.put("linear_issue_identifier", data["data"]["identifier"])
+        |> Map.put("linear_issue_url", data["data"]["url"])
 
       # Legacy format
       data["data"]["issue"] ->
-        Map.put(external_ids, "linear_issue_id", data["data"]["issue"]["id"])
+        external_ids
+        |> Map.put("linear_issue_id", data["data"]["issue"]["id"])
+        |> Map.put("linear_issue_identifier", data["data"]["issue"]["identifier"])
+        |> Map.put("linear_issue_url", data["data"]["issue"]["url"])
 
       true ->
         external_ids
@@ -280,7 +346,10 @@ defmodule Swarm.Ingress.Event do
     %{
       action: data["action"],
       sender: data["sender"],
-      repository: data["repository"]
+      repository: data["repository"],
+      issue: data["issue"],
+      comment: data["comment"],
+      installation: data["installation"]
     }
   end
 

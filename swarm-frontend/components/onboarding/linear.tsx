@@ -1,11 +1,15 @@
 'use client'
 
-import Image from 'next/image'
-import { useState, useEffect } from 'react'
-import { useTheme } from 'next-themes'
+import { routeEntry } from '@/actions/routing'
+import { useLinearOrganization } from '@/lib/queries/hooks/linear'
+import { type LinearOrganization, hasLinearAccess } from '@/lib/services/linear'
+import { type Repository, updateRepository } from '@/lib/services/repositories'
 import { useMutation } from '@tanstack/react-query'
+import { useTheme } from 'next-themes'
+import Image from 'next/image'
+import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '../ui/button'
-import { Checkbox } from '../ui/checkbox'
 import {
   Card,
   CardContent,
@@ -13,11 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card'
-import { routeEntry } from '@/actions/routing'
-import { hasLinearAccess, type LinearOrganization } from '@/lib/services/linear'
-import { useLinearOrganization } from '@/lib/queries/hooks/linear'
-import { updateRepository, type Repository } from '@/lib/services/repositories'
-import { toast } from 'sonner'
+import { Checkbox } from '../ui/checkbox'
 import { Label } from '../ui/label'
 import { SkeletonCard } from './loading'
 

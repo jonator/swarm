@@ -1,14 +1,32 @@
+import { AgentsList } from '@/components/agents'
 import Navbar from '@/components/navbar'
+import { getQueryClient } from '@/config/tanstack-query'
+import { agentsQuery } from '@/lib/queries/keys/agents'
 import { getUser } from '@/lib/services/users'
+import { getNow } from '@/lib/utils/date'
+import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
+import { headers } from 'next/headers'
 
 export default async function OwnerAgentsPage({
   params,
 }: { params: Promise<{ owner: string }> }) {
-  const { owner } = await params
-  const { data: user } = await getUser()
+  const [{ owner }, { user }, headerList] = await Promise.all([
+    params,
+    getUser(),
+    headers(),
+  ])
+  const now = getNow()
+  const timeZone =
+    headerList.get('x-vercel-ip-timezone') ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+
+  console.log('timeZone', { timeZone })
+
+  const queryClient = getQueryClient()
+  await queryClient.prefetchQuery(agentsQuery({ organization_name: owner }))
 
   return (
-    <>
+    <HydrationBoundary state={dehydrate(queryClient)}>
       <Navbar
         user={user}
         pathname={`/${owner}`}
@@ -21,16 +39,14 @@ export default async function OwnerAgentsPage({
 
       <div className='dashboard-container'>
         <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold'>Agents</h1>
-            <p className='text-muted-foreground'>
-              All agents across repositories for {owner}
-            </p>
-          </div>
+          <h1 className='text-2xl font-bold'>Agents</h1>
+          <p className='text-muted-foreground'>
+            All agents across repositories for {owner}
+          </p>
         </div>
 
-        {/* Content will be implemented later */}
+        <AgentsList organization_name={owner} now={now} timeZone={timeZone} />
       </div>
-    </>
+    </HydrationBoundary>
   )
 }

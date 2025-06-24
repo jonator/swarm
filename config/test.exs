@@ -40,3 +40,5 @@ config :swarm, Oban, testing: :manual
 
 config :swarm, SwarmWeb.Auth.Guardian,
   secret_key: "kGVky75fpq5397T0SqWuFLaSc1bBKkLoWWDWklyp913E4Fe33kwYkuS+LWEXSdpq"
+
+config :swarm, github_app_name: "swarm-ai-dev"

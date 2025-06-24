@@ -1,4 +1,4 @@
-defmodule Swarm.EventsFixtures do
+defmodule Swarm.LinearEventsFixtures do
   @moduledoc """
   This module defines test helpers for creating
   entities via the `Swarm.Events` context.
@@ -44,7 +44,7 @@ defmodule Swarm.EventsFixtures do
       "externalUserActorId": null,
       "id": "40ddd14f-971f-4d93-af97-04834d8cf061",
       "issue": {
-        "description": "Hey thanks for the great description! Great. Greaasdl;kjf;alsjkdft. Thanks\\n\\n@swarmdev",
+        "description": "Hey thanks for the great description! Great. Greaasdl;kjf;alsjkdft. Thanks\\n\\n@swarm-ai-dev",
         "id": "71ee683d-74e4-4668-95f7-537af7734054",
         "identifier": "SW-10",
         "team": {
@@ -139,7 +139,7 @@ defmodule Swarm.EventsFixtures do
       "actorId": "f15f0e68-9424-4add-b7c6-1d318e455719",
       "archivedAt": null,
       "comment": {
-        "body": "This is a mention comment @swarmdev ",
+        "body": "This is a mention comment @swarm-ai-dev ",
         "id": "1572d3ac-fca9-4713-84e3-4a104c6674fd",
         "issueId": "71ee683d-74e4-4668-95f7-537af7734054",
         "userId": "f15f0e68-9424-4add-b7c6-1d318e455719"
@@ -294,7 +294,7 @@ defmodule Swarm.EventsFixtures do
       "actorId": "f15f0e68-9424-4add-b7c6-1d318e455719",
       "archivedAt": null,
       "comment": {
-        "body": "@swarmdev reply",
+        "body": "@swarm-ai-dev reply",
         "id": "66bd6984-9908-4adf-9f7b-64b1cb23c88b",
         "issueId": "71ee683d-74e4-4668-95f7-537af7734054",
         "userId": "f15f0e68-9424-4add-b7c6-1d318e455719"

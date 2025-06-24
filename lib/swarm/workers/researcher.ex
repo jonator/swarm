@@ -85,11 +85,12 @@ defmodule Swarm.Workers.Researcher do
             required: true
           })
         ],
-        function: fn %{"message" => message}, %{"external_ids" => external_ids} ->
+        function: fn %{"message" => message},
+                     %{"external_ids" => external_ids, "repository" => repository} ->
           if Map.get(external_ids, "linear_issue_id") do
             Egress.reply(external_ids, message)
           else
-            {:ok, :skipped}
+            Egress.reply(external_ids, repository, message)
           end
         end
       })
@@ -125,7 +126,11 @@ defmodule Swarm.Workers.Researcher do
 
     case %{
            llm: chat_model,
-           custom_context: %{"git_repo" => git_repo, "external_ids" => agent.external_ids},
+           custom_context: %{
+             "git_repo" => git_repo,
+             "external_ids" => agent.external_ids,
+             "repository" => agent.repository
+           },
            verbose: Logger.level() == :debug
          }
          |> LLMChain.new!()

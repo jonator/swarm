@@ -43,6 +43,8 @@ if config_env() == :prod do
     pool_size: pool_size,
     socket_options: maybe_ipv6
 
+  config :swarm, github_app_name: "swarmaidev"
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -74,7 +76,8 @@ if config_env() == :prod do
 
   # TODO: Update to domain when ready
   config :cors_plug,
-    origin: ["*"]
+    origin: ["*"],
+    expose: ["electric-offset", "electric-handle", "electric-schema", "electric-cursor"]
 
   # ## SSL Support
   #

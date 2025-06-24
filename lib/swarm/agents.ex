@@ -7,6 +7,7 @@ defmodule Swarm.Agents do
   alias Swarm.Repo
 
   alias Swarm.Agents.Agent
+  alias Swarm.Accounts.User
 
   @doc """
   Returns the list of agents.
@@ -20,6 +21,45 @@ defmodule Swarm.Agents do
   def list_agents do
     Repo.all(Agent)
   end
+
+  def list_agents(%User{} = user, params \\ %{}) do
+    user_organization_ids =
+      user
+      |> Repo.preload(:organizations)
+      |> Map.get(:organizations)
+      |> Enum.map(& &1.id)
+
+    # Base query for agents accessible by the user
+    query =
+      from a in Agent,
+        join: r in assoc(a, :repository),
+        join: o in assoc(r, :organization),
+        where: o.id in ^user_organization_ids
+
+    query
+    |> apply_filters(params)
+    |> Repo.all()
+  end
+
+  defp apply_filters(query, params) do
+    query
+    |> apply_repository_name_filter(Map.get(params, "repository_name"))
+    |> apply_organization_name_filter(Map.get(params, "organization_name"))
+  end
+
+  defp apply_repository_name_filter(query, repository_name)
+       when is_binary(repository_name) and repository_name != "" do
+    where(query, [_, r, _], r.name == ^repository_name)
+  end
+
+  defp apply_repository_name_filter(query, _), do: query
+
+  defp apply_organization_name_filter(query, organization_name)
+       when is_binary(organization_name) and organization_name != "" do
+    where(query, [_, _, o], o.name == ^organization_name)
+  end
+
+  defp apply_organization_name_filter(query, _), do: query
 
   @doc """
   Gets a single agent.
@@ -160,7 +200,10 @@ defmodule Swarm.Agents do
     conditions =
       if github_id = Map.get(external_ids, "github_issue_id") do
         [
-          dynamic([a], fragment("?->>'github_issue_id' = ?", a.external_ids, ^github_id))
+          dynamic(
+            [a],
+            fragment("?->>'github_issue_id' = ?", a.external_ids, ^to_string(github_id))
+          )
           | conditions
         ]
       else
@@ -171,7 +214,14 @@ defmodule Swarm.Agents do
     conditions =
       if pr_id = Map.get(external_ids, "github_pull_request_id") do
         [
-          dynamic([a], fragment("?->>'github_pull_request_id' = ?", a.external_ids, ^pr_id))
+          dynamic(
+            [a],
+            fragment(
+              "?->>'github_pull_request_id' = ?",
+              a.external_ids,
+              ^to_string(pr_id)
+            )
+          )
           | conditions
         ]
       else
@@ -213,7 +263,7 @@ defmodule Swarm.Agents do
   def mark_agent_started(%Agent{} = agent, oban_job_id) do
     update_agent(agent, %{
       status: :running,
-      started_at: DateTime.utc_now(),
+      started_at: NaiveDateTime.utc_now(),
       oban_job_id: oban_job_id
     })
   end
@@ -224,7 +274,7 @@ defmodule Swarm.Agents do
   def mark_agent_completed(%Agent{} = agent) do
     update_agent(agent, %{
       status: :completed,
-      completed_at: DateTime.utc_now()
+      completed_at: NaiveDateTime.utc_now()
     })
   end
 

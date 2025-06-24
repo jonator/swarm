@@ -4,10 +4,19 @@ defmodule Swarm.AgentsFixtures do
   entities via the `Swarm.Agents` context.
   """
 
+  import Swarm.RepositoriesFixtures
+
   @doc """
   Generate a agent.
   """
   def agent_fixture(attrs \\ %{}) do
+    user = Map.fetch!(attrs, :user)
+
+    attrs =
+      attrs
+      |> Map.put_new(:user_id, user.id)
+      |> Map.put_new(:repository_id, repository_fixture(user).id)
+
     {:ok, agent} =
       attrs
       |> Enum.into(%{

@@ -1,9 +1,11 @@
 'use client'
 
 import { logout } from '@/actions/auth'
+import { useRepositories } from '@/lib/queries/hooks/repositories'
 import type { User } from '@/lib/services/users'
 import { LogOut, Settings } from 'lucide-react'
 import Link from 'next/link'
+import { useMemo } from 'react'
 import { ModeToggleGroup } from './mode'
 import SwarmLogo from './swarm-logo'
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar'
@@ -18,6 +20,10 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu'
 import {
+  HierarchicalBreadcrumb,
+  type HierarchicalItem,
+} from './ui/hierarchical-breadcrumb'
+import {
   NavigationMenu,
   NavigationMenuIndicator,
   NavigationMenuItem,
@@ -25,12 +31,6 @@ import {
   NavigationMenuList,
   navigationMenuTriggerStyle,
 } from './ui/navigation-menu'
-import {
-  HierarchicalBreadcrumb,
-  type HierarchicalItem,
-} from './ui/hierarchical-breadcrumb'
-import { useMemo } from 'react'
-import { useRepositories } from '@/lib/queries/hooks/repositories'
 
 type Tab = {
   label: string
@@ -85,9 +85,9 @@ export default function Navbar({
             pathname={pathname}
             hierarchy={[
               {
-                label: 'Teams',
+                label: 'Organizations',
                 onCreateClick: () => console.log('Create new team'),
-                createCta: 'Create Team',
+                createCta: 'Create Organization',
               },
               {
                 label: 'Repositories',

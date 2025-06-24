@@ -5,13 +5,16 @@ defmodule Swarm.Ingress.Permissions do
   This module validates that users have the necessary permissions to:
   - Access repositories mentioned in events
   - Spawn agents in their name
-  - Perform actions on external services
   """
+
+  require Logger
 
   alias Swarm.Accounts
   alias Swarm.Accounts.User
   alias Swarm.Repositories
+  alias Swarm.Repositories.Repository
   alias Swarm.Ingress.Event
+  alias Swarm.Services.Linear
 
   @doc """
   Validates that a user has access to process the given event.
@@ -20,14 +23,13 @@ defmodule Swarm.Ingress.Permissions do
     - event: The standardized event struct
 
   ## Returns
-    - `{:ok, user}` - User has access and user record returned
+    - `{:ok, user, repository, organization}` - User has access and user, repository, and organization records returned
     - `{:error, reason}` - User doesn't have access or validation failed
   """
   def validate_user_access(%Event{} = event) do
     with {:ok, user} <- find_user(event),
-         :ok <- validate_repository_access(user, event),
-         :ok <- validate_service_access(user, event) do
-      {:ok, user}
+         {:ok, repository, organization} <- validate_repository_access(user, event) do
+      {:ok, user, repository, organization}
     end
   end
 
@@ -54,10 +56,10 @@ defmodule Swarm.Ingress.Permissions do
     end
   end
 
-  def find_user(%Event{source: :github, context: context}) do
-    sender = get_in(context, [:sender, "login"])
+  def find_user(%Event{source: :github, external_ids: external_ids}) do
+    sender_login = Map.get(external_ids, "github_sender_login")
 
-    case sender do
+    case sender_login do
       nil -> {:error, "No sender found in GitHub event"}
       username -> find_user_by_github_username(username)
     end
@@ -88,59 +90,40 @@ defmodule Swarm.Ingress.Permissions do
   @doc """
   Validates that a user has access to the repository mentioned in the event.
   """
-  def validate_repository_access(_user, %Event{repository_external_id: nil}) do
-    # No repository specified, access granted
-    :ok
-  end
+  def validate_repository_access(%User{} = user, %Event{} = event) do
+    case event do
+      %Event{source: :linear, type: type, external_ids: external_ids} ->
+        find_linear_event_repository(user, type, external_ids)
 
-  def validate_repository_access(%User{} = user, %Event{repository_external_id: repo_id}) do
-    case Repositories.get_user_repository(user, repo_id) do
-      nil -> {:error, "User does not have access to repository: #{repo_id}"}
-      _repository -> :ok
-    end
-  end
+      %Event{source: :github, repository_external_id: repo_id} when not is_nil(repo_id) ->
+        case Repositories.get_user_repository(user, repo_id) do
+          nil ->
+            {:error, "User does not have access to repository: #{repo_id}"}
 
-  @doc """
-  Validates that a user has the necessary service access for the event source.
-  """
-  def validate_service_access(%User{} = user, %Event{source: :github}) do
-    # Check if user has GitHub access token
-    case Accounts.get_token(user, :access, :github) do
-      nil ->
-        {:error, "User does not have GitHub access"}
+          %Repository{organization: nil} ->
+            {:error, "Repository does not have an organization"}
 
-      token ->
-        if Swarm.Accounts.Token.expired?(token) do
-          {:error, "User's GitHub access token has expired"}
-        else
-          :ok
+          repository ->
+            repository = Swarm.Repo.preload(repository, :organization)
+
+            {:ok, repository, repository.organization}
         end
-    end
-  end
 
-  def validate_service_access(%User{} = user, %Event{source: :linear}) do
-    # Check if user has Linear access token
-    case Accounts.get_token(user, :access, :linear) do
-      nil ->
-        {:error, "User does not have Linear access"}
+      %Event{repository_external_id: repo_id} when not is_nil(repo_id) ->
+        case Repositories.get_user_repository(user, repo_id) do
+          nil ->
+            {:error, "User does not have access to repository: #{repo_id}"}
 
-      token ->
-        if Swarm.Accounts.Token.expired?(token) do
-          {:error, "User's Linear access token has expired"}
-        else
-          :ok
+          repository ->
+            repository = Swarm.Repo.preload(repository, :organization)
+
+            {:ok, repository, repository.organization}
         end
+
+      %Event{repository_external_id: nil} ->
+        # No repository specified, access granted
+        {:ok, nil, nil}
     end
-  end
-
-  def validate_service_access(%User{}, %Event{source: :slack}) do
-    # TODO: Implement Slack access validation when Slack integration is added
-    {:error, "Slack integration not yet implemented"}
-  end
-
-  def validate_service_access(%User{}, %Event{source: :manual}) do
-    # Manual events don't require external service access
-    :ok
   end
 
   # Helper functions for finding users by external identifiers
@@ -164,5 +147,75 @@ defmodule Swarm.Ingress.Permissions do
   defp find_user_by_slack_id(_slack_user_id) do
     # TODO: Implement Slack user ID to internal user mapping
     {:error, "Slack user mapping not yet implemented"}
+  end
+
+  defp find_linear_event_repository(user, type, external_ids) do
+    case external_ids["linear_team_id"] do
+      nil ->
+        if type == "documentMention" && external_ids["linear_project_id"] do
+          find_repository_by_project_id(
+            user,
+            external_ids["linear_app_user_id"],
+            external_ids["linear_project_id"]
+          )
+        else
+          {:error, "No team information found in Linear event"}
+        end
+
+      team_id ->
+        find_repository_by_team_id(user, team_id)
+    end
+  end
+
+  defp find_repository_by_team_id(user, team_id) do
+    # Look for repositories that have this Linear team ID in their external IDs
+    case Repositories.list_repositories(user) do
+      [] ->
+        {:error, "No repositories found for user"}
+
+      repositories ->
+        matching_repo =
+          Enum.find(repositories, fn repo ->
+            team_id in (repo.linear_team_external_ids || [])
+          end)
+
+        case matching_repo do
+          nil ->
+            {:error, "No repository found with Linear team ID: #{team_id}"}
+
+          repository ->
+            repository = Swarm.Repo.preload(repository, :organization)
+
+            if repository.organization do
+              {:ok, repository, repository.organization}
+            else
+              {:error, "Repository #{repository.id} does not have an organization"}
+            end
+        end
+    end
+  end
+
+  defp find_repository_by_project_id(user, workspace_id, project_id) do
+    case Linear.project(workspace_id, project_id) do
+      {:ok, %{"project" => %{"teams" => %{"nodes" => teams}}}} ->
+        case teams do
+          [] ->
+            {:error,
+             "No teams available for finding repository with Linear project ID: #{project_id}"}
+
+          [team] ->
+            find_repository_by_team_id(user, team["id"])
+
+          [team | _] ->
+            Logger.warning(
+              "Multiple teams available for finding repository with Linear project ID: #{project_id}, using first team: #{team["id"]}"
+            )
+
+            find_repository_by_team_id(user, team["id"])
+        end
+
+      {:error, _reason} ->
+        {:error, "No repository found with Linear project ID: #{project_id}"}
+    end
   end
 end

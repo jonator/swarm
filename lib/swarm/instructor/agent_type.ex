@@ -19,8 +19,6 @@ defmodule Swarm.Instructor.AgentType do
       [
         model: "gpt-4o-mini",
         response_model: __MODULE__,
-        adapter: Instructor.Adapters.OpenAI,
-        api_key: Application.fetch_env!(:instructor, :openai)[:api_key],
         messages: [
           %{
             role: "user",
@@ -34,7 +32,7 @@ defmodule Swarm.Instructor.AgentType do
 
             - **researcher**: For tasks that require analyzing code, understanding requirements, gathering information, or providing insights about codebases. Use when the task involves investigation, documentation review, or initial analysis.
 
-            - **coder**: For tasks that involve implementing features, writing code, fixing bugs, creating new functionality, or making specific code changes. Use when the task requires actual coding work.
+            - **coder**: For tasks that involve implementing features, writing code, fixing bugs, creating new functionality, or making specific code changes. Use when the task requires actual coding work. ONLY if the instruction contains a specific step-by-step development plan with specific files mentioned, etc.
 
             - **code_reviewer**: For tasks that involve reviewing pull requests, analyzing existing code quality, providing feedback on implementations, or evaluating code changes. Use when the task involves assessment or review of existing code.
 
@@ -42,7 +40,9 @@ defmodule Swarm.Instructor.AgentType do
             """
           }
         ]
-      ]
+      ],
+      adapter: Instructor.Adapters.OpenAI,
+      api_key: Application.fetch_env!(:instructor, :openai)[:api_key]
     )
   end
 end

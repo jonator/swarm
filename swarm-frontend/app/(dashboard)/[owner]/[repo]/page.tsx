@@ -5,7 +5,7 @@ export default async function RepoPage({
   params,
 }: { params: Promise<{ owner: string; repo: string }> }) {
   const { owner, repo } = await params
-  const { data: user } = await getUser()
+  const { user } = await getUser()
 
   return (
     <>
@@ -14,6 +14,7 @@ export default async function RepoPage({
         pathname={`/${owner}/${repo}`}
         tabs={[
           { label: 'Overview', href: `/${owner}/${repo}`, active: true },
+          { label: 'Agents', href: `/${owner}/${repo}/agents` },
           { label: 'Settings', href: `/${owner}/${repo}/settings` },
         ]}
       />

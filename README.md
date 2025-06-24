@@ -190,6 +190,7 @@ https://depviz.jasonaxelson.com/
 
 Included in deps for this project. To activate, follow [these instructions](https://hexdocs.pm/tidewave/installation.html)
 
+<<<<<<< HEAD
 ## Contributing
 
 Swarm is designed to be extensible and welcomes contributions. Whether you're adding new agent types, improving swarm coordination, enhancing integrations, or developing new AI capabilities, we encourage community involvement.
@@ -205,3 +206,20 @@ When contributing to the swarm system:
 ## License
 
 This project is licensed under the terms specified in the repository.
+=======
+## Postgres Container
+
+1. Create a new volume `app_postgres_data` in OrbStack (MacOS).
+2. Use this command to start the postgres container using the conf file locally:
+
+```bash
+docker run -d \
+  --name postgres \
+  -p 5432:5432 \
+  -v "$PWD/postgres-config.conf":/etc/postgresql/postgresql.conf \
+  -v app_postgres_data:/var/lib/postgresql/data \
+  -e POSTGRES_PASSWORD=postgres \
+  postgres:16-alpine \
+  -c 'config_file=/etc/postgresql/postgresql.conf'
+```
+>>>>>>> sync-agent

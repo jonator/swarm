@@ -89,7 +89,7 @@ defmodule Swarm.Workers.Coder do
          } = agent
        ) do
     case Linear.issue(app_user_id, issue_id) do
-      {:ok, %{branchName: branch_name}} ->
+      {:ok, %{"issue" => %{"branchName" => branch_name}}} ->
         {:ok, branch_name}
 
       error ->

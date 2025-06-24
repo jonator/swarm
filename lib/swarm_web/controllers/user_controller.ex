@@ -2,6 +2,7 @@ defmodule SwarmWeb.UserController do
   use SwarmWeb, :controller
   use SwarmWeb.Auth.CurrentResource
 
+  alias Swarm.Organizations
   alias Swarm.Accounts
   alias Swarm.Accounts.User
 
@@ -20,9 +21,21 @@ defmodule SwarmWeb.UserController do
     end
   end
 
-  def show(conn, %{"id" => id}, _user) do
+  # Reminder: show is only non-admin UserController action
+  def show(conn, %{"id" => id}, %User{role: :admin}) do
     user = Accounts.get_user!(id)
     render(conn, :show, user: user)
+  end
+
+  def show(conn, %{"id" => id}, user) do
+    case Organizations.get_shared_user(user, id) do
+      nil ->
+        # Falls back to FallbackController which renders a 404
+        {:error, :not_found}
+
+      shared_user ->
+        render(conn, :show, user: shared_user)
+    end
   end
 
   def show(conn, _params, user) do

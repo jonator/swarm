@@ -1,5 +1,6 @@
 'use client'
 
+import { routeEntry } from '@/actions/routing'
 import Image from 'next/image'
 import { useState } from 'react'
 import { Button } from '../ui/button'
@@ -10,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card'
-import { routeEntry } from '@/actions/routing'
 
 export const InstallGithub = () => {
   const [isInstalling, setIsInstalling] = useState(false)

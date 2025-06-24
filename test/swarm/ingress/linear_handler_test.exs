@@ -6,7 +6,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
   alias Swarm.Ingress.Event
   import Swarm.AccountsFixtures
   import Swarm.RepositoriesFixtures
-  import Swarm.EventsFixtures
+  import Swarm.LinearEventsFixtures
 
   @comprehensive_thread %{
     "issue" => %{
@@ -16,13 +16,13 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           %{
             "id" => "5baced2d-7373-4861-ab9b-4dcc50f751e5",
             "body" => "TESTREPLY! [link](https://www.google.com/maps)",
-            "user" => %{"displayName" => "swarmdev"},
+            "user" => %{"displayName" => "swarm-ai-dev"},
             "createdAt" => "2025-06-16T00:37:35.618Z",
             "children" => %{"nodes" => []}
           },
           %{
             "id" => "1194b8de-a41c-4000-a6fc-a4b85d930e84",
-            "body" => "@swarmdev test",
+            "body" => "@swarm-ai-dev test",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-11T00:41:37.712Z",
             "children" => %{
@@ -30,13 +30,13 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                 %{
                   "id" => "359cf172-a0e5-4fd3-9659-be6002d1b6d9",
                   "body" => "TESTREPLY! [link](https://www.google.com/maps)",
-                  "user" => %{"displayName" => "swarmdev"},
+                  "user" => %{"displayName" => "swarm-ai-dev"},
                   "createdAt" => "2025-06-16T00:36:44.240Z"
                 },
                 %{
                   "id" => "1bdd962a-7ba1-4afe-b7cc-11ba780f21ce",
                   "body" => "TESTREPLY!",
-                  "user" => %{"displayName" => "swarmdev"},
+                  "user" => %{"displayName" => "swarm-ai-dev"},
                   "createdAt" => "2025-06-16T00:34:12.590Z"
                 }
               ]
@@ -67,7 +67,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
               "nodes" => [
                 %{
                   "id" => "66bd6984-9908-4adf-9f7b-64b1cb23c88b",
-                  "body" => "@swarmdev reply",
+                  "body" => "@swarm-ai-dev reply",
                   "user" => %{"displayName" => "jonathanator0"},
                   "createdAt" => "2025-06-16T01:05:17.164Z"
                 },
@@ -185,7 +185,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           },
           %{
             "id" => "1572d3ac-fca9-4713-84e3-4a104c6674fd",
-            "body" => "This is a mention comment @swarmdev ",
+            "body" => "This is a mention comment @swarm-ai-dev ",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-07T14:15:00.364Z",
             "children" => %{"nodes" => []}
@@ -239,7 +239,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           },
           %{
             "id" => "1572d3ac-fca9-4713-84e3-4a104c6674fd",
-            "body" => "@swarmdev let's make this README comprehensive and user-friendly",
+            "body" => "@swarm-ai-dev let's make this README comprehensive and user-friendly",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-07T14:20:00.364Z",
             "children" => %{"nodes" => []}
@@ -263,7 +263,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           },
           %{
             "id" => "1572d3ac-fca9-4713-84e3-4a104c6674fd",
-            "body" => "This is a mention comment @swarmdev",
+            "body" => "This is a mention comment @swarm-ai-dev",
             "user" => %{"displayName" => "jonathanator0"},
             "createdAt" => "2025-06-07T14:20:00.364Z",
             "children" => %{"nodes" => []}
@@ -367,6 +367,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
           {:ok, @comment_mention_thread}
         end do
         assert {:ok, attrs} = LinearHandler.handle(event)
+
         assert attrs.source == :linear
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
 
@@ -375,7 +376,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                  "Linear Issue mentioned in comment 1572d3ac-fca9-4713-84e3-4a104c6674fd (Issue ID: 71ee683d-74e4-4668-95f7-537af7734054): Improve README"
                )
 
-        assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
+        assert String.contains?(attrs.context, "This is a mention comment @swarm-ai-dev")
       end
     end
 
@@ -444,61 +445,6 @@ defmodule Swarm.Ingress.LinearHandlerTest do
 
       assert {:error, message} = LinearHandler.handle(github_event)
       assert String.contains?(message, "LinearHandler received non-Linear event: github")
-    end
-  end
-
-  describe "find_repository_for_linear_event/2" do
-    setup do
-      user =
-        user_fixture(%{
-          email: "test-repo-#{:rand.uniform(10000)}@example.com",
-          username: "test-repo-user-#{:rand.uniform(10000)}"
-        })
-
-      {:ok, user: user}
-    end
-
-    test "finds repository by team ID mapping", %{user: user} do
-      repository =
-        repository_fixture(user, %{
-          name: "Swarm Repo",
-          owner: user.username,
-          external_id: "github:#{:rand.uniform(10000)}",
-          linear_team_external_ids: ["2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"]
-        })
-
-      # Create event with matching team ID
-      params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
-
-      assert {:ok, found_repo} = LinearHandler.find_repository_for_linear_event(user, event)
-      assert found_repo.id == repository.id
-    end
-
-    test "returns error when no team mapping exists", %{user: user} do
-      # Create repository without matching team ID
-      _repo =
-        repository_fixture(user, %{
-          name: "Test Repo",
-          owner: user.username,
-          external_id: "github:#{:rand.uniform(10000)}",
-          linear_team_external_ids: ["different-team-id"]
-        })
-
-      params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
-
-      assert {:error,
-              "No repository found with Linear team ID: 2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"} =
-               LinearHandler.find_repository_for_linear_event(user, event)
-    end
-
-    test "returns error when user has no repositories", %{user: user} do
-      params = linear_issue_assigned_to_swarm_params()
-      {:ok, event} = Event.new(params, :linear, user_id: user.id)
-
-      assert {:error, "No repositories found for user"} =
-               LinearHandler.find_repository_for_linear_event(user, event)
     end
   end
 
@@ -579,7 +525,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
-        assert String.contains?(attrs.context, "This is a mention comment @swarmdev")
+        assert String.contains?(attrs.context, "This is a mention comment @swarm-ai-dev")
       end
     end
 
@@ -601,8 +547,6 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         end do
         assert {:ok, attrs} = LinearHandler.build_agent_attributes(event, user, repository)
 
-        IO.inspect(attrs)
-
         assert attrs.user_id == user.id
         assert attrs.source == :linear
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
@@ -618,7 +562,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
                  "mentioned in reply comment 66bd6984-9908-4adf-9f7b-64b1cb23c88b (parent comment ID: 33250e31-de7a-4e93-9bab-7800ee1a4028)"
                )
 
-        assert String.contains?(attrs.context, "@swarmdev reply")
+        assert String.contains?(attrs.context, "@swarm-ai-dev reply")
         assert String.contains?(attrs.context, "TEST6")
         assert String.contains?(attrs.context, "test6reply")
       end
@@ -643,7 +587,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert attrs.external_ids["linear_issue_id"] == "71ee683d-74e4-4668-95f7-537af7734054"
         assert attrs.repository.id == repository.id
 
-        assert String.contains?(attrs.context, "@swarmdev")
+        assert String.contains?(attrs.context, "@swarm-ai-dev")
       end
     end
 

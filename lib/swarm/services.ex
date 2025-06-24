@@ -158,15 +158,20 @@ defmodule Swarm.Services do
     with {:ok, gh_client} <- GitHub.new(user) do
       case GitHub.installations(gh_client) do
         {:ok, %{"installations" => installations}} ->
-          search_repositories_across_installations(gh_client, installations, repo_id, github_repo_id)
+          search_repositories_across_installations(
+            gh_client,
+            installations,
+            repo_id,
+            github_repo_id
+          )
 
         {:error, reason} ->
           {:error, "Failed to fetch GitHub installations: #{reason}"}
 
-          error ->
-            {:error, "Failed to fetch GitHub installations: #{inspect(error)}"}
-        end
+        error ->
+          {:error, "Failed to fetch GitHub installations: #{inspect(error)}"}
       end
+    end
   end
 
   defp search_repositories_across_installations(gh_client, installations, repo_id, github_repo_id) do
@@ -235,9 +240,10 @@ defmodule Swarm.Services do
            {:error,
             "Failed to fetch repositories for installation #{installation["id"]}: #{reason}"}}
 
-        _error ->
+        error ->
           {:cont,
-           {:error, "Unknown error fetching repositories for installation #{installation["id"]}"}}
+           {:error,
+            "Unknown error fetching repositories for installation #{installation["id"]}: #{inspect(error)}"}}
       end
     end)
     |> case do

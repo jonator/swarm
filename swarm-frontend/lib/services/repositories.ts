@@ -7,19 +7,34 @@ export type Repository = {
   id: number
   name: string
   owner: string
+  organization_id: number
   linear_team_external_ids: string[]
   created_at: string
   updated_at: string
 }
 
-type RepositoriesResponse = {
-  repositories: Repository[]
+export type GetRepositoriesParams = {
+  owner: string
 }
 
-export async function getRepositories() {
+export async function getRepositories(params?: GetRepositoriesParams) {
+  if (params && 'owner' in params) {
+    return apiClientWithAuth
+      .get('repositories', { searchParams: { owner: params.owner! } })
+      .json<{
+        repositories: Repository[]
+      }>()
+  }
+
+  return apiClientWithAuth.get('repositories').json<{
+    repositories: Repository[]
+  }>()
+}
+
+export async function getRepository(id: number) {
   return apiClientWithAuth
-    .get('users/repositories')
-    .json<RepositoriesResponse>()
+    .get(`repositories/${id}`)
+    .json<{ repository: Repository }>()
 }
 
 export type CreateRepositoryParams =
@@ -36,11 +51,11 @@ export type CreateRepositoryParams =
 export async function createRepository(params: CreateRepositoryParams) {
   if ('github_repo_id' in params) {
     return apiClientWithAuth
-      .post('users/repositories', { json: params })
+      .post('repositories', { json: params })
       .json<{ repository: Repository }>()
   }
   return apiClientWithAuth
-    .post('users/repositories', { json: { repository: params } })
+    .post('repositories', { json: { repository: params } })
     .json<{ repository: Repository }>()
 }
 
@@ -48,12 +63,12 @@ export async function updateRepository(
   params: Partial<Repository> & { id: number },
 ) {
   return apiClientWithAuth
-    .patch(`users/repositories/${params.id}`, { json: params })
+    .patch(`repositories/${params.id}`, { json: params })
     .json<{ repository: Repository }>()
 }
 
 export async function migrateRepositories() {
   return apiClientWithAuth
-    .post('users/repositories/migrate')
-    .json<RepositoriesResponse>()
+    .post('repositories/migrate')
+    .json<{ repositories: Repository[] }>()
 }

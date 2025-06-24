@@ -32,7 +32,7 @@ type InstallationsResponse = {
 
 export async function getInstallations() {
   return apiClientWithAuth
-    .get('users/github/installations')
+    .get('github/installations')
     .json<InstallationsResponse>()
 }
 
@@ -146,7 +146,7 @@ export type Repository = {
 }
 
 export async function getRepositories() {
-  return apiClientWithAuth.get('users/github/repositories').json<Repository[]>()
+  return apiClientWithAuth.get('github/repositories').json<Repository[]>()
 }
 
 // export type Tree = {
@@ -169,7 +169,7 @@ export async function getRepositories() {
 //   branch = 'main',
 // ) =>
 //   apiClientWithAuth
-//     .get('users/github/repositories/git/trees', {
+//     .get('github/repositories/git/trees', {
 //       searchParams: { owner, repo, branch },
 //     })
 //     .json<Trees>()
@@ -188,7 +188,7 @@ export async function getRepositoryFrameworks(
   branch = 'main',
 ) {
   const frameworks = await apiClientWithAuth
-    .get('users/github/repositories/frameworks', {
+    .get('github/repositories/frameworks', {
       searchParams: { owner, repo, branch },
     })
     .json<Omit<DetectedFramework, 'icon'>[]>()

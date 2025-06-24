@@ -35,22 +35,41 @@ defmodule Swarm.Repositories do
     |> Repo.preload(:organization)
   end
 
-  def list_repositories(%User{} = user) do
+  def list_repositories(%Organization{} = organization) do
+    Repo.preload(organization, :repositories).repositories
+  end
+
+  def list_repositories(%User{} = user, params \\ %{}) do
     user_organization_ids =
       user
       |> Repo.preload(:organizations)
       |> Map.get(:organizations)
       |> Enum.map(& &1.id)
 
-    Repo.all(
+    query =
       from r in Repository,
-        where: r.organization_id in ^user_organization_ids
-    )
-    |> Repo.preload(:organization)
+        join: o in assoc(r, :organization),
+        where: o.id in ^user_organization_ids
+
+    query
+    |> apply_filters(params)
+    |> select([r, o], r)
+    |> preload([r, o], organization: o)
+    |> Repo.all()
   end
 
-  def list_repositories(%Organization{} = organization) do
-    Repo.preload(organization, :repositories).repositories
+  defp apply_filters(query, params) do
+    owner = Map.get(params, "owner")
+
+    case owner do
+      nil -> query
+      "" -> query
+      owner when is_binary(owner) -> apply_owner_filter(query, owner)
+    end
+  end
+
+  defp apply_owner_filter(query, owner) do
+    where(query, [_r, o], o.name == ^owner)
   end
 
   @doc """
@@ -200,6 +219,13 @@ defmodule Swarm.Repositories do
     |> Repository.changeset(attrs)
     |> Ecto.Changeset.put_assoc(:organization, organization)
     |> Ecto.Changeset.cast_assoc(:projects, with: &Project.changeset/2)
+    |> Ecto.Changeset.validate_change(:owner, fn :owner, owner ->
+      if owner == organization.name do
+        []
+      else
+        [owner: "must match organization name: #{organization.name}"]
+      end
+    end)
     |> Repo.insert()
   end
 
@@ -297,7 +323,7 @@ defmodule Swarm.Repositories do
 
   """
   def update_repository(%User{} = user, id, attrs) do
-    user_repositories = list_repositories(user)
+    user_repositories = list_repositories(user, %{})
 
     case Enum.find(user_repositories, &(&1.id == String.to_integer(id))) do
       nil -> {:error, :not_found}

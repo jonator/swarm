@@ -38,28 +38,57 @@ defmodule SwarmWeb.Router do
 
     post "/auth/github", SessionController, :github
 
+    # Auth
+    scope "/auth" do
+      pipe_through [:ensure_auth]
+      post "/linear", LinearController, :exchange_code
+      get "/linear", LinearController, :has_access
+      get "/token", SessionController, :token
+    end
+
+    # Users
     scope "/users" do
       pipe_through [:ensure_auth]
-
       get "/", UserController, :show
-      resources "/repositories", RepositoryController, only: [:index, :create, :update]
-      get "/github/installations", GitHubController, :installations
-      get "/github/repositories", GitHubController, :repositories
-      get "/github/repositories/git/trees", GitHubController, :trees
-      get "/github/repositories/frameworks", GitHubController, :frameworks
+      get "/:id", UserController, :show
+    end
 
-      post "/auth/linear", LinearController, :exchange_code
-      get "/auth/linear", LinearController, :has_access
+    # Repositories
+    scope "/repositories" do
+      pipe_through [:ensure_auth]
+      resources "/", RepositoryController, only: [:index, :show, :create, :update]
+    end
 
-      get "/linear/organization", LinearController, :organization
+    # Organizations
+    scope "/organizations" do
+      pipe_through [:ensure_auth]
+      resources "/", OrganizationController, only: [:index, :create, :update]
+    end
 
-      # Agent management
-      post "/agents/spawn", EventController, :spawn_agent
+    # GitHub
+    scope "/github" do
+      pipe_through [:ensure_auth]
+      get "/installations", GitHubController, :installations
+      get "/repositories", GitHubController, :repositories
+      get "/repositories/git/trees", GitHubController, :trees
+      get "/repositories/frameworks", GitHubController, :frameworks
+    end
+
+    # Linear
+    scope "/linear" do
+      pipe_through [:ensure_auth]
+      get "/organization", LinearController, :organization
+    end
+
+    # Agents
+    scope "/agents" do
+      pipe_through [:ensure_auth]
+      post "/spawn", EventController, :spawn_agent
+      get "/", AgentController, :index
     end
 
     scope "/admin" do
       pipe_through [:ensure_auth, :ensure_admin]
-
       resources "/users", UserController
     end
   end
