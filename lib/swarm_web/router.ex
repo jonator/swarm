@@ -27,12 +27,6 @@ defmodule SwarmWeb.Router do
     plug Guardian.Permissions, ensure: %{default: [:admin]}
   end
 
-  scope "/events", SwarmWeb do
-    pipe_through [:api]
-
-    post "/", EventController, :receive_event
-  end
-
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
@@ -83,7 +77,6 @@ defmodule SwarmWeb.Router do
     # Agents
     scope "/agents" do
       pipe_through [:ensure_auth]
-      post "/spawn", EventController, :spawn_agent
       get "/", AgentController, :index
     end
 

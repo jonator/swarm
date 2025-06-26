@@ -27,7 +27,7 @@ defmodule Swarm.Ingress.ManualHandler do
   def handle(%Event{source: :manual} = event) do
     Logger.info("Processing manual agent spawn request")
 
-    with {:ok, user} <- Permissions.validate_user_access(event),
+    with {:ok, user, _repository, _organization} <- Permissions.validate_user_access(event),
          {:ok, repository} <- find_repository(user, event),
          {:ok, agent_attrs} <- build_agent_attributes(event, user, repository) do
       agent_attrs
