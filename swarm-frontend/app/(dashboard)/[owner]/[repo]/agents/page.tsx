@@ -1,4 +1,4 @@
-import { AgentsList } from '@/components/agents'
+import { AgentsList } from '@/components/agents/list'
 import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
 import { agentsQuery } from '@/lib/queries/keys/agents'

@@ -84,14 +84,30 @@ defmodule Swarm.Agents do
 
   ## Examples
 
-      iex> get_agent!(123)
+      iex> get_agent(123)
       %Agent{}
 
-      iex> get_agent!(456)
-      ** (Ecto.NoResultsError)
+      iex> get_agent(456)
+      nil
 
   """
   def get_agent(id), do: Repo.get(Agent, id)
+
+  def get_agent(%User{} = user, id) do
+    user_organization_ids =
+      user
+      |> Repo.preload(:organizations)
+      |> Map.get(:organizations)
+      |> Enum.map(& &1.id)
+
+    from(a in Agent,
+      where: a.id == ^id,
+      join: r in assoc(a, :repository),
+      join: o in assoc(r, :organization),
+      where: o.id in ^user_organization_ids
+    )
+    |> Repo.one()
+  end
 
   @doc """
   Creates a agent.

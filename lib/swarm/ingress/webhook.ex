@@ -10,7 +10,7 @@ defmodule Swarm.Ingress.Webhook do
 
   def call(%Plug.Conn{request_path: "/events", method: "POST"} = conn, _opts) do
     case verify_resp_body(conn) do
-      {:ok, :ok, _raw_body, decoded_body} ->
+      {:ok, _raw_body, decoded_body} ->
         source = determine_event_source(conn, decoded_body)
 
         case Swarm.Ingress.process_event(decoded_body, source) do
@@ -93,7 +93,7 @@ defmodule Swarm.Ingress.Webhook do
 
     case read_body_from_conn(conn) do
       {:ok, raw_body, decoded_body} ->
-        result =
+        :ok =
           cond do
             linear_webhook?(headers) ->
               verify_linear_webhook(headers, raw_body, remote_ip, decoded_body)
@@ -108,7 +108,7 @@ defmodule Swarm.Ingress.Webhook do
               :ok
           end
 
-        {:ok, result, raw_body, decoded_body}
+        {:ok, raw_body, decoded_body}
 
       {:error, reason} ->
         {:error, reason}

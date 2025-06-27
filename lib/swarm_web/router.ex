@@ -77,7 +77,7 @@ defmodule SwarmWeb.Router do
     # Agents
     scope "/agents" do
       pipe_through [:ensure_auth]
-      get "/", AgentController, :index
+      resources "/", AgentController, only: [:index, :show]
     end
 
     scope "/admin" do

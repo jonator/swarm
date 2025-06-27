@@ -1,5 +1,9 @@
 import { parseAgent } from '@/lib/models/agents'
-import { type GetAgentsParams, getAgents } from '@/lib/services/agents'
+import {
+  type GetAgentsParams,
+  getAgent,
+  getAgents,
+} from '@/lib/services/agents'
 import { queryOptions } from '@tanstack/react-query'
 
 export const agentsQuery = (params: GetAgentsParams) =>
@@ -20,4 +24,13 @@ export const agentsQuery = (params: GetAgentsParams) =>
         (a, b) => b.created_at.getTime() - a.created_at.getTime(),
       )
     },
+  })
+
+/** UUID ID */
+export const agentQuery = (id: string) =>
+  queryOptions({
+    queryKey: ['agents', 'agent', id],
+    queryFn: () => getAgent(id),
+    refetchInterval: 1000 * 5, // 5 seconds
+    select: (data) => parseAgent(data.agent),
   })

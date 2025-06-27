@@ -38,6 +38,7 @@ interface HierarchicalBreadcrumbProps {
   items: HierarchicalItem[]
   pathname: string
   hierarchy: HierarchyLevel[]
+  breadcrumb?: React.ReactNode
   className?: string
 }
 
@@ -275,6 +276,7 @@ export function HierarchicalBreadcrumb({
   pathname,
   hierarchy,
   className,
+  breadcrumb,
 }: HierarchicalBreadcrumbProps) {
   const pathSegments = pathname.split('/').filter(Boolean)
 
@@ -313,7 +315,7 @@ export function HierarchicalBreadcrumb({
 
   return (
     <Breadcrumb className={className}>
-      <BreadcrumbList className='flex items-center gap-1'>
+      <BreadcrumbList className='flex items-center'>
         {breadcrumbPath.map((item, index) => {
           const isLast = index === breadcrumbPath.length - 1
           const isFirst = index === 0
@@ -323,14 +325,20 @@ export function HierarchicalBreadcrumb({
               <BreadcrumbItem>
                 {isLast && !isFirst ? (
                   // Show child as final breadcrumb page
-                  <BreadcrumbPage
-                    className={cn(
-                      'flex items-center gap-1.5 rounded-md text-sm font-medium',
-                      'text-foreground',
-                    )}
-                  >
-                    {item.label}
-                  </BreadcrumbPage>
+                  breadcrumb ? (
+                    <BreadcrumbLink href={item.href}>
+                      {item.label}
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md text-sm font-medium',
+                        'text-foreground',
+                      )}
+                    >
+                      {item.label}
+                    </BreadcrumbPage>
+                  )
                 ) : (
                   <div className='flex items-center gap-1'>
                     {pathSegments.length === 1 ? (
@@ -365,6 +373,15 @@ export function HierarchicalBreadcrumb({
             </React.Fragment>
           )
         })}
+
+        {breadcrumb && (
+          <React.Fragment>
+            <BreadcrumbSeparator className='text-muted-foreground/50'>
+              <Slash className='h-3.5 w-3.5' />
+            </BreadcrumbSeparator>
+            {breadcrumb}
+          </React.Fragment>
+        )}
       </BreadcrumbList>
     </Breadcrumb>
   )

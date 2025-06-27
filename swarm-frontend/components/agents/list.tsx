@@ -1,7 +1,8 @@
 'use client'
+
 import { useAgents } from '@/lib/queries/hooks/agents'
 import type { GetAgentsParams } from '@/lib/services/agents'
-import { AgentCard } from './agent-card'
+import { AgentCard } from './card'
 
 export function AgentsList(
   props: GetAgentsParams & { now: Date; timeZone: string },

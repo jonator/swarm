@@ -42,7 +42,13 @@ export default function Navbar({
   user,
   tabs,
   pathname,
-}: { user: User; tabs: Tab[]; pathname: string }) {
+  breadcrumb,
+}: {
+  user: User
+  tabs: Tab[]
+  pathname: string
+  breadcrumb?: React.ReactNode
+}) {
   const { data: repositories } = useRepositories()
 
   const hierarchy = useMemo(() => {
@@ -95,6 +101,7 @@ export default function Navbar({
                 createCta: 'Create Repository',
               },
             ]}
+            breadcrumb={breadcrumb}
           />
         </div>
 

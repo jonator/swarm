@@ -7,7 +7,8 @@ export type AgentSource = 'manual' | 'linear' | 'slack' | 'github'
 export type AgentType = 'researcher' | 'coder' | 'code_reviewer'
 
 export type ResponseAgent = {
-  id: number
+  /** UUID */
+  id: string
   name: string
   context: string
   status: AgentStatus
@@ -24,10 +25,6 @@ export type ResponseAgent = {
   updated_at: string
 }
 
-export type AgentsResponse = {
-  agents: ResponseAgent[]
-}
-
 export type GetAgentsParams =
   | {
       repository_name: string
@@ -37,7 +34,11 @@ export type GetAgentsParams =
     }
 
 export async function getAgents(params: GetAgentsParams) {
-  return apiClientWithAuth
-    .get('agents', { searchParams: { ...params } })
-    .json<AgentsResponse>()
+  return apiClientWithAuth.get('agents', { searchParams: { ...params } }).json<{
+    agents: ResponseAgent[]
+  }>()
+}
+
+export async function getAgent(id: string) {
+  return apiClientWithAuth.get(`agents/${id}`).json<{ agent: ResponseAgent }>()
 }
