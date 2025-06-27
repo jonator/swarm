@@ -45,13 +45,10 @@ defmodule SwarmWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
-  # It's necessary to use a plug to handle webhooks since we need to verify the webhook signature
-  # against the response body which is consumed once and discarded by Plug.Parsers below.
-  plug Swarm.Ingress.Webhook
-
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
+    body_reader: {SwarmWeb.CacheBodyReader, :read_body, []},
     json_decoder: Phoenix.json_library()
 
   plug CORSPlug

@@ -27,6 +27,8 @@ defmodule SwarmWeb.Router do
     plug Guardian.Permissions, ensure: %{default: [:admin]}
   end
 
+  post "/events", SwarmWeb.EventController, :create
+
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
