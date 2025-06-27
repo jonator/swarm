@@ -53,7 +53,6 @@ defmodule Swarm.Workers.Coder do
         {:error, "Agent not found"}
 
       agent ->
-        # Preload user and repository associations for GitHub service
         agent = Swarm.Repo.preload(agent, [:user, :repository])
         {:ok, agent}
     end
@@ -182,7 +181,7 @@ defmodule Swarm.Workers.Coder do
     chat_model =
       ChatAnthropic.new!(%{
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0.7,
         stream: false
       })

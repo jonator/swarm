@@ -100,12 +100,15 @@ export function AgentTypeStatusBadge({
 
 export function AgentBreadcrumb({ id }: { id: string }) {
   const { data: agent } = useAgent(id)
-  const StatusIcon = agent ? statusMap[agent.status].icon : undefined
+
+  if (!agent) return null
+
+  const StatusIcon = statusMap[agent.status].icon
 
   return (
-    <div className='flex items-center gap-1'>
-      {StatusIcon && <StatusIcon className='h-4 w-4' aria-hidden />}
-      <span className='text-foreground text-sm font-medium'>{agent?.name}</span>
+    <div className='flex items-center gap-1.5'>
+      <StatusIcon className='h-4 w-4' aria-hidden />
+      <span className='text-foreground text-sm font-medium'>{agent.name}</span>
     </div>
   )
 }
