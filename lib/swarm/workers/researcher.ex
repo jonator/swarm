@@ -62,14 +62,14 @@ defmodule Swarm.Workers.Researcher do
 
     FLAME.call(Swarm.FlamePool, fn ->
       with {:ok, git_repo} <- clone_repository(agent),
-           {:ok, plan} <- generate_llm_implementation_plan(agent, git_repo) do
+           {:ok, plan} <- generate_research(agent, git_repo) do
         Logger.info("Research completed for agent #{agent.id}")
         {:ok, %{plan: plan}}
       end
     end)
   end
 
-  defp generate_llm_implementation_plan(agent, git_repo) do
+  defp generate_research(agent, git_repo) do
     Logger.debug("Generating implementation plan via LLM for agent #{agent.id}")
 
     reply_tool =
