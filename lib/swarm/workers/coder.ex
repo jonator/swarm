@@ -19,7 +19,6 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Git
   alias Swarm.Instructor
   alias Swarm.Repositories.Repository
-  alias Swarm.Services.GitHub
   alias Swarm.Services.Linear
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
@@ -115,29 +114,20 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}, branch_name) do
+  defp clone_repository(%Agent{repository: repository, id: agent_id}, branch_name) do
     Logger.debug(
       "Cloning repository: #{repository.owner}/#{repository.name} with branch: #{branch_name}"
     )
 
-    # Get repository information from GitHub API
-    # Note: In the future when organizations are supported, we will need to
-    # get the repository using the organization and not the user
-    with {:ok, repo_info} <- GitHub.repository_info(user, repository.owner, repository.name),
-         base_branch <- Map.get(repo_info, "default_branch", "main"),
-         repo_url <- Repository.build_repository_url(repository),
-         # Use default branch as base, but checkout our working branch
-         {:ok, git_repo} <- Git.Repo.open(repo_url, "coder-#{agent_id}", base_branch) do
+    with repo_url <- Repository.build_repository_url(repository),
+         {:ok, git_repo} <- Git.Repo.open(repo_url, "coder-#{agent_id}", branch_name) do
       Logger.debug("Successfully cloned repository to: #{git_repo.path}")
       {:ok, git_repo}
     else
       {:error, reason} ->
         Logger.error("Failed to clone repository: #{inspect(reason)}")
-        {:error, reason}
 
-      error ->
-        Logger.error("Failed to clone repository: #{inspect(error)}")
-        error
+        {:error, reason}
     end
   end
 
@@ -149,9 +139,9 @@ defmodule Swarm.Workers.Coder do
         Logger.debug("Successfully created repository index")
         {:ok, index}
 
-      error ->
-        Logger.error("Failed to create repository index: #{inspect(error)}")
-        error
+      {:error, reason} ->
+        Logger.error("Failed to create repository index: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
@@ -181,6 +171,10 @@ defmodule Swarm.Workers.Coder do
       You are a software developer implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
       Write files and commit changes immediately- do not ask for confirmation.
       Push changes once completed. If there are newline file terminators, keep them.
+
+      Repo info #{repository.owner}/#{repository.name}:
+      - Branch: #{git_repo.branch}
+
       """),
       Message.new_user!("I need to implement the following changes: #{inspect(instructions)}")
     ]

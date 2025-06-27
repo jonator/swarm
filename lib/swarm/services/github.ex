@@ -142,7 +142,13 @@ defmodule Swarm.Services.GitHub do
     end
   end
 
-  def repository_info(user_or_client, owner, repo)
+  def repository_info(user_or_organization_or_client, owner, repo)
+
+  def repository_info(%Organization{} = organization, owner, repo) do
+    with {:ok, %__MODULE__{} = client} <- new(organization) do
+      repository_info(client, owner, repo)
+    end
+  end
 
   def repository_info(%User{} = user, owner, repo) do
     with {:ok, %__MODULE__{} = client} <- new(user) do
