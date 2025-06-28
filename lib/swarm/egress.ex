@@ -1,47 +1,20 @@
 defmodule Swarm.Egress do
   @moduledoc """
-  Egress module for sending messages or data to external systems.
+  Deprecated: Egress module for sending messages or data to external systems.
+  Use Swarm.Tools for all tool-based integrations.
   """
-
-  alias Swarm.Repositories.Repository
-  alias Swarm.Ingress.Event
-  alias Swarm.Egress.LinearDispatch
-  alias Swarm.Egress.GitHubDispatch
 
   @doc """
-  Acknowledge a message.
-
-  Per recommendation: https://linear.app/developers/agents#recommendations
+  Deprecated. Use Swarm.Tools for tool-based acknowledge.
   """
-  def acknowledge(%Event{source: :linear} = event, _repository) do
-    LinearDispatch.acknowledge(event)
+  def acknowledge(_event, _repository) do
+    {:error, "Egress.acknowledge/2 is deprecated. Use Swarm.Tools for tool-based acknowledge."}
   end
 
-  def acknowledge(%Event{source: :github} = event, %Repository{} = repository) do
-    GitHubDispatch.acknowledge(event, repository)
-  end
-
-  def acknowledge(%Event{source: other_source}, _repository) do
-    {:error, "Egress.acknowledge/1 received non-supported event source: #{other_source}"}
-  end
-
-  def reply(
-        %{"linear_issue_id" => _, "linear_app_user_id" => _} =
-          external_ids,
-        message
-      ) do
-    LinearDispatch.reply(external_ids, message)
-  end
-
-  def reply(external_ids, _message) do
-    {:error, "Egress.reply/2 received non-supported external_ids: #{inspect(external_ids)}"}
-  end
-
-  def reply(
-        %{"github_issue_number" => _} = external_ids,
-        %Repository{} = repository,
-        message
-      ) do
-    GitHubDispatch.reply(external_ids, repository, message)
+  @doc """
+  Deprecated. Use Swarm.Tools for tool-based reply.
+  """
+  def reply(_external_ids, _message) do
+    {:error, "Egress.reply/2 is deprecated. Use Swarm.Tools for tool-based reply."}
   end
 end

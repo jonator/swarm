@@ -4,7 +4,7 @@ defmodule Swarm.Tools.Git.Index do
   alias LangChain.Function
   alias LangChain.FunctionParam
 
-  def all_tools do
+  def all_tools(_mode \\ :read_write) do
     [
       search_files()
     ]

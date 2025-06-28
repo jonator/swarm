@@ -2,8 +2,10 @@ defmodule Swarm.Tools.Git.Repo do
   alias LangChain.Function
   alias LangChain.FunctionParam
 
-  def all_tools do
-    [
+  def all_tools(:read), do: [list_files(), open_file()]
+
+  def all_tools(_mode),
+    do: [
       add_file(),
       add_all_files(),
       commit(),
@@ -14,14 +16,6 @@ defmodule Swarm.Tools.Git.Repo do
       status(),
       push_origin()
     ]
-  end
-
-  def readonly_tools do
-    [
-      list_files(),
-      open_file()
-    ]
-  end
 
   def add_file do
     Function.new!(%{

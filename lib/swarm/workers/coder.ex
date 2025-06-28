@@ -70,7 +70,8 @@ defmodule Swarm.Workers.Coder do
     with {:ok, branch_name} <- get_branch_name(agent),
          {:ok, git_repo} <- clone_repository(agent, branch_name),
          {:ok, index} <- create_repository_index(git_repo),
-         {:ok, implementation_result} <- implement_changes(git_repo, index, repository, context) do
+         {:ok, implementation_result} <-
+           implement_changes(agent, git_repo, index, repository, context) do
       Logger.info("Code implementation completed for agent #{agent.id}")
       {:ok, %{branch: branch_name, changes: implementation_result}}
     else
@@ -144,7 +145,7 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp implement_changes(git_repo, git_repo_index, repository, instructions) do
+  defp implement_changes(agent, git_repo, git_repo_index, repository, instructions) do
     Logger.debug("Implementing changes")
 
     # Note: finished tool is used so this agent can handle creating pull requests as needed in response to issues or code reviews
@@ -160,10 +161,7 @@ defmodule Swarm.Workers.Coder do
 
     # Tool context is passed via custom_context in the LLMChain
     tools =
-      Swarm.Tools.Git.Repo.all_tools() ++
-        Swarm.Tools.Git.Index.all_tools() ++
-        Swarm.Tools.GitHub.all_tools() ++
-        [finished_tool]
+      Swarm.Tools.for_agent(agent) ++ [finished_tool]
 
     messages = [
       Message.new_system!("""

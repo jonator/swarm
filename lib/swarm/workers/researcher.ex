@@ -20,8 +20,6 @@ defmodule Swarm.Workers.Researcher do
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
   alias LangChain.ChatModels.ChatAnthropic
-  alias Swarm.Tools.Git.Repo, as: ToolRepo
-  alias Swarm.Egress
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -72,29 +70,6 @@ defmodule Swarm.Workers.Researcher do
   defp generate_research(agent, git_repo) do
     Logger.debug("Generating implementation plan via LLM for agent #{agent.id}")
 
-    reply_tool =
-      LangChain.Function.new!(%{
-        name: "reply",
-        description:
-          "Reply to the user with the final research plan. Always call this tool with your final plan when you are done.",
-        parameters: [
-          LangChain.FunctionParam.new!(%{
-            name: "message",
-            type: :string,
-            description: "The message to send as the research plan reply.",
-            required: true
-          })
-        ],
-        function: fn %{"message" => message},
-                     %{"external_ids" => external_ids, "repository" => repository} ->
-          if Map.get(external_ids, "linear_issue_id") do
-            Egress.reply(external_ids, message)
-          else
-            Egress.reply(external_ids, repository, message)
-          end
-        end
-      })
-
     finished_tool =
       LangChain.Function.new!(%{
         name: "finished",
@@ -105,7 +80,8 @@ defmodule Swarm.Workers.Researcher do
         end
       })
 
-    tools = ToolRepo.readonly_tools() ++ [reply_tool, finished_tool]
+    tools =
+      Swarm.Tools.for_agent(agent, :read) ++ [finished_tool]
 
     messages = [
       Message.new_system!("""
