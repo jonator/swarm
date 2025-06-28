@@ -73,7 +73,7 @@ export const ChooseRepo = ({
       <ChooseRepoProject
         repository={repository}
         onDone={() => {
-          toast('Repository added!', {
+          toast.success('Repository added!', {
             description: 'Repository successfully added to Swarm.',
           })
           router.push('/onboarding/linear')
@@ -210,7 +210,7 @@ const ChooseRepoProject = ({
       </CardHeader>
       <CardContent>
         <div className='space-y-6'>
-          <div>
+          <div className='space-y-2'>
             <div className='flex items-center animate-in fade-in'>
               <Label>Type</Label>
               <TooltipProvider>

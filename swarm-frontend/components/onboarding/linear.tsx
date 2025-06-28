@@ -94,7 +94,7 @@ export const InstallLinear = ({
         organization={organization}
         repositories={repositories}
         onDone={() => {
-          toast('Linear teams linked!', {
+          toast.success('Linear teams linked!', {
             description: 'Your Linear teams have been successfully linked.',
           })
           routeEntry()
