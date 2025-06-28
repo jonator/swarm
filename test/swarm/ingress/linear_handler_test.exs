@@ -533,7 +533,7 @@ defmodule Swarm.Ingress.LinearHandlerTest do
       user: user,
       repository: repository
     } do
-      params = linear_issue_new_child_comment_params()
+      params = linear_issue_new_child_comment_mention_params()
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
 
       with_mock Swarm.Services.Linear,
@@ -565,6 +565,32 @@ defmodule Swarm.Ingress.LinearHandlerTest do
         assert String.contains?(attrs.context, "@swarm-ai-dev reply")
         assert String.contains?(attrs.context, "TEST6")
         assert String.contains?(attrs.context, "test6reply")
+      end
+    end
+
+    test "builds correct attributes for issue new comment of app parent comment event", %{
+      user: user
+    } do
+      params = linear_issue_new_child_comment_of_app_parent_params()
+      {:ok, event} = Event.new(params, :linear, user_id: user.id)
+
+      with_mock Swarm.Services.Linear,
+        issue: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+                  "19e7fc32-f536-4bbc-8f44-e679c6b95580" ->
+          {:ok, %{"issue" => %{"documentContent" => %{"content" => "Test mocked issue content"}}}}
+        end,
+        issue_comment_threads: fn "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+                                  "19e7fc32-f536-4bbc-8f44-e679c6b95580" ->
+          {:ok, @comprehensive_thread}
+        end do
+        assert {:ok, attrs} = LinearHandler.handle(event)
+
+        assert attrs.user_id == user.id
+        assert attrs.source == :linear
+        assert attrs.external_ids["linear_issue_id"] == "19e7fc32-f536-4bbc-8f44-e679c6b95580"
+
+        assert attrs.external_ids["linear_parent_comment_user_id"] ==
+                 "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
       end
     end
 

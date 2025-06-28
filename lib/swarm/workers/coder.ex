@@ -167,7 +167,7 @@ defmodule Swarm.Workers.Coder do
 
     messages = [
       Message.new_system!("""
-      You are a software developer implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
+      You are a software developer called Swarm AI implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
       Write files and commit changes immediately- do not ask for confirmation.
       Push changes and open a pull request once completed. If there are newline file terminators, keep them.
 

@@ -144,7 +144,7 @@ defmodule Swarm.Services.Linear do
             children {
               nodes {
                 id
-                bodyi
+                body
                 user {
                   displayName
                 }
@@ -242,6 +242,30 @@ defmodule Swarm.Services.Linear do
   def create_comment(app_user_id, issue_id, body, parent_id) do
     with {:ok, linear} <- new(app_user_id) do
       create_comment(linear, issue_id, body, parent_id)
+    end
+  end
+
+  @doc """
+  Updates a comment on Linear using the commentUpdate mutation.
+  Accepts only a string for the new comment body.
+  """
+  def mutate_comment(%__MODULE__{access_token: %Token{token: access_token}}, comment_id, body)
+      when is_binary(body) do
+    mutation(access_token, """
+      commentUpdate(id: \"#{comment_id}\", input: {body: #{Jason.encode!(body)}}) {
+        comment {
+          id
+          body
+        }
+        success
+        lastSyncId
+      }
+    """)
+  end
+
+  def mutate_comment(app_user_id, comment_id, body) when is_binary(body) do
+    with {:ok, linear} <- new(app_user_id) do
+      mutate_comment(linear, comment_id, body)
     end
   end
 

@@ -45,6 +45,12 @@ defmodule Swarm.Ingress.LinearHandler do
 
   def relevant_event?(%Event{type: "issueAssignedToYou"}), do: true
   def relevant_event?(%Event{type: "issueCommentMention"}), do: true
+
+  def relevant_event?(%Event{type: "issueNewComment", external_ids: external_ids}) do
+    # Only if parent comment was from Swarm AI
+    external_ids["linear_parent_comment_user_id"] == external_ids["linear_app_user_id"]
+  end
+
   def relevant_event?(%Event{type: "issueMention"}), do: true
   def relevant_event?(%Event{type: "documentMention"}), do: true
   def relevant_event?(_), do: false
@@ -67,6 +73,7 @@ defmodule Swarm.Ingress.LinearHandler do
       case type do
         "issueAssignedToYou" -> build_issue_assigned_attrs(event)
         "issueCommentMention" -> build_issue_comment_mention_attrs(event)
+        "issueNewComment" -> build_issue_comment_mention_attrs(event)
         "issueMention" -> build_issue_description_mention_attrs(event)
         "documentMention" -> build_document_mention_attrs(event)
         _ -> %{}
@@ -93,10 +100,17 @@ defmodule Swarm.Ingress.LinearHandler do
 
     context_text =
       if external_ids["linear_parent_comment_id"] do
+        parent_comment_detail =
+          if external_ids["linear_parent_comment_user_id"] == external_ids["linear_app_user_id"] do
+            " - from Swarm AI)"
+          else
+            ")"
+          end
+
         build_issue_context(
           issue,
           external_ids,
-          "mentioned in reply comment #{comment["id"]} (parent comment ID: #{external_ids["linear_parent_comment_id"]})"
+          "mentioned in reply comment #{comment["id"]} (parent comment ID: #{external_ids["linear_parent_comment_id"]}#{parent_comment_detail}"
         )
       else
         build_issue_context(issue, external_ids, "mentioned in comment #{comment["id"]}")
@@ -253,16 +267,20 @@ defmodule Swarm.Ingress.LinearHandler do
       {:ok, %{"issue" => %{"comments" => %{"nodes" => comments}}}} ->
         format_comment_threads(comments)
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        Logger.error("Failed to fetch issue comment threads - API error: #{inspect(reason)}")
         "Unable to fetch issue comment threads - API error"
 
-      {:unauthorized, _reason} ->
+      {:unauthorized, reason} ->
+        Logger.error("Failed to fetch issue comment threads - unauthorized: #{inspect(reason)}")
         "Unable to fetch issue comment threads - unauthorized"
 
       {:ok, %{status: status}} when status != 200 ->
+        Logger.error("Failed to fetch issue comment threads - HTTP #{status}")
         "Unable to fetch issue comment threads - HTTP #{status}"
 
-      _other ->
+      other ->
+        Logger.error("Failed to fetch issue comment threads - unknown error: #{inspect(other)}")
         "Unable to fetch issue comment threads - unknown error"
     end
   end

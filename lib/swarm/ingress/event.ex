@@ -145,6 +145,7 @@ defmodule Swarm.Ingress.Event do
     |> extract_linear_issue_id(data)
     |> extract_linear_comment_id(data)
     |> extract_linear_parent_comment_id(data)
+    |> extract_linear_parent_comment_user_id(data)
     |> extract_linear_document_id(data)
     |> extract_linear_team_id(data)
     |> extract_linear_project_id(data)
@@ -277,6 +278,18 @@ defmodule Swarm.Ingress.Event do
   defp extract_linear_parent_comment_id(external_ids, data) do
     if data["notification"]["parentCommentId"] do
       Map.put(external_ids, "linear_parent_comment_id", data["notification"]["parentCommentId"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_linear_parent_comment_user_id(external_ids, data) do
+    if data["notification"]["parentComment"] do
+      Map.put(
+        external_ids,
+        "linear_parent_comment_user_id",
+        data["notification"]["parentComment"]["userId"]
+      )
     else
       external_ids
     end

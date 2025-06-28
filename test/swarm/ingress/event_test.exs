@@ -96,6 +96,28 @@ defmodule Swarm.Ingress.EventTest do
       assert event.context.notification["issue"]["identifier"] == "SW-10"
     end
 
+    test "creates event from linear issue new comment of app parent comment" do
+      event_data = LinearEventsFixtures.linear_issue_new_child_comment_of_app_parent_params()
+
+      assert {:ok, event} = Event.new(event_data, :linear)
+
+      assert event.source == :linear
+      assert event.type == "issueNewComment"
+      assert event.raw_data == event_data
+
+      # Verify external IDs extraction
+      assert event.external_ids["linear_issue_id"] == "19e7fc32-f536-4bbc-8f44-e679c6b95580"
+      assert event.external_ids["linear_comment_id"] == "82736cf1-a67c-48d7-b532-234c556831f9"
+      assert event.external_ids["linear_team_id"] == "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"
+      assert event.external_ids["linear_app_user_id"] == "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+
+      assert event.external_ids["linear_parent_comment_id"] ==
+               "a75617f5-250a-4778-9e18-e271458e32a0"
+
+      assert event.external_ids["linear_parent_comment_user_id"] ==
+               "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+    end
+
     test "creates event from linear document mention" do
       event_data = LinearEventsFixtures.linear_document_mention_params()
 

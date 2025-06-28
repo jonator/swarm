@@ -277,7 +277,7 @@ defmodule Swarm.LinearEventsFixtures do
     """)
   end
 
-  def linear_issue_new_child_comment_params() do
+  def linear_issue_new_child_comment_mention_params() do
     Jason.decode!("""
     {
     "action": "issueCommentMention",
@@ -332,6 +332,66 @@ defmodule Swarm.LinearEventsFixtures do
     "type": "AppUserNotification",
     "webhookId": "93acd642-4e76-4d91-ba82-8e6cb2700a3b",
     "webhookTimestamp": 1750035917528
+    }
+    """)
+  end
+
+  @spec linear_issue_new_child_comment_of_app_parent_params() :: any()
+  def linear_issue_new_child_comment_of_app_parent_params() do
+    Jason.decode!("""
+    {
+      "action": "issueNewComment",
+      "appUserId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd",
+      "createdAt": "2025-06-28T00:22:28.266Z",
+      "notification": {
+        "actor": {
+          "avatarUrl": "https://public.linear.app/f15f0e68-9424-4add-b7c6-1d318e455719/79589ad0-a8cf-4250-829c-807be084c051",
+          "email": "jonathanator0@gmail.com",
+          "id": "f15f0e68-9424-4add-b7c6-1d318e455719",
+          "name": "Jonathan Ator",
+          "url": "https://linear.app/swarmai/profiles/jonathanator0"
+        },
+        "actorId": "f15f0e68-9424-4add-b7c6-1d318e455719",
+        "archivedAt": null,
+        "comment": {
+          "body": "Simplify",
+          "id": "82736cf1-a67c-48d7-b532-234c556831f9",
+          "issueId": "19e7fc32-f536-4bbc-8f44-e679c6b95580",
+          "userId": "f15f0e68-9424-4add-b7c6-1d318e455719"
+        },
+        "commentId": "82736cf1-a67c-48d7-b532-234c556831f9",
+        "createdAt": "2025-06-28T00:22:28.234Z",
+        "externalUserActorId": null,
+        "id": "80e07647-66dd-42af-ac0b-5ab08571f01c",
+        "issue": {
+          "id": "19e7fc32-f536-4bbc-8f44-e679c6b95580",
+          "identifier": "SW-12",
+          "team": {
+            "id": "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2",
+            "key": "SW",
+            "name": "Swarm"
+          },
+          "teamId": "2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2",
+          "title": "Verify webhook event signaturess",
+          "url": "https://linear.app/swarmai/issue/SW-12/verify-webhook-event-signaturess"
+        },
+        "issueId": "19e7fc32-f536-4bbc-8f44-e679c6b95580",
+        "parentComment": {
+          "body": "This is the parent comment body (test)",
+          "id": "a75617f5-250a-4778-9e18-e271458e32a0",
+          "issueId": "19e7fc32-f536-4bbc-8f44-e679c6b95580",
+          "userId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+        },
+        "parentCommentId": "a75617f5-250a-4778-9e18-e271458e32a0",
+        "type": "issueNewComment",
+        "updatedAt": "2025-06-28T00:22:28.234Z",
+        "userId": "90e50d8f-e44e-45d9-9de3-4ec126ce78fd"
+      },
+      "oauthClientId": "766dc2d9-8ff7-4bc8-bf2b-c6e2ce32cb72",
+      "organizationId": "4fde7f37-de48-4d5c-93fb-473c8f24d4cb",
+      "type": "AppUserNotification",
+      "webhookId": "8239ef6f-ea58-40d3-a7ef-3f8620b12ccd",
+      "webhookTimestamp": 1751070148298
     }
     """)
   end

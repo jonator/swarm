@@ -95,7 +95,17 @@ defmodule Swarm.Workers.Researcher do
         end
       })
 
-    tools = ToolRepo.readonly_tools() ++ [reply_tool]
+    finished_tool =
+      LangChain.Function.new!(%{
+        name: "finished",
+        description: "Indicates that the implementation is complete",
+        parameters: [],
+        function: fn _arguments, _context ->
+          {:ok, "Implementation completed successfully"}
+        end
+      })
+
+    tools = ToolRepo.readonly_tools() ++ [reply_tool, finished_tool]
 
     messages = [
       Message.new_system!("""
@@ -136,7 +146,7 @@ defmodule Swarm.Workers.Researcher do
          |> LLMChain.new!()
          |> LLMChain.add_messages(messages)
          |> LLMChain.add_tools(tools)
-         |> LLMChain.run_until_tool_used("reply") do
+         |> LLMChain.run_until_tool_used("finished") do
       {:ok, updated_chain, _messages} ->
         {:ok, updated_chain.last_message.content}
 
