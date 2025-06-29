@@ -211,14 +211,40 @@ defmodule Swarm.Services do
   @doc """
   Fetches all GitHub repositories accessible to the user across all GitHub installations.
   This includes both personal repositories and repositories from organizations the user has granted Swarm access to (orgs they have app manager access to, see: https://docs.github.com/en/organizations/managing-peoples-access-to-your-organization-with-roles/roles-in-an-organization#github-app-managers).
-  NOTE: This is important since we assume repos with new "owner" become new Swarm orgs, and if it's the first user they become the owner of the Swarm org.
+
+  By default, only repositories that also exist for the user in the Swarm database (via Repositories.list_repositories/1) are returned. This can be controlled with the `:filter_existing` option.
+
+  ## Options
+    - :filter_existing (default: true) - If true, only return GitHub repos that are not already in Swarm.
   """
-  def fetch_all_github_repositories(%User{} = user) do
+  def fetch_all_github_repositories(%User{} = user, opts \\ [filter_existing: true]) do
     {:ok, gh_client} = GitHub.new(user)
 
     case GitHub.installations(gh_client) do
       {:ok, %{"installations" => installations}} ->
-        repositories_across_all_installations(gh_client, installations)
+        with {:ok, github_repos} <-
+               repositories_across_all_installations(gh_client, installations) do
+          if Keyword.get(opts, :filter_existing, true) do
+            # Get Swarm repositories for the user
+            swarm_repos = Repositories.list_repositories(user)
+
+            swarm_external_ids =
+              Enum.map(swarm_repos, fn repo ->
+                # External id is like "github:123456"
+                repo.external_id
+              end)
+              |> MapSet.new()
+
+            filtered =
+              Enum.filter(github_repos, fn repo ->
+                not MapSet.member?(swarm_external_ids, "github:#{repo["id"]}")
+              end)
+
+            {:ok, filtered}
+          else
+            {:ok, github_repos}
+          end
+        end
 
       {:error, reason} ->
         {:error, "Failed to fetch GitHub installations: #{reason}"}

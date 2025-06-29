@@ -14,8 +14,17 @@ defmodule SwarmWeb.GitHubController do
     end
   end
 
-  def repositories(conn, _params, user) do
-    with {:ok, repositories} <- Swarm.Services.fetch_all_github_repositories(user) do
+  def repositories(conn, params, user) do
+    filter_existing =
+      case Map.get(params, "filter_existing") do
+        nil -> true
+        "false" -> false
+        false -> false
+        _ -> true
+      end
+
+    with {:ok, repositories} <-
+           Swarm.Services.fetch_all_github_repositories(user, filter_existing: filter_existing) do
       conn
       |> put_status(:ok)
       |> json(repositories)

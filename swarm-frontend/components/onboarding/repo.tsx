@@ -184,11 +184,8 @@ const ChooseRepoProject = ({
             }
 
         await createRepository(params)
-      } catch (error) {
-        console.error(error)
-        toast.error(
-          `Error creating repository: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        )
+      } catch {
+        toast.error('Error creating repository')
         return
       }
 
