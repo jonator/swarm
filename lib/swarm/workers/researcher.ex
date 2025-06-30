@@ -87,7 +87,7 @@ defmodule Swarm.Workers.Researcher do
       Message.new_system!("""
       You are a software architect analyzing a codebase and generating a detailed implementation plan based on the user's context and the repository contents. Use the available tools to inspect files and gather information as needed.
 
-      When you are finished, call the reply tool with your final implementation plan. Do not output the plan directly; always use the reply tool to send your answer. If the context is incomplete, ask the user for more information.
+      When you are finished, reply or update a prior plan and call the finished tool If the context is incomplete, ask the user for more information.
 
       Your plan should:
       - Summarize the application context and requirements
@@ -104,8 +104,8 @@ defmodule Swarm.Workers.Researcher do
 
     chat_model =
       ChatAnthropic.new!(%{
-        model: "claude-3-5-sonnet-20241022",
-        max_tokens: 4096,
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 8192,
         temperature: 0.5,
         stream: false
       })

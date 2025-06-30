@@ -269,6 +269,34 @@ defmodule Swarm.Services.Linear do
     end
   end
 
+  @doc """
+  Updates the description of a Linear issue using the issueUpdate mutation.
+  Accepts only a string for the new description.
+  """
+  def update_issue_description(
+        %__MODULE__{access_token: %Token{token: access_token}},
+        issue_id,
+        description
+      )
+      when is_binary(description) do
+    mutation(access_token, """
+      issueUpdate(id: \"#{issue_id}\", input: {description: #{Jason.encode!(description)}}) {
+        issue {
+          id
+          description
+        }
+        success
+        lastSyncId
+      }
+    """)
+  end
+
+  def update_issue_description(app_user_id, issue_id, description) when is_binary(description) do
+    with {:ok, linear} <- new(app_user_id) do
+      update_issue_description(linear, issue_id, description)
+    end
+  end
+
   def has_access?(%User{} = user) do
     case access_token(user) do
       {:ok, %Token{token: _access_token}} ->

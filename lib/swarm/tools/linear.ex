@@ -7,7 +7,7 @@ defmodule Swarm.Tools.Linear do
   alias Swarm.Services.Linear
 
   def all_tools(_mode \\ :read_write) do
-    [acknowledge(), reply()]
+    [acknowledge(), reply(), edit_comment(), update_issue_description()]
   end
 
   def acknowledge do
@@ -77,6 +77,74 @@ defmodule Swarm.Tools.Linear do
             )
 
             {:error, "required context not available to reply to linear"}
+        end
+      end
+    })
+  end
+
+  def edit_comment do
+    Function.new!(%{
+      name: "edit_comment",
+      description: "Edits an existing Linear comment.",
+      parameters: [
+        FunctionParam.new!(%{
+          name: "message",
+          type: :string,
+          description: "The new body of the comment.",
+          required: true
+        })
+      ],
+      function: fn %{"message" => message}, %{"external_ids" => external_ids} ->
+        case external_ids do
+          %{"linear_comment_id" => comment_id, "linear_app_user_id" => app_user_id} ->
+            case Linear.mutate_comment(app_user_id, comment_id, message) do
+              {:ok, _} ->
+                {:ok, "Edited comment #{comment_id}"}
+
+              {:error, reason} ->
+                {:error, "Failed to edit comment #{comment_id}: #{inspect(reason)}"}
+            end
+
+          _ ->
+            Logger.error(
+              "Linear.edit_comment/1 - required context not available: #{inspect(external_ids)}"
+            )
+
+            {:error, "required context not available to edit comment in linear"}
+        end
+      end
+    })
+  end
+
+  def update_issue_description do
+    Function.new!(%{
+      name: "update_issue_description",
+      description: "Updates the description of a Linear issue.",
+      parameters: [
+        FunctionParam.new!(%{
+          name: "description",
+          type: :string,
+          description: "The new description for the issue.",
+          required: true
+        })
+      ],
+      function: fn %{"description" => description}, %{"external_ids" => external_ids} ->
+        case external_ids do
+          %{"linear_issue_id" => issue_id, "linear_app_user_id" => app_user_id} ->
+            case Linear.update_issue_description(app_user_id, issue_id, description) do
+              {:ok, _} ->
+                {:ok, "Updated description for issue #{issue_id}"}
+
+              {:error, reason} ->
+                {:error, "Failed to update description for issue #{issue_id}: #{inspect(reason)}"}
+            end
+
+          _ ->
+            Logger.error(
+              "Linear.update_issue_description/1 - required context not available: #{inspect(external_ids)}"
+            )
+
+            {:error, "required context not available to update issue description in linear"}
         end
       end
     })

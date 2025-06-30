@@ -176,10 +176,11 @@ defmodule Swarm.Workers.Coder do
       Message.new_user!("I need to implement the following changes: #{inspect(instructions)}")
     ]
 
+    # https://docs.anthropic.com/en/docs/about-claude/models/overview#model-comparison-table
     chat_model =
       ChatAnthropic.new!(%{
         model: "claude-sonnet-4-20250514",
-        max_tokens: 8192,
+        max_tokens: 64000,
         temperature: 0.7,
         stream: false
       })
