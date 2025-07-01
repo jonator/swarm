@@ -22,7 +22,7 @@ export default async function RepoSettingsPage({
         ]}
       />
 
-      <div className='dashboard-container'>
+      <main className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-2xl font-bold'>Repository Settings</h1>
@@ -33,7 +33,7 @@ export default async function RepoSettingsPage({
         </div>
 
         {/* Content will be implemented later */}
-      </div>
+      </main>
     </>
   )
 }

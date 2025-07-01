@@ -19,7 +19,7 @@ export default async function RepoPage({
         ]}
       />
 
-      <div className='dashboard-container'>
+      <main className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <div>
             <h1 className='text-2xl font-bold'>{repo}</h1>
@@ -28,7 +28,7 @@ export default async function RepoPage({
         </div>
 
         {/* Content will be implemented later */}
-      </div>
+      </main>
     </>
   )
 }

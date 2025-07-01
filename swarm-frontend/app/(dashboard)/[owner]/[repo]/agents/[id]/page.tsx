@@ -45,7 +45,7 @@ export default async function AgentPage({
         breadcrumb={<AgentBreadcrumb id={id} />}
       />
 
-      <div className='dashboard-container'>
+      <main className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <h1 className='text-2xl font-bold'>{agent.name}</h1>
           <p className='text-muted-foreground'>
@@ -54,7 +54,7 @@ export default async function AgentPage({
         </div>
 
         <AgentDisplay id={id} now={now} timeZone={timeZone} />
-      </div>
+      </main>
     </HydrationBoundary>
   )
 }

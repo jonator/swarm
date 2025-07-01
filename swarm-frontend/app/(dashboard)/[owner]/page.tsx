@@ -19,7 +19,7 @@ export default async function OwnerPage({
         ]}
       />
 
-      <div className='dashboard-container'>
+      <main className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <h1 className='text-2xl font-bold'>Overview</h1>
           <p className='text-muted-foreground'>
@@ -28,7 +28,7 @@ export default async function OwnerPage({
         </div>
 
         {/* Content will be implemented later */}
-      </div>
+      </main>
     </>
   )
 }

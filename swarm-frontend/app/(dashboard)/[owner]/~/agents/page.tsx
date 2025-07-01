@@ -35,7 +35,7 @@ export default async function OwnerAgentsPage({
         ]}
       />
 
-      <div className='dashboard-container'>
+      <main className='dashboard-container'>
         <div className='flex items-center justify-between'>
           <h1 className='text-2xl font-bold'>Agents</h1>
           <p className='text-muted-foreground'>
@@ -44,7 +44,7 @@ export default async function OwnerAgentsPage({
         </div>
 
         <AgentsList organization_name={owner} now={now} timeZone={timeZone} />
-      </div>
+      </main>
     </HydrationBoundary>
   )
 }
