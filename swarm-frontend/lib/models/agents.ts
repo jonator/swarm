@@ -8,7 +8,7 @@ import { parseISO } from 'date-fns'
 import { utc } from '@date-fns/utc'
 
 export type Agent = {
-  id: number
+  id: string
   name: string
   context: string
   status: AgentStatus

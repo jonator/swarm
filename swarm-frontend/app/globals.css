@@ -126,6 +126,6 @@
   }
 
   .dashboard-container {
-    @apply container mx-auto mt-navbar pt-6;
+    @apply container mx-auto mt-navbar p-6;
   }
 }

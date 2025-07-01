@@ -83,7 +83,7 @@ export function AgentCard({
 
   const [currentNow, setCurrentNow] = useState(now)
 
-  const isActive = agent.status === 'running' || agent.status === 'pending'
+  const isActive = agent.status === 'running'
 
   // Update timer every second if agent is active using useEffect
   useEffect(() => {
@@ -95,6 +95,9 @@ export function AgentCard({
   }, [isActive])
 
   // Always treat as UTC, then convert for display
+  const createdAtZoned = agent.created_at
+    ? toZonedTime(agent.created_at, timeZone)
+    : undefined
   const startedAtZoned = agent.started_at
     ? toZonedTime(agent.started_at, timeZone)
     : undefined
@@ -102,8 +105,8 @@ export function AgentCard({
     ? toZonedTime(agent.completed_at, timeZone)
     : undefined
 
-  const startedAgo = startedAtZoned
-    ? formatDistanceToNowStrict(startedAtZoned, { addSuffix: true })
+  const createdAgo = createdAtZoned
+    ? formatDistanceToNowStrict(createdAtZoned, { addSuffix: true })
     : ''
   const durationLabel = isActive
     ? agent.started_at
@@ -186,13 +189,13 @@ export function AgentCard({
               {user.username}
             </span>
           )}
-          {startedAgo && startedAtZoned && (
+          {createdAgo && createdAtZoned && (
             <span
               className='inline-flex items-center gap-1'
-              title={format(startedAtZoned, 'PPpp', { timeZone })}
+              title={format(createdAtZoned, 'PPpp', { timeZone })}
             >
               <Calendar className='h-4 w-4 text-muted-foreground' aria-hidden />
-              {startedAgo}
+              Created {createdAgo}
             </span>
           )}
           {durationLabel && (
