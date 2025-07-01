@@ -26,6 +26,7 @@ import { format, toZonedTime } from 'date-fns-tz'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { statusMap, typeMap } from './status'
+import { useEffect, useState } from 'react'
 
 type AgentCardHeaderProps = {
   agent: Agent
@@ -80,6 +81,19 @@ export function AgentCard({
     ? `/${repository.owner}/${repository.name}/agents/${agent.id}`
     : undefined
 
+  const [currentNow, setCurrentNow] = useState(now)
+
+  const isActive = agent.status === 'running' || agent.status === 'pending'
+
+  // Update timer every second if agent is active using useEffect
+  useEffect(() => {
+    if (!isActive) return
+    const interval = setInterval(() => {
+      setCurrentNow(new Date())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [isActive])
+
   // Always treat as UTC, then convert for display
   const startedAtZoned = agent.started_at
     ? toZonedTime(agent.started_at, timeZone)
@@ -91,10 +105,9 @@ export function AgentCard({
   const startedAgo = startedAtZoned
     ? formatDistanceToNowStrict(startedAtZoned, { addSuffix: true })
     : ''
-  const isActive = agent.status === 'running' || agent.status === 'pending'
   const durationLabel = isActive
     ? agent.started_at
-      ? `Running for ${formatDistanceStrict(now, agent.started_at)}`
+      ? `Running for ${formatDistanceStrict(currentNow, agent.started_at)}`
       : ''
     : agent.completed_at && agent.started_at
       ? `Completed in ${formatDistanceStrict(agent.completed_at, agent.started_at)}`
