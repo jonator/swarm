@@ -331,8 +331,11 @@ defmodule Swarm.Services.Linear do
 
   defp post(access_token, term, type) do
     req =
-      Req.new(base_url: "https://api.linear.app/graphql")
-      |> Req.Request.put_header("Authorization", "Bearer #{access_token}")
+      Req.new(
+        base_url: "https://api.linear.app/graphql",
+        retry: :transient,
+        auth: {:bearer, access_token}
+      )
       |> AbsintheClient.attach()
 
     case Req.post(req, graphql: "#{type} { #{term} }") do

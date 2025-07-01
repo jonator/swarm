@@ -117,7 +117,7 @@ defmodule Swarm.Tools.GitHub do
 
           _ ->
             Logger.error(
-              "GitHub.reply/1 - required context not available: #{inspect(external_ids)}"
+              "GitHub.reply/1 - required context \"github_issue_number\" not available: #{inspect(external_ids)}"
             )
 
             {:error, "required context not available to reply to github"}

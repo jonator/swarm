@@ -19,7 +19,7 @@ defmodule Swarm.Workers.Researcher do
   alias Swarm.Services.GitHub
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
-  alias LangChain.ChatModels.ChatAnthropic
+  alias LangChain.ChatModels.ChatOpenAI
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -109,6 +109,13 @@ defmodule Swarm.Workers.Researcher do
         temperature: 0.5,
         stream: false
       })
+
+    # chat_model =
+    #   ChatOpenAI.new!(%{
+    #     model: "o3-mini-2025-01-31",
+    #     max_tokens: 8192,
+    #     stream: false
+    #   })
 
     case %{
            llm: chat_model,

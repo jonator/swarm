@@ -17,7 +17,7 @@ defmodule Swarm.Instructor.AgentType do
   def determine(instruction) do
     Instructor.chat_completion(
       [
-        model: "gpt-4o-mini",
+        model: "o3-mini-2025-01-31",
         response_model: __MODULE__,
         messages: [
           %{
@@ -30,7 +30,7 @@ defmodule Swarm.Instructor.AgentType do
 
             Based on the instruction, determine which type of agent should handle this task:
 
-            - **researcher**: For tasks that require analyzing code, understanding requirements, gathering information, or providing insights about codebases. Use when the task involves investigation, documentation review, or initial analysis.
+            - **researcher**: For tasks that require analyzing code, understanding requirements, gathering information, or providing insights about codebases. Use when the task involves investigation, documentation review, or initial analysis. Also notice if a task is a follow up to a previous plan or comment.
 
             - **coder**: For tasks that involve implementing features, writing code, fixing bugs, creating new functionality, or making specific code changes. Use when the task requires actual coding work. ONLY if the instruction contains a specific step-by-step development plan with specific files mentioned, etc.
 
