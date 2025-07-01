@@ -19,7 +19,7 @@ defmodule Swarm.Workers.Researcher do
   alias Swarm.Services.GitHub
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
-  alias LangChain.ChatModels.ChatOpenAI
+  alias LangChain.ChatModels.ChatAnthropic
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do

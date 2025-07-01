@@ -42,7 +42,8 @@ defmodule Swarm.Instructor.AgentType do
         ]
       ],
       adapter: Instructor.Adapters.OpenAI,
-      api_key: Application.fetch_env!(:instructor, :openai)[:api_key]
+      api_key: Application.fetch_env!(:instructor, :openai)[:api_key],
+      http_options: [retry: :transient]
     )
   end
 end

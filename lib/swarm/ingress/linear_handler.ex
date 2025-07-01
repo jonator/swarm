@@ -72,8 +72,8 @@ defmodule Swarm.Ingress.LinearHandler do
     type_specific_attrs =
       case type do
         "issueAssignedToYou" -> build_issue_assigned_attrs(event)
-        "issueCommentMention" -> build_issue_comment_mention_attrs(event)
-        "issueNewComment" -> build_issue_comment_mention_attrs(event)
+        "issueCommentMention" -> build_issue_new_comment_attrs(event)
+        "issueNewComment" -> build_issue_new_comment_attrs(event)
         "issueMention" -> build_issue_description_mention_attrs(event)
         "documentMention" -> build_document_mention_attrs(event)
         _ -> %{}
@@ -94,26 +94,34 @@ defmodule Swarm.Ingress.LinearHandler do
     }
   end
 
-  defp build_issue_comment_mention_attrs(%Event{context: context, external_ids: external_ids}) do
+  defp build_issue_new_comment_attrs(%Event{context: context, external_ids: external_ids}) do
     comment = get_comment_from_context(context)
     issue = get_issue_from_context(context)
 
     context_text =
       if external_ids["linear_parent_comment_id"] do
-        parent_comment_detail =
-          if external_ids["linear_parent_comment_user_id"] == external_ids["linear_app_user_id"] do
-            " - from Swarm AI)"
-          else
-            ")"
-          end
-
-        build_issue_context(
+        if external_ids["linear_parent_comment_user_id"] == external_ids["linear_app_user_id"] do
+          build_issue_comment_reply_context(
+            issue,
+            external_ids,
+            "Swarm AI comment replied to in comment #{comment["id"]} (parent comment ID: #{external_ids["linear_parent_comment_id"]})",
+            comment
+          )
+        else
+          build_issue_comment_mention_context(
+            issue,
+            external_ids,
+            "mentioned in reply comment #{comment["id"]} (parent comment ID: #{external_ids["linear_parent_comment_id"]})",
+            comment
+          )
+        end
+      else
+        build_issue_comment_mention_context(
           issue,
           external_ids,
-          "mentioned in reply comment #{comment["id"]} (parent comment ID: #{external_ids["linear_parent_comment_id"]}#{parent_comment_detail}"
+          "mentioned in comment #{comment["id"]}",
+          comment
         )
-      else
-        build_issue_context(issue, external_ids, "mentioned in comment #{comment["id"]}")
       end
 
     %{
@@ -216,6 +224,49 @@ defmodule Swarm.Ingress.LinearHandler do
     end
   end
 
+  defp build_issue_comment_mention_context(issue, external_ids, action, comment) do
+    description = get_issue_description(issue, external_ids)
+    comment_threads = get_issue_comment_threads(issue, external_ids)
+
+    """
+    Linear Issue #{action} (Issue ID: #{issue["id"]}): #{issue["title"]}
+
+    New comment:
+    (#{comment["id"]}): #{comment["body"]}
+
+    Description:
+    #{description}
+
+    Comment Threads:
+    #{comment_threads}
+
+    Priority: #{issue["priority"] || "No priority set"}
+    Team: #{get_in(issue, ["team", "name"]) || "Unknown"}
+    """
+  end
+
+  # Specifically an issue comment reply where the parent comment is from Swarm AI
+  defp build_issue_comment_reply_context(issue, external_ids, action, comment) do
+    description = get_issue_description(issue, external_ids)
+    comment_threads = get_issue_comment_threads(issue, external_ids)
+
+    """
+    Linear Issue #{action} (Issue ID: #{issue["id"]}): #{issue["title"]}
+
+    Latest request (this likely means the Swarm AI parent comment needs to be updated):
+    Reply to Swarm AI: (#{comment["id"]}): #{comment["body"]}
+
+    Description:
+    #{description}
+
+    Comment Threads:
+    #{comment_threads}
+
+    Priority: #{issue["priority"] || "No priority set"}
+    Team: #{get_in(issue, ["team", "name"]) || "Unknown"}
+    """
+  end
+
   defp build_issue_context(issue, external_ids, action) do
     description = get_issue_description(issue, external_ids)
     comment_threads = get_issue_comment_threads(issue, external_ids)
@@ -228,9 +279,6 @@ defmodule Swarm.Ingress.LinearHandler do
 
     Comment Threads:
     #{comment_threads}
-
-    Priority: #{issue["priority"] || "No priority set"}
-    Team: #{get_in(issue, ["team", "name"]) || "Unknown"}
     """
   end
 
