@@ -1,6 +1,7 @@
 'use server'
 
 import { apiClientWithAuth, authGuard } from '@/lib/client/authed'
+import crypto from 'node:crypto'
 
 export type User = {
   id: number
@@ -25,12 +26,13 @@ export async function getUser(params?: GetUserParams) {
   }
 
   const token = await authGuard()
+  const tokenHash = crypto.createHash('sha256').update(token!).digest('hex')
 
   // Avoid caching since it's JWT token dependent
   return apiClientWithAuth
     .get('users', {
       next: {
-        tags: ['users', token!.slice(0, 200)],
+        tags: ['users', tokenHash],
         revalidate: 2, // 2 seconds
       },
     })

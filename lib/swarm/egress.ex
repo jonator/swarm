@@ -21,4 +21,12 @@ defmodule Swarm.Egress do
   def acknowledge(%Event{source: other_source}, _repository) do
     {:error, "Egress.acknowledge/1 received non-supported event source: #{other_source}"}
   end
+
+  def reply(%Event{source: :linear} = event, %Repository{} = repository, body) do
+    LinearDispatch.reply(event, repository, body)
+  end
+
+  def reply(%Event{source: :github} = event, %Repository{} = repository, body) do
+    GitHubDispatch.reply(event, repository, body)
+  end
 end

@@ -104,7 +104,7 @@ defmodule Swarm.Ingress.LinearHandler do
           build_issue_comment_reply_context(
             issue,
             external_ids,
-            "Swarm AI comment replied to in comment (parent comment ID: #{external_ids["linear_parent_comment_id"]})",
+            "Swarm AI comment replied to in comment (Swarm AI original comment ID: #{external_ids["linear_parent_comment_id"]})",
             comment
           )
         else
@@ -248,19 +248,15 @@ defmodule Swarm.Ingress.LinearHandler do
   # Builds context for an issue comment reply where the parent comment is from Swarm AI.
   defp build_issue_comment_reply_context(issue, external_ids, action, comment) do
     description = get_issue_description(issue, external_ids)
-    comment_threads = get_issue_comment_threads(issue, external_ids)
 
     """
-    Linear Issue #{action} (Issue ID: #{issue["id"]}): #{issue["title"]}
+    Linear Issue Event: #{action} (Issue ID: #{issue["id"]}): #{issue["title"]}
 
-    Latest request (this likely means the Swarm AI PARENT COMMENT from Swarm AI (#{external_ids["linear_parent_comment_id"]}) needs to be updated and that you NEED TO SPAWN A RESEARCH AGENT):
+    Latest request (this likely means the Swarm AI PARENT COMMENT from Swarm AI (#{external_ids["linear_parent_comment_id"]}) NEEDS TO BE UPDATED/EDITED and that you NEED TO SPAWN A RESEARCH AGENT):
     Reply to Swarm AI: #{comment["body"]}
 
     Description:
     #{description}
-
-    Comment Threads:
-    #{comment_threads}
 
     Priority: #{issue["priority"] || "No priority set"}
     Team: #{get_in(issue, ["team", "name"]) || "Unknown"}

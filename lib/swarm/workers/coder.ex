@@ -193,7 +193,8 @@ defmodule Swarm.Workers.Coder do
              "git_repo" => git_repo,
              "git_repo_index" => git_repo_index,
              "repository" => repository,
-             "organization" => organization
+             "organization" => organization,
+             "external_ids" => agent.external_ids
            },
            verbose: Logger.level() == :debug
          }
@@ -201,13 +202,12 @@ defmodule Swarm.Workers.Coder do
          |> LLMChain.add_messages(messages)
          |> LLMChain.add_tools(tools)
          |> LLMChain.run_until_tool_used("finished") do
-      {:ok, updated_chain, _messages} ->
+      {:ok, updated_chain, _matching_finished_call} ->
         Logger.info("Implementation completed successfully")
         {:ok, updated_chain.last_message.content}
 
-      error ->
-        Logger.error("Implementation failed: #{inspect(error)}")
-        {:error, "Implementation failed: #{inspect(error)}"}
+      {:error, _chain, reason} ->
+        {:error, "Implementation failed: #{inspect(reason)}"}
     end
   end
 end

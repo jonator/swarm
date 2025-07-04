@@ -16,10 +16,9 @@ defmodule SwarmWeb.EventController do
     case Verify.verify(raw_body, event_data, headers, remote_ip, source) do
       :ok ->
         case Swarm.Ingress.process_event(event_data, source) do
-          {:ok, agent, job, msg} ->
+          {:ok, agent, job} ->
             json(conn, %{
               status: "agent_created",
-              message: msg,
               agent_id: agent.id,
               agent_name: agent.name,
               agent_type: agent.type,

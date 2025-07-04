@@ -9,6 +9,7 @@ defmodule Swarm.Workers do
 
   require Logger
   alias Swarm.Ingress.Event
+  alias Swarm.Repo
   alias Swarm.Egress
   alias Swarm.Agents
   alias Swarm.Agents.Agent
@@ -39,16 +40,26 @@ defmodule Swarm.Workers do
     name_task = Task.async(fn -> AgentName.generate_agent_name(context) end)
     [type_result, name_result] = Task.await_many([type_task, name_task], 15_000)
 
+    frontend_origin = Application.get_env(:swarm, :frontend_origin)
+
     with {:ok, %AgentType{agent_type: agent_type}} <- type_result,
          {:ok, %AgentName{agent_name: agent_name}} <- name_result,
          {:ok, %{agent: agent, action: action}} <-
            create_or_update_agent(agent_attrs, agent_type, agent_name, event) do
+      repo = Repo.preload(agent, :repository).repository
+
       case action do
         :created ->
           with {:ok, job} <- schedule_agent_worker(agent),
-               {:ok, msg} <- Egress.acknowledge(event, agent_attrs.repository) do
+               {:ok, _msg} <- Egress.acknowledge(event, agent_attrs.repository),
+               {:ok, _msg} <-
+                 Egress.reply(
+                   event,
+                   repo,
+                   "On it 🤖. Follow along at #{frontend_origin}/#{repo.owner}/#{repo.name}/agents/#{agent.id}"
+                 ) do
             Logger.info("Successfully spawned #{agent_type} agent #{agent.id}")
-            {:ok, agent, job, msg}
+            {:ok, agent, job}
           else
             {:error, reason} = error ->
               Logger.error("Failed to schedule agent or acknowledge event: #{reason}")

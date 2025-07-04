@@ -36,6 +36,8 @@ config :cors_plug,
   credentials: true,
   expose: ["electric-offset", "electric-handle", "electric-schema", "electric-cursor"]
 
+config :swarm, frontend_origin: "http://localhost:3000"
+
 # ## SSL Support
 #
 # In order to use HTTPS in development, a self-signed

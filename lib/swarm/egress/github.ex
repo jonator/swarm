@@ -52,4 +52,31 @@ defmodule Swarm.Egress.GitHubDispatch do
   def acknowledge(event, _repository) do
     {:error, "Egress.GitHub.acknowledge/1 - event not supported: #{inspect(event)}"}
   end
+
+  def reply(
+        %Event{
+          source: :github,
+          external_ids: %{"github_issue_number" => issue_number}
+        },
+        %Repository{} = repository,
+        body
+      ) do
+    with {:ok, _comment} <-
+           GitHub.create_issue_comment(
+             repository.owner,
+             repository.name,
+             issue_number,
+             body
+           ) do
+      {:ok, "Replied to issue #{issue_number}"}
+    end
+  end
+
+  def reply(event, _repository, _body) do
+    {:error, "Egress.GitHub.reply/2 - event not supported: #{inspect(event)}"}
+  end
+
+  def reply(_event) do
+    {:error, "Egress.GitHub.reply/1 - not supported, must provide event, repository, and body"}
+  end
 end

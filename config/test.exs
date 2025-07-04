@@ -20,6 +20,8 @@ config :swarm, SwarmWeb.Endpoint,
   secret_key_base: "ZUxZ8BbAd/WgrhMmSUFbmiWsfDi4VjaTLmZoiKd7NKoR2wl7/xiYiXXSnLYlt+lK",
   server: false
 
+config :swarm, frontend_origin: "http://localhost:3000"
+
 # In test we don't send emails
 config :swarm, Swarm.Mailer, adapter: Swoosh.Adapters.Test
 

@@ -33,4 +33,52 @@ defmodule Swarm.Egress.LinearDispatch do
   def acknowledge(event) do
     {:error, "Egress.Linear.acknowledge/1 - event not supported: #{inspect(event)}"}
   end
+
+  def reply(
+        %Event{
+          source: :linear,
+          external_ids: %{
+            "linear_issue_id" => issue_id,
+            "linear_app_user_id" => app_user_id,
+            "linear_parent_comment_id" => parent_comment_id
+          }
+        },
+        _repository,
+        body
+      ) do
+    with {:ok, _} <-
+           Linear.create_comment(
+             app_user_id,
+             issue_id,
+             body,
+             parent_comment_id
+           ) do
+      {:ok, "Replied to issue #{issue_id}"}
+    end
+  end
+
+  def reply(
+        %Event{
+          source: :linear,
+          external_ids: %{
+            "linear_issue_id" => issue_id,
+            "linear_app_user_id" => app_user_id
+          }
+        },
+        _repository,
+        body
+      ) do
+    with {:ok, _} <-
+           Linear.create_comment(
+             app_user_id,
+             issue_id,
+             body
+           ) do
+      {:ok, "Replied to issue #{issue_id}"}
+    end
+  end
+
+  def reply(event) do
+    {:error, "Egress.Linear.reply/1 - event not supported: #{inspect(event)}"}
+  end
 end

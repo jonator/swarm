@@ -16,5 +16,8 @@ config :swoosh, local: false
 # Do not print debug messages in production
 config :logger, level: :info
 
+# https://vercel.com/jon-ators-projects-c14057d4/~/domains/getswarm.dev
+config :swarm, frontend_origin: "https://getswarm.dev"
+
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
