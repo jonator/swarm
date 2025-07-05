@@ -6,7 +6,10 @@ import {
 import { usersQuery } from '@/lib/queries/keys/users'
 import { getRepositories } from '@/lib/services/repositories'
 import { getUser } from '@/lib/services/users'
+import { temporaryToken } from '@/lib/services/token'
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
+import { temporaryTokenQuery } from '@/lib/queries/keys/token'
+import { SocketProvider } from '@/context/socket'
 
 export default async function DashboardLayout({
   children,
@@ -20,13 +23,15 @@ export default async function DashboardLayout({
   // 1. Get data directly
   // 2. Set data in query client directly
   // 2. Call prefetch to prep for hydration and get cache hits since it was set already
-  const [{ user }, repositories] = await Promise.all([
+  const [{ user }, repositories, { token }] = await Promise.all([
     getUser(),
     getRepositories(),
+    temporaryToken(),
   ])
 
   queryClient.setQueryData(repositoriesQuery().queryKey, repositories)
   queryClient.setQueryData(usersQuery({ id: user.id }).queryKey, { user })
+  queryClient.setQueryData(temporaryTokenQuery().queryKey, { token })
 
   const repositoryPrefetches: Promise<void>[] = []
   for (const repository of repositories.repositories) {
@@ -41,6 +46,7 @@ export default async function DashboardLayout({
   const prefetches: Promise<void>[] = [
     queryClient.prefetchQuery(repositoriesQuery()),
     queryClient.prefetchQuery(usersQuery({ id: user.id })),
+    queryClient.prefetchQuery(temporaryTokenQuery()),
     ...repositoryPrefetches,
   ]
 
@@ -48,7 +54,7 @@ export default async function DashboardLayout({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      {children}
+      <SocketProvider>{children}</SocketProvider>
     </HydrationBoundary>
   )
 }

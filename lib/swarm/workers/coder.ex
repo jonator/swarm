@@ -182,10 +182,24 @@ defmodule Swarm.Workers.Coder do
         model: "claude-sonnet-4-20250514",
         max_tokens: 64000,
         temperature: 0.7,
-        stream: false
+        stream: true
       })
 
     organization = Swarm.Repo.preload(repository, :organization).organization
+
+    # Streaming handler for broadcasting deltas and completed messages
+    handler = %{
+      on_llm_new_delta: fn _model, deltas ->
+        Enum.each(List.wrap(deltas), fn delta ->
+          SwarmWeb.Endpoint.broadcast("agent:#{agent.id}", "message_delta", %{
+            delta: delta.content
+          })
+        end)
+      end,
+      on_message_processed: fn _chain, %LangChain.Message{} = message ->
+        SwarmWeb.Endpoint.broadcast("agent:#{agent.id}", "message", message)
+      end
+    }
 
     case %{
            llm: chat_model,
@@ -201,6 +215,7 @@ defmodule Swarm.Workers.Coder do
          |> LLMChain.new!()
          |> LLMChain.add_messages(messages)
          |> LLMChain.add_tools(tools)
+         |> LLMChain.add_callback(handler)
          |> LLMChain.run_until_tool_used("finished") do
       {:ok, updated_chain, _matching_finished_call} ->
         Logger.info("Implementation completed successfully")

@@ -26,8 +26,9 @@ import { format, toZonedTime } from 'date-fns-tz'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { statusMap, typeMap } from './status'
-import { useEffect, useState } from 'react'
+import { useIntervalTimer } from '@/hooks/use-interval-timer'
 import { ClientOnly } from '@/components/client-only'
+import { usePhoenixChannel } from '@/hooks/use-phoenix-channel'
 
 type AgentCardHeaderProps = {
   agent: Agent
@@ -66,6 +67,65 @@ function AgentCardHeader({ agent }: AgentCardHeaderProps) {
   )
 }
 
+function AgentCreatedTime({
+  createdAt,
+  timeZone,
+}: { createdAt?: Date | string; timeZone: string }) {
+  if (!createdAt) return null
+  const zoned = toZonedTime(createdAt, timeZone)
+  const createdAgo = formatDistanceToNowStrict(zoned, { addSuffix: true })
+  return (
+    <ClientOnly>
+      <span
+        className='inline-flex items-center gap-1'
+        title={format(zoned, 'PPpp', { timeZone })}
+      >
+        <Calendar className='h-4 w-4 text-muted-foreground' aria-hidden />
+        Created {createdAgo}
+      </span>
+    </ClientOnly>
+  )
+}
+
+function AgentDuration({
+  isActive,
+  startedAt,
+  completedAt,
+  now,
+  timeZone,
+}: {
+  isActive: boolean
+  startedAt?: Date | string
+  completedAt?: Date | string
+  now: Date
+  timeZone: string
+}) {
+  const currentNow = useIntervalTimer(now, isActive, 1000)
+  if (!startedAt) return null
+  const startedAtZoned = toZonedTime(startedAt, timeZone)
+  const completedAtZoned = completedAt
+    ? toZonedTime(completedAt, timeZone)
+    : undefined
+  let durationLabel: string | null = null
+  let durationTitle = ''
+  if (isActive) {
+    durationLabel = `Running for ${formatDistanceStrict(currentNow, startedAt)}`
+    durationTitle = `Started at: ${format(startedAtZoned, 'PPpp', { timeZone })}`
+  } else if (completedAt && startedAt) {
+    durationLabel = `Completed in ${formatDistanceStrict(completedAt, startedAt)}`
+    durationTitle = `Started: ${format(startedAtZoned, 'PPpp', { timeZone })}\nCompleted: ${format(completedAtZoned!, 'PPpp', { timeZone })}`
+  }
+  if (!durationLabel) return null
+  return (
+    <ClientOnly>
+      <span className='inline-flex items-center gap-1' title={durationTitle}>
+        <Clock className='h-4 w-4 text-muted-foreground' aria-hidden />
+        {durationLabel}
+      </span>
+    </ClientOnly>
+  )
+}
+
 export function AgentCard({
   agent,
   now,
@@ -82,47 +142,9 @@ export function AgentCard({
     ? `/${repository.owner}/${repository.name}/agents/${agent.id}`
     : undefined
 
-  const [currentNow, setCurrentNow] = useState(now)
+  const _channel = usePhoenixChannel(`agent:${agent.id}`, () => {}, null)
 
   const isActive = agent.status === 'running'
-
-  // Update timer every second if agent is active using useEffect
-  useEffect(() => {
-    if (!isActive) return
-    const interval = setInterval(() => {
-      setCurrentNow(new Date())
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [isActive])
-
-  // Always treat as UTC, then convert for display
-  const createdAtZoned = agent.created_at
-    ? toZonedTime(agent.created_at, timeZone)
-    : undefined
-  const startedAtZoned = agent.started_at
-    ? toZonedTime(agent.started_at, timeZone)
-    : undefined
-  const completedAtZoned = agent.completed_at
-    ? toZonedTime(agent.completed_at, timeZone)
-    : undefined
-
-  const createdAgo = createdAtZoned
-    ? formatDistanceToNowStrict(createdAtZoned, { addSuffix: true })
-    : ''
-  const durationLabel = isActive
-    ? agent.started_at
-      ? `Running for ${formatDistanceStrict(currentNow, agent.started_at)}`
-      : ''
-    : agent.completed_at && agent.started_at
-      ? `Completed in ${formatDistanceStrict(agent.completed_at, agent.started_at)}`
-      : null
-
-  let durationTitle = ''
-  if (isActive && startedAtZoned) {
-    durationTitle = `Started at: ${format(startedAtZoned, 'PPpp', { timeZone })}`
-  } else if (!isActive && startedAtZoned && completedAtZoned) {
-    durationTitle = `Started: ${format(startedAtZoned, 'PPpp', { timeZone })}\nCompleted: ${format(completedAtZoned, 'PPpp', { timeZone })}`
-  }
 
   // Handler for card click
   const handleCardClick = (e: React.MouseEvent) => {
@@ -218,31 +240,16 @@ export function AgentCard({
               <ExternalLink className='ml-0.5 h-3 w-3' />
             </Link>
           )}
-          {createdAgo && createdAtZoned && (
-            <ClientOnly>
-              <span
-                className='inline-flex items-center gap-1'
-                title={format(createdAtZoned, 'PPpp', { timeZone })}
-              >
-                <Calendar
-                  className='h-4 w-4 text-muted-foreground'
-                  aria-hidden
-                />
-                Created {createdAgo}
-              </span>
-            </ClientOnly>
-          )}
-          {durationLabel && (
-            <ClientOnly>
-              <span
-                className='inline-flex items-center gap-1'
-                title={durationTitle}
-              >
-                <Clock className='h-4 w-4 text-muted-foreground' aria-hidden />
-                {durationLabel}
-              </span>
-            </ClientOnly>
-          )}
+          {/* Created Time */}
+          <AgentCreatedTime createdAt={agent.created_at} timeZone={timeZone} />
+          {/* Duration */}
+          <AgentDuration
+            isActive={isActive}
+            startedAt={agent.started_at}
+            completedAt={agent.completed_at}
+            now={now}
+            timeZone={timeZone}
+          />
           {agent.external_ids?.slack_thread_id && (
             <Link
               href={`https://slack.com/app_redirect?channel=${agent.external_ids.slack_thread_id}`}
