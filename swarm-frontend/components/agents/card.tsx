@@ -27,6 +27,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { statusMap, typeMap } from './status'
 import { useEffect, useState } from 'react'
+import { ClientOnly } from '@/components/client-only'
 
 type AgentCardHeaderProps = {
   agent: Agent
@@ -189,24 +190,6 @@ export function AgentCard({
               {user.username}
             </span>
           )}
-          {createdAgo && createdAtZoned && (
-            <span
-              className='inline-flex items-center gap-1'
-              title={format(createdAtZoned, 'PPpp', { timeZone })}
-            >
-              <Calendar className='h-4 w-4 text-muted-foreground' aria-hidden />
-              Created {createdAgo}
-            </span>
-          )}
-          {durationLabel && (
-            <span
-              className='inline-flex items-center gap-1'
-              title={durationTitle}
-            >
-              <Clock className='h-4 w-4 text-muted-foreground' aria-hidden />
-              {durationLabel}
-            </span>
-          )}
           {/* External Links */}
           {agent.external_ids?.github_pr_id && (
             <Link
@@ -234,6 +217,31 @@ export function AgentCard({
                 agent.external_ids.linear_issue_id}
               <ExternalLink className='ml-0.5 h-3 w-3' />
             </Link>
+          )}
+          {createdAgo && createdAtZoned && (
+            <ClientOnly>
+              <span
+                className='inline-flex items-center gap-1'
+                title={format(createdAtZoned, 'PPpp', { timeZone })}
+              >
+                <Calendar
+                  className='h-4 w-4 text-muted-foreground'
+                  aria-hidden
+                />
+                Created {createdAgo}
+              </span>
+            </ClientOnly>
+          )}
+          {durationLabel && (
+            <ClientOnly>
+              <span
+                className='inline-flex items-center gap-1'
+                title={durationTitle}
+              >
+                <Clock className='h-4 w-4 text-muted-foreground' aria-hidden />
+                {durationLabel}
+              </span>
+            </ClientOnly>
           )}
           {agent.external_ids?.slack_thread_id && (
             <Link
