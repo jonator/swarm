@@ -52,24 +52,24 @@ export function AgentHeader({
   return (
     <header
       className={cn(
-        'flex flex-col border-b border-border bg-background/80 px-4 py-3 sticky top-0 z-10',
-        'gap-2 md:gap-1',
+        'flex flex-col border-b border-border bg-background/80 px-4 py-5 sticky top-0 z-10',
+        'gap-4 md:gap-3',
       )}
     >
       {/* Main info row */}
-      <div className='flex flex-wrap md:flex-nowrap items-center gap-2 md:gap-4 min-w-0 w-full'>
-        <div className='flex items-center gap-4 min-w-0 w-full justify-between'>
+      <div className='flex flex-wrap md:flex-nowrap items-center gap-4 md:gap-6 min-w-0 w-full'>
+        <div className='flex items-center gap-6 min-w-0 w-full justify-between'>
           <h1 className='text-2xl font-bold truncate' title={agent.name}>
             {agent.name}
           </h1>
-          <div className='flex items-center gap-2 shrink-0'>
+          <div className='flex items-center gap-3 shrink-0'>
             {/* Status badge */}
             <StatusBadge status={agent.status} />
             {/* Type badge */}
             <TypeBadge type={agent.type} />
             {/* User */}
             {user && (
-              <span className='inline-flex items-center gap-1.5 text-xs ml-2'>
+              <span className='inline-flex items-center gap-2 text-xs ml-2'>
                 <Avatar className='h-5 w-5'>
                   <AvatarImage src={user.avatar_url} alt={user.username} />
                   <AvatarFallback>
@@ -83,10 +83,10 @@ export function AgentHeader({
         </div>
       </div>
       {/* Meta row */}
-      <div className='flex flex-wrap items-center gap-3 text-xs text-muted-foreground w-full'>
+      <div className='flex flex-wrap items-center gap-4 text-xs text-muted-foreground w-full mt-1'>
         <ClientOnly>
           <span
-            className='inline-flex items-center gap-1'
+            className='inline-flex items-center gap-2'
             title={format(createdAtZoned, 'PPpp', { timeZone })}
           >
             <Calendar className='h-4 w-4 text-muted-foreground' aria-hidden />
@@ -96,7 +96,7 @@ export function AgentHeader({
         {durationLabel && (
           <ClientOnly>
             <span
-              className='inline-flex items-center gap-1'
+              className='inline-flex items-center gap-2'
               title={durationTitle}
             >
               <Clock className='h-4 w-4 text-muted-foreground' aria-hidden />
@@ -109,7 +109,7 @@ export function AgentHeader({
             href={`https://github.com/pr/${agent.external_ids.github_pr_id}`}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline'
+            className='inline-flex items-center gap-2 text-primary hover:text-primary/80 hover:underline'
             aria-label='View GitHub PR'
           >
             <Github className='h-4 w-4 text-muted-foreground' /> PR #
@@ -122,7 +122,7 @@ export function AgentHeader({
             href={agent.external_ids.linear_issue_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline'
+            className='inline-flex items-center gap-2 text-primary hover:text-primary/80 hover:underline'
             aria-label='View Linear Issue'
           >
             <LinearLogo className='h-4 w-4' />
@@ -136,7 +136,7 @@ export function AgentHeader({
             href={`https://slack.com/app_redirect?channel=${agent.external_ids.slack_thread_id}`}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 text-primary hover:text-primary/80 hover:underline'
+            className='inline-flex items-center gap-2 text-primary hover:text-primary/80 hover:underline'
             aria-label='View Slack Thread'
           >
             <MessageSquare className='h-4 w-4 text-muted-foreground' /> Slack
@@ -148,7 +148,7 @@ export function AgentHeader({
       {/* Context/description row */}
       {agent.context && (
         <div
-          className='text-xs text-muted-foreground mt-1 line-clamp-2 w-full'
+          className='text-xs text-muted-foreground mt-3 line-clamp-2 w-full'
           title={agent.context}
         >
           {agent.context}
