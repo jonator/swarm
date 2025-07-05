@@ -1,7 +1,8 @@
-import { AgentDisplay } from '@/components/agents/agent'
+import { AgentHeader } from '@/components/agents/header'
 import { AgentBreadcrumb } from '@/components/agents/status'
 import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
+import { parseAgent } from '@/lib/models/agents'
 import { agentQuery } from '@/lib/queries/keys/agents'
 import { getAgent } from '@/lib/services/agents'
 import { getUser } from '@/lib/services/users'
@@ -46,14 +47,7 @@ export default async function AgentPage({
       />
 
       <main className='dashboard-container'>
-        <div className='flex items-center justify-between'>
-          <h1 className='text-2xl font-bold'>{agent.name}</h1>
-          <p className='text-muted-foreground'>
-            All agents across repositories for {owner}
-          </p>
-        </div>
-
-        <AgentDisplay id={id} now={now} timeZone={timeZone} />
+        <AgentHeader agent={parseAgent(agent)} now={now} timeZone={timeZone} />
       </main>
     </HydrationBoundary>
   )

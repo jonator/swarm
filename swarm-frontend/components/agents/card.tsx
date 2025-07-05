@@ -25,44 +25,23 @@ import { formatDistanceStrict, formatDistanceToNowStrict } from 'date-fns'
 import { format, toZonedTime } from 'date-fns-tz'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { statusMap, typeMap } from './status'
+import { StatusBadge, TypeBadge } from './status'
 import { useIntervalTimer } from '@/hooks/use-interval-timer'
 import { ClientOnly } from '@/components/client-only'
-import { usePhoenixChannel } from '@/hooks/use-phoenix-channel'
+import { useAgentChannel } from '@/hooks/use-agent-channel'
 
 type AgentCardHeaderProps = {
   agent: Agent
 }
 
 function AgentCardHeader({ agent }: AgentCardHeaderProps) {
-  const StatusIcon = statusMap[agent.status].icon
-  const TypeIcon = typeMap[agent.type].icon
-
   return (
     <CardHeader className='flex flex-row items-center gap-4 pb-2'>
-      <span
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium',
-          statusMap[agent.status].color,
-        )}
-        title={statusMap[agent.status].label}
-      >
-        {StatusIcon && <StatusIcon className='h-4 w-4' aria-hidden />}
-        {statusMap[agent.status].label}
-      </span>
+      <StatusBadge status={agent.status} />
       <CardTitle className='flex-1 truncate text-lg font-bold'>
         {agent.name}
       </CardTitle>
-      <span
-        className={cn(
-          'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium',
-          typeMap[agent.type].color,
-        )}
-        title={typeMap[agent.type].label}
-      >
-        {TypeIcon && <TypeIcon className='h-4 w-4' aria-hidden />}
-        {typeMap[agent.type].label}
-      </span>
+      <TypeBadge type={agent.type} />
     </CardHeader>
   )
 }
@@ -142,7 +121,7 @@ export function AgentCard({
     ? `/${repository.owner}/${repository.name}/agents/${agent.id}`
     : undefined
 
-  const _channel = usePhoenixChannel(`agent:${agent.id}`, () => {}, null)
+  useAgentChannel(agent.id)
 
   const isActive = agent.status === 'running'
 

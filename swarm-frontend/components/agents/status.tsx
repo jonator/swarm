@@ -112,3 +112,45 @@ export function AgentBreadcrumb({ id }: { id: string }) {
     </div>
   )
 }
+
+// Status badge for agent status
+export function StatusBadge({
+  status,
+  className,
+}: { status: AgentStatus; className?: string }) {
+  const StatusIcon = statusMap[status].icon
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium',
+        statusMap[status].color,
+        className,
+      )}
+      title={statusMap[status].label}
+    >
+      {StatusIcon && <StatusIcon className='h-4 w-4' aria-hidden />}{' '}
+      {statusMap[status].label}
+    </span>
+  )
+}
+
+// Type badge for agent type
+export function TypeBadge({
+  type,
+  className,
+}: { type: AgentType; className?: string }) {
+  const TypeIcon = typeMap[type].icon
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium',
+        typeMap[type].color,
+        className,
+      )}
+      title={typeMap[type].label}
+    >
+      {TypeIcon && <TypeIcon className='h-4 w-4' aria-hidden />}{' '}
+      {typeMap[type].label}
+    </span>
+  )
+}

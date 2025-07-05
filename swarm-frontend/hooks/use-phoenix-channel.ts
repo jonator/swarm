@@ -103,6 +103,7 @@ export function usePhoenixChannel<State = unknown, EventPayload = unknown>(
   topic: string,
   reducer: Reducer<State, { event: string; payload: EventPayload }>,
   initialState: State,
+  enabled: boolean = true,
 ): [State, (event: string, payload: EventPayload) => void] {
   const { socket } = useSocket()
   const [state, dispatch] = useReducer(reducer, initialState)
@@ -113,8 +114,10 @@ export function usePhoenixChannel<State = unknown, EventPayload = unknown>(
   >(mustJoinChannelWarning)
 
   useEffect(() => {
-    joinChannel(socket, topic, token, dispatch, setBroadcast)
-  }, [socket, topic, token])
+    if (enabled) {
+      joinChannel(socket, topic, token, dispatch, setBroadcast)
+    }
+  }, [socket, topic, token, enabled])
 
   return [state, broadcast]
 }
