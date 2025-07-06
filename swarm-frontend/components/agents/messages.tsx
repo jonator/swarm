@@ -1,10 +1,11 @@
 'use client'
 
 import { useAgentChannel } from '@/hooks/use-agent-channel'
-import type { Message, MessageContent } from '@/hooks/use-agent-channel'
+import type { MessageContent } from '@/hooks/use-agent-channel'
+import { processMessages, type ProcessedMessage } from '@/lib/models/messages'
 import { cn } from '@/lib/utils/shadcn'
 import { Zap, Bot, User, RefreshCw, MessageSquare } from 'lucide-react'
-import { ToolCallDisplay, ToolResultDisplay } from './tools'
+import { CombinedToolExecutionDisplay } from './tools'
 
 interface AgentMessagesProps {
   agentId: string
@@ -27,7 +28,7 @@ function extractTextContent(content: string | MessageContent[]): string {
 }
 
 // Enhanced usage display component
-function UsageDisplay({ message }: { message: Message }) {
+function UsageDisplay({ message }: { message: ProcessedMessage }) {
   if (!message.metadata?.usage) return null
 
   const { input, output } = message.metadata.usage
@@ -92,12 +93,13 @@ function MessageRoleDisplay({ role }: { role: string }) {
 export function AgentMessages({ agentId }: AgentMessagesProps) {
   const { state } = useAgentChannel(agentId)
 
-  console.log('state', state)
+  // Process messages to combine tool calls and results
+  const processedMessages = processMessages(state.messages)
 
   return (
     <div className='space-y-4 p-4'>
-      {state.messages.map((message, messageIndex) => {
-        const textContent = extractTextContent(message.content)
+      {processedMessages.map((message, messageIndex) => {
+        const textContent = extractTextContent(message.raw_content)
 
         return (
           <div
@@ -119,22 +121,13 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
               </div>
             )}
 
-            {/* Display tool calls if they exist */}
-            {message.tool_calls && message.tool_calls.length > 0 && (
+            {/* Display combined tool executions */}
+            {message.combinedToolExecutions.length > 0 && (
               <div className='space-y-2'>
-                {message.tool_calls.map((toolCall) => (
-                  <ToolCallDisplay key={toolCall.call_id} toolCall={toolCall} />
-                ))}
-              </div>
-            )}
-
-            {/* Display tool results if they exist */}
-            {message.tool_results && message.tool_results.length > 0 && (
-              <div className='space-y-2'>
-                {message.tool_results.map((toolResult) => (
-                  <ToolResultDisplay
-                    key={toolResult.tool_call_id}
-                    toolResult={toolResult}
+                {message.combinedToolExecutions.map((toolExecution) => (
+                  <CombinedToolExecutionDisplay
+                    key={toolExecution.call_id}
+                    toolExecution={toolExecution}
                   />
                 ))}
               </div>
@@ -171,7 +164,7 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
         </div>
       )}
 
-      {state.messages.length === 0 && !state.lastPartialMessage && (
+      {processedMessages.length === 0 && !state.lastPartialMessage && (
         <div className='text-center py-12'>
           <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/30 mb-4'>
             <MessageSquare className='h-8 w-8 text-muted-foreground' />

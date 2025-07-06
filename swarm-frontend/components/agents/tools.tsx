@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils/shadcn'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import type { ToolCall, ToolResult } from '@/hooks/use-agent-channel'
+import type { CombinedToolExecution } from '@/lib/models/messages'
 import {
   FolderOpen,
   Search,
@@ -263,17 +263,36 @@ function formatArguments(args: unknown): string {
   }
 }
 
-// Component to display tool calls with enhanced design
-export function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
+// Component to display combined tool executions
+export function CombinedToolExecutionDisplay({
+  toolExecution,
+}: {
+  toolExecution: CombinedToolExecution
+}) {
   const [isExpanded, setIsExpanded] = useState(false)
-  const toolConfig = getToolConfig(toolCall.name)
+  const toolConfig = getToolConfig(toolExecution.name)
   const category = TOOL_CATEGORIES[toolConfig.category]
   const IconComponent = toolConfig.icon
-  const formattedArgs = formatArguments(toolCall.arguments)
-  const { truncated, isTruncated } = truncateContent(formattedArgs, 200)
+  const StatusIcon = getToolStatusIcon(toolExecution.status)
+
+  // Format tool call arguments
+  const formattedArgs = formatArguments(toolExecution.toolCall.arguments)
+  const { truncated: truncatedArgs, isTruncated: isArgsTruncated } =
+    truncateContent(formattedArgs, 200)
+
+  // Format tool result content if available
+  const resultContent = toolExecution.toolResult?.content || ''
+  const { truncated: truncatedResult, isTruncated: isResultTruncated } =
+    truncateContent(resultContent, 300)
+
+  const hasResult = !!toolExecution.toolResult
+  const hasExpandableContent = isArgsTruncated || isResultTruncated
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(formattedArgs)
+    const content = hasResult
+      ? `${formattedArgs}\n\n--- Result ---\n${resultContent}`
+      : formattedArgs
+    navigator.clipboard.writeText(content)
   }
 
   return (
@@ -298,6 +317,14 @@ export function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
                 <Badge variant='secondary' className='text-xs'>
                   {category.name}
                 </Badge>
+                {toolExecution.status !== 'success' && (
+                  <Badge
+                    className={getToolStatusBadgeClass(toolExecution.status)}
+                  >
+                    <StatusIcon className='h-3 w-3 mr-1' />
+                    {toolExecution.status}
+                  </Badge>
+                )}
               </div>
               <p className='text-xs text-muted-foreground mt-1'>
                 {toolConfig.description}
@@ -313,7 +340,7 @@ export function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
             >
               <Copy className='h-3 w-3' />
             </Button>
-            {isTruncated && (
+            {hasExpandableContent && (
               <Button
                 variant='ghost'
                 size='sm'
@@ -330,88 +357,51 @@ export function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
           </div>
         </div>
 
-        {toolCall.arguments != null && (
+        {/* Tool Call Arguments */}
+        {toolExecution.toolCall.arguments != null && (
           <div className='mt-3'>
             <div className='text-xs text-muted-foreground mb-1'>Arguments:</div>
             <div className='bg-muted/30 rounded-md p-2 font-mono text-xs'>
               <pre className='whitespace-pre-wrap'>
-                {isExpanded ? formattedArgs : truncated}
+                {isExpanded ? formattedArgs : truncatedArgs}
               </pre>
             </div>
           </div>
         )}
-      </div>
-    </div>
-  )
-}
 
-// Component to display tool results with enhanced design
-export function ToolResultDisplay({ toolResult }: { toolResult: ToolResult }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const toolConfig = getToolConfig(toolResult.name)
-  const StatusIcon = getToolStatusIcon('success')
-  const { truncated, isTruncated } = truncateContent(toolResult.content, 300)
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(toolResult.content)
-  }
-
-  return (
-    <div className='mt-3 rounded-lg border border-border bg-muted/30 transition-all duration-200'>
-      <div className='p-3'>
-        <div className='flex items-start justify-between gap-2'>
-          <div className='flex items-center gap-2 min-w-0 flex-1'>
-            <div className='p-1.5 rounded-md bg-muted'>
-              <StatusIcon className='h-4 w-4 text-muted-foreground' />
-            </div>
-            <div className='min-w-0 flex-1'>
-              <div className='flex items-center gap-2'>
-                <h4 className='font-medium text-sm text-foreground'>
-                  {toolConfig.displayName} Result
-                </h4>
-                <Badge className={getToolStatusBadgeClass('success')}>
-                  Success
-                </Badge>
-              </div>
-              <p className='text-xs text-muted-foreground mt-1'>
-                Tool executed successfully
-              </p>
+        {/* Tool Result */}
+        {hasResult && (
+          <div className='mt-3'>
+            <div className='text-xs text-muted-foreground mb-1'>Result:</div>
+            <div className='bg-card rounded-md p-2 font-mono text-xs border border-border'>
+              <pre className='whitespace-pre-wrap text-foreground'>
+                {isExpanded ? resultContent : truncatedResult}
+              </pre>
             </div>
           </div>
-          <div className='flex items-center gap-1'>
-            <Button
-              variant='ghost'
-              size='sm'
-              onClick={copyToClipboard}
-              className='h-6 w-6 p-0'
-            >
-              <Copy className='h-3 w-3' />
-            </Button>
-            {isTruncated && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={() => setIsExpanded(!isExpanded)}
-                className='h-6 w-6 p-0'
-              >
-                {isExpanded ? (
-                  <ChevronUp className='h-3 w-3' />
-                ) : (
-                  <ChevronDown className='h-3 w-3' />
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
+        )}
 
-        <div className='mt-3'>
-          <div className='text-xs text-muted-foreground mb-1'>Output:</div>
-          <div className='bg-card rounded-md p-2 font-mono text-xs border border-border'>
-            <pre className='whitespace-pre-wrap text-foreground'>
-              {isExpanded ? toolResult.content : truncated}
-            </pre>
+        {/* Pending/Running State */}
+        {toolExecution.status === 'pending' && (
+          <div className='mt-3 text-xs text-muted-foreground'>
+            Tool execution pending...
           </div>
-        </div>
+        )}
+
+        {toolExecution.status === 'running' && (
+          <div className='mt-3 flex items-center gap-2 text-xs text-muted-foreground'>
+            <RefreshCw className='h-3 w-3 animate-spin' />
+            Tool execution in progress...
+          </div>
+        )}
+
+        {/* Error State */}
+        {toolExecution.status === 'error' && (
+          <div className='mt-3 text-xs text-destructive'>
+            Tool execution failed
+            {toolExecution.error && `: ${toolExecution.error}`}
+          </div>
+        )}
       </div>
     </div>
   )

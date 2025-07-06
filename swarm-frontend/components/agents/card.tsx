@@ -28,7 +28,6 @@ import { useRouter } from 'next/navigation'
 import { StatusBadge, TypeBadge } from './status'
 import { useIntervalTimer } from '@/hooks/use-interval-timer'
 import { ClientOnly } from '@/components/client-only'
-import { useAgentChannel } from '@/hooks/use-agent-channel'
 
 type AgentCardHeaderProps = {
   agent: Agent
@@ -120,11 +119,6 @@ export function AgentCard({
   const agentPath = repository
     ? `/${repository.owner}/${repository.name}/agents/${agent.id}`
     : undefined
-
-  const { state: agentState } = useAgentChannel(agent.id, false)
-
-  console.log('agentState', agentState)
-
   const isActive = agent.status === 'running'
 
   // Handler for card click

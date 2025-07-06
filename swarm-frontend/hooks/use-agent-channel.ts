@@ -47,7 +47,7 @@ export type Message = {
   status: string
   metadata: MessageMetadata | null
   role: string // 'system' | 'user' | 'assistant' | 'tool', but as string
-  content: string | MessageContent[] // Can be either string or array
+  raw_content: string | MessageContent[] // Can be either string or array
   tool_calls: ToolCall[]
   tool_results: ToolResult[] | null
 }
