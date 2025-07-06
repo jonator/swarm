@@ -4,8 +4,10 @@ import { getUser } from '@/lib/services/users'
 export default async function OwnerPage({
   params,
 }: { params: Promise<{ owner: string }> }) {
-  const { owner } = await params
-  const { user } = await getUser()
+  const [{ owner }, { user }] = await Promise.all([
+    params,
+    getUser(),
+  ])
 
   return (
     <>

@@ -14,18 +14,18 @@ import { headers } from 'next/headers'
 export default async function AgentPage({
   params,
 }: { params: Promise<{ owner: string; repo: string; id: string }> }) {
-  const [{ owner, repo, id }, { user }, headerList] = await Promise.all([
-    params,
+  const { owner, repo, id } = await params
+  
+  const [{ user }, headerList, { agent }] = await Promise.all([
     getUser(),
     headers(),
+    getAgent(id),
   ])
 
   const now = getNow()
   const timeZone =
     headerList.get('x-vercel-ip-timezone') ??
     Intl.DateTimeFormat().resolvedOptions().timeZone
-
-  const { agent } = await getAgent(id)
 
   const queryClient = getQueryClient()
 

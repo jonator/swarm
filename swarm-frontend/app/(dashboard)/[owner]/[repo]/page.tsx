@@ -4,8 +4,10 @@ import { getUser } from '@/lib/services/users'
 export default async function RepoPage({
   params,
 }: { params: Promise<{ owner: string; repo: string }> }) {
-  const { owner, repo } = await params
-  const { user } = await getUser()
+  const [{ owner, repo }, { user }] = await Promise.all([
+    params,
+    getUser(),
+  ])
 
   return (
     <>
