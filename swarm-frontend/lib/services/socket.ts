@@ -57,7 +57,7 @@ class SocketManager {
     })
 
     this.socket.onError((error) => {
-      console.warn('Phoenix socket error:', error)
+      console.error('Phoenix socket error:', error)
     })
 
     this.socket.onClose((event) => {

@@ -121,7 +121,9 @@ export function AgentCard({
     ? `/${repository.owner}/${repository.name}/agents/${agent.id}`
     : undefined
 
-  useAgentChannel(agent.id)
+  const { state: agentState } = useAgentChannel(agent.id, false)
+
+  console.log('agentState', agentState)
 
   const isActive = agent.status === 'running'
 

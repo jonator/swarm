@@ -17,6 +17,7 @@ export const agentsQuery = (params: GetAgentsParams) =>
               throw new Error('Invalid params')
             })(),
     queryFn: () => getAgents(params),
+    staleTime: 1000 * 5, // 5 seconds
     refetchInterval: 1000 * 5, // 5 seconds
     select: (data) => {
       const parsedData = data.agents.map(parseAgent)
@@ -31,6 +32,7 @@ export const agentQuery = (id: string) =>
   queryOptions({
     queryKey: ['agents', 'agent', id],
     queryFn: () => getAgent(id),
+    staleTime: 1000 * 5, // 5 seconds
     refetchInterval: 1000 * 5, // 5 seconds
     select: (data) => parseAgent(data.agent),
   })

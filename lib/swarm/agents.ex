@@ -8,6 +8,7 @@ defmodule Swarm.Agents do
 
   alias Swarm.Agents.Agent
   alias Swarm.Accounts.User
+  alias Swarm.Agents.Message
 
   @doc """
   Returns the list of agents.
@@ -316,5 +317,86 @@ defmodule Swarm.Agents do
     query = from(a in Agent, where: a.status == :pending)
     query = add_overlap_conditions(query, agent_attrs)
     Repo.all(query)
+  end
+
+  @doc """
+  Creates a message for the given agent.
+
+  Always calculates and sets the next sequential index, ignoring any provided index.
+
+  ## Examples
+
+      iex> create_message(agent, %{content: "Hello", type: :system})
+      {:ok, %Message{}}
+
+      iex> create_message(agent, %{content: nil, type: :system})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_message(agent_id, attrs) do
+    # Convert string UUID to binary UUID if needed
+    agent_id =
+      case Ecto.UUID.cast(agent_id) do
+        {:ok, uuid} -> uuid
+        :error -> agent_id
+      end
+
+    # Always calculate and set the next index regardless of what's provided
+    attrs =
+      if Map.has_key?(attrs, :index) do
+        attrs
+      else
+        Map.put(attrs, :index, get_next_message_index(agent_id))
+      end
+
+    attrs = Map.put(attrs, :agent_id, agent_id)
+
+    %Message{}
+    |> Message.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Returns the list of messages for a given agent ID, ordered by index ascending.
+
+  ## Examples
+
+      iex> get_agent_messages(agent_id)
+      [%Message{}, ...]
+
+  """
+  def messages(agent_id) do
+    # Convert string UUID to binary UUID if needed
+    agent_id =
+      case Ecto.UUID.cast(agent_id) do
+        {:ok, uuid} -> uuid
+        :error -> agent_id
+      end
+
+    from(m in Message, where: m.agent_id == ^agent_id, order_by: [asc: m.index])
+    |> Repo.all()
+  end
+
+  @doc """
+  Gets the next message index for an agent.
+
+  Returns the highest existing index + 1, or 0 if no messages exist.
+  """
+  def get_next_message_index(agent_id) do
+    # Convert string UUID to binary UUID if needed
+    agent_id =
+      case Ecto.UUID.cast(agent_id) do
+        {:ok, uuid} -> uuid
+        :error -> agent_id
+      end
+
+    case from(m in Message,
+           where: m.agent_id == ^agent_id,
+           select: max(m.index)
+         )
+         |> Repo.one() do
+      nil -> 0
+      max_index -> max_index + 1
+    end
   end
 end

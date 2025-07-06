@@ -22,8 +22,9 @@ function joinChannel<EventPayload = unknown>(
   token: string | undefined,
   dispatch: ActionDispatch<[{ event: string; payload: EventPayload }]>,
   setBroadcast: (
-    broadcast: (event: string, payload: EventPayload) => void,
+    broadcast: (event: string, payload?: EventPayload) => void,
   ) => void,
+  onJoin?: (messages: unknown) => void,
 ) {
   if (!socket || !topic) return
 
@@ -38,9 +39,10 @@ function joinChannel<EventPayload = unknown>(
 
   channel
     .join()
-    .receive('ok', ({ messages }: { messages?: unknown }) =>
-      console.info('Successfully joined channel', messages || ''),
-    )
+    .receive('ok', ({ messages }: { messages?: unknown }) => {
+      onJoin?.(messages)
+      console.info('Successfully joined channel', messages || '')
+    })
     .receive('error', ({ reason }: { reason: unknown }) =>
       console.error('Failed to join channel', reason),
     )
@@ -60,7 +62,7 @@ function joinChannel<EventPayload = unknown>(
  * @param topic - The channel/topic name (e.g. 'agent:123')
  * @param reducer - A reducer function (state, {event, payload}) => newState
  * @param initialState - The initial state for the channel
- * @returns [state, broadcast]
+ * @returns [state, broadcast, isJoined]
  *
  * ### Joining and broadcasting:
  * ```tsx
@@ -104,20 +106,23 @@ export function usePhoenixChannel<State = unknown, EventPayload = unknown>(
   reducer: Reducer<State, { event: string; payload: EventPayload }>,
   initialState: State,
   enabled: boolean = true,
-): [State, (event: string, payload: EventPayload) => void] {
+): [State, (event: string, payload?: EventPayload) => void, boolean] {
   const { socket } = useSocket()
   const [state, dispatch] = useReducer(reducer, initialState)
   const { data: tokenData } = useTemporaryToken()
   const token = tokenData?.token
   const [broadcast, setBroadcast] = useState<
-    (event: string, payload: EventPayload) => void
+    (event: string, payload?: EventPayload) => void
   >(mustJoinChannelWarning)
+  const [isJoined, setIsJoined] = useState(false)
 
   useEffect(() => {
     if (enabled) {
-      joinChannel(socket, topic, token, dispatch, setBroadcast)
+      joinChannel(socket, topic, token, dispatch, setBroadcast, () => {
+        setIsJoined(true)
+      })
     }
   }, [socket, topic, token, enabled])
 
-  return [state, broadcast]
+  return [state, broadcast, isJoined]
 }

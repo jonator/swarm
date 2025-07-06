@@ -19,14 +19,21 @@ defmodule SwarmWeb.SessionController do
   end
 
   def token(conn, _params) do
-    user = Guardian.Plug.current_resource(conn)
-    opts = if(user.role == :admin, do: [permissions: %{default: [:admin]}], else: [])
-    opts = Keyword.put(opts, :ttl, {2, :hours})
+    case Guardian.Plug.current_resource(conn) do
+      nil ->
+        conn
+        |> put_status(:unauthorized)
+        |> json(%{error: "User not authenticated"})
 
-    with {:ok, token, _claims} <- Guardian.encode_and_sign(user, %{}, opts) do
-      conn
-      |> put_status(:created)
-      |> json(%{token: token})
+      user ->
+        opts = if(user.role == :admin, do: [permissions: %{default: [:admin]}], else: [])
+        opts = Keyword.put(opts, :ttl, {2, :hours})
+
+        with {:ok, token, _claims} <- Guardian.encode_and_sign(user, %{}, opts) do
+          conn
+          |> put_status(:created)
+          |> json(%{token: token})
+        end
     end
   end
 end

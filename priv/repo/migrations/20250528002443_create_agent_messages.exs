@@ -3,7 +3,8 @@ defmodule Swarm.Repo.Migrations.CreateAgentMessages do
 
   def change do
     create table(:agent_messages) do
-      add :content, :text, null: false
+      add :index, :integer, null: false
+      add :content, :map, null: false, default: %{}
       add :type, :string, null: false
       add :agent_id, references(:agents, type: :uuid, on_delete: :delete_all)
 

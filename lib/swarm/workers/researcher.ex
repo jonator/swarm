@@ -14,12 +14,12 @@ defmodule Swarm.Workers.Researcher do
 
   alias Swarm.Agents
   alias Swarm.Agents.Agent
+  alias Swarm.Agents.LLMChain, as: SharedLLMChain
   alias Swarm.Git
   alias Swarm.Repositories.Repository
   alias Swarm.Services.GitHub
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
-  alias LangChain.ChatModels.ChatAnthropic
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -70,18 +70,9 @@ defmodule Swarm.Workers.Researcher do
   defp generate_research(agent, git_repo) do
     Logger.debug("Generating implementation plan via LLM for agent #{agent.id}")
 
-    finished_tool =
-      LangChain.Function.new!(%{
-        name: "finished",
-        description: "Indicates that the implementation is complete",
-        parameters: [],
-        function: fn _arguments, _context ->
-          {:ok, "Implementation completed successfully"}
-        end
-      })
+    finished_tool = SharedLLMChain.create_finished_tool("Indicates that the research is complete")
 
-    tools =
-      Swarm.Tools.for_agent(agent, :read) ++ [finished_tool]
+    tools = Swarm.Tools.for_agent(agent, :read) ++ [finished_tool]
 
     messages = [
       Message.new_system!("""
@@ -102,41 +93,18 @@ defmodule Swarm.Workers.Researcher do
       """)
     ]
 
-    chat_model =
-      ChatAnthropic.new!(%{
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 8192,
-        temperature: 0.5,
-        stream: false
-      })
-
-    # chat_model =
-    #   ChatOpenAI.new!(%{
-    #     model: "o3-mini-2025-01-31",
-    #     max_tokens: 8192,
-    #     stream: false
-    #   })
-
-    case %{
-           llm: chat_model,
-           custom_context: %{
-             "git_repo" => git_repo,
-             "external_ids" => agent.external_ids,
-             "repository" => agent.repository
-           },
-           verbose: Logger.level() == :debug
-         }
-         |> LLMChain.new!()
-         |> LLMChain.add_messages(messages)
-         |> LLMChain.add_tools(tools)
-         |> LLMChain.run_until_tool_used("finished") do
-      {:ok, updated_chain, _messages} ->
-        {:ok, updated_chain.last_message.content}
-
-      error ->
-        Logger.error("LLM plan generation failed: #{inspect(error)}")
-        {:error, "LLM plan generation failed: #{inspect(error)}"}
-    end
+    # Create LLM chain with shared logic
+    SharedLLMChain.create(
+      agent: agent,
+      custom_context: %{
+        "git_repo" => git_repo,
+        "external_ids" => agent.external_ids,
+        "repository" => agent.repository
+      }
+    )
+    |> LLMChain.add_messages(messages)
+    |> LLMChain.add_tools(tools)
+    |> SharedLLMChain.run_until_finished("finished")
   end
 
   defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}) do

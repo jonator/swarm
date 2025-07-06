@@ -1,4 +1,5 @@
 import { AgentHeader } from '@/components/agents/header'
+import { AgentMessages } from '@/components/agents/messages'
 import { AgentBreadcrumb } from '@/components/agents/status'
 import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
@@ -48,6 +49,7 @@ export default async function AgentPage({
 
       <main className='dashboard-container'>
         <AgentHeader agent={parseAgent(agent)} now={now} timeZone={timeZone} />
+        <AgentMessages agentId={id} />
       </main>
     </HydrationBoundary>
   )

@@ -26,13 +26,13 @@ defmodule SwarmWeb.AgentChannelTest do
     %{socket: socket}
   end
 
-  test "user_msg broadcasts to agent:<id>", %{socket: socket} do
-    push(socket, "user_msg", %{"hello" => "all"})
-    assert_broadcast "user_msg", %{"hello" => "all"}
+  test "user_message broadcasts to agent:<id>", %{socket: socket} do
+    push(socket, "user_message", %{"hello" => "all"})
+    assert_broadcast "user_message", %{"hello" => "all"}
   end
 
   test "broadcasts are pushed to the client", %{socket: socket} do
-    broadcast_from!(socket, "user_msg", %{"some" => "data"})
-    assert_push "user_msg", %{"some" => "data"}
+    broadcast_from!(socket, "user_message", %{"some" => "data"})
+    assert_push "user_message", %{"some" => "data"}
   end
 end

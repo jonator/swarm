@@ -10,19 +10,18 @@ defmodule Swarm.Workers.Coder do
   5. Creating a pull request with the changes
   """
 
-  alias LangChain.Function
   use Oban.Worker, queue: :default
   require Logger
 
   alias Swarm.Agents
   alias Swarm.Agents.Agent
+  alias Swarm.Agents.LLMChain, as: SharedLLMChain
   alias Swarm.Git
   alias Swarm.Instructor
   alias Swarm.Repositories.Repository
   alias Swarm.Services.Linear
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
-  alias LangChain.ChatModels.ChatAnthropic
 
   @impl Oban.Worker
   def perform(%Oban.Job{id: oban_job_id, args: %{"agent_id" => agent_id}}) do
@@ -149,19 +148,10 @@ defmodule Swarm.Workers.Coder do
     Logger.debug("Implementing changes")
 
     # Note: finished tool is used so this agent can handle creating pull requests as needed in response to issues or code reviews
-    finished_tool =
-      Function.new!(%{
-        name: "finished",
-        description: "Indicates that the implementation is complete",
-        parameters: [],
-        function: fn _arguments, _context ->
-          {:ok, "Implementation completed successfully"}
-        end
-      })
+    finished_tool = SharedLLMChain.create_finished_tool()
 
     # Tool context is passed via custom_context in the LLMChain
-    tools =
-      Swarm.Tools.for_agent(agent) ++ [finished_tool]
+    tools = Swarm.Tools.for_agent(agent) ++ [finished_tool]
 
     messages = [
       Message.new_system!("""
@@ -176,53 +166,25 @@ defmodule Swarm.Workers.Coder do
       Message.new_user!("I need to implement the following changes: #{inspect(instructions)}")
     ]
 
-    # https://docs.anthropic.com/en/docs/about-claude/models/overview#model-comparison-table
-    chat_model =
-      ChatAnthropic.new!(%{
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 64000,
-        temperature: 0.7,
-        stream: true
-      })
-
     organization = Swarm.Repo.preload(repository, :organization).organization
 
-    # Streaming handler for broadcasting deltas and completed messages
-    handler = %{
-      on_llm_new_delta: fn _model, deltas ->
-        Enum.each(List.wrap(deltas), fn delta ->
-          SwarmWeb.Endpoint.broadcast("agent:#{agent.id}", "message_delta", %{
-            delta: delta.content
-          })
-        end)
-      end,
-      on_message_processed: fn _chain, %LangChain.Message{} = message ->
-        SwarmWeb.Endpoint.broadcast("agent:#{agent.id}", "message", message)
-      end
-    }
-
-    case %{
-           llm: chat_model,
-           custom_context: %{
-             "git_repo" => git_repo,
-             "git_repo_index" => git_repo_index,
-             "repository" => repository,
-             "organization" => organization,
-             "external_ids" => agent.external_ids
-           },
-           verbose: Logger.level() == :debug
-         }
-         |> LLMChain.new!()
-         |> LLMChain.add_messages(messages)
-         |> LLMChain.add_tools(tools)
-         |> LLMChain.add_callback(handler)
-         |> LLMChain.run_until_tool_used("finished") do
-      {:ok, updated_chain, _matching_finished_call} ->
-        Logger.info("Implementation completed successfully")
-        {:ok, updated_chain.last_message.content}
-
-      {:error, _chain, reason} ->
-        {:error, "Implementation failed: #{inspect(reason)}"}
-    end
+    # Create LLM chain with shared logic
+    SharedLLMChain.create(
+      agent: agent,
+      max_tokens: 64000,
+      temperature: 0.7,
+      custom_context: %{
+        "git_repo" => git_repo,
+        "git_repo_index" => git_repo_index,
+        "repository" => repository,
+        "organization" => organization,
+        "external_ids" => agent.external_ids
+      },
+      verbose: false
+      #  verbose: Logger.level() == :debug
+    )
+    |> LLMChain.add_messages(messages)
+    |> LLMChain.add_tools(tools)
+    |> SharedLLMChain.run_until_finished("finished")
   end
 end

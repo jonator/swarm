@@ -12,14 +12,20 @@ defmodule SwarmWeb.AgentChannel do
   end
 
   @impl true
-  def handle_in("user_msg", payload, socket) do
-    broadcast(socket, "user_msg", payload)
+  def handle_in("user_message", payload, socket) do
+    broadcast(socket, "user_message", payload)
     {:noreply, socket}
   end
 
   @impl true
-  @spec handle_info(Phoenix.Socket.Broadcast.t(), Phoenix.Socket.t()) ::
-          {:noreply, Phoenix.Socket.t()}
+  def handle_in("messages", _payload, socket) do
+    "agent:" <> agent_id = socket.topic
+    messages = Swarm.Agents.messages(agent_id)
+    resp = SwarmWeb.AgentJSON.index(%{messages: messages})
+    {:reply, {:ok, resp}, socket}
+  end
+
+  @impl true
   def handle_info(%Broadcast{topic: _, event: event, payload: payload}, socket) do
     push(socket, event, payload)
     {:noreply, socket}
