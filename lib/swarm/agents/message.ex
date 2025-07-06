@@ -34,17 +34,19 @@ defmodule Swarm.Agents.Message do
   converts it to a plain map that can be serialized to JSONB.
   """
   def attrs_from_langchain_message(%LangChain.Message{} = message) do
+    content = %{
+      raw_content: extract_content(message.content),
+      processed_content: deep_extract_structs(message.processed_content),
+      status: message.status,
+      role: message.role,
+      name: message.name,
+      tool_calls: extract_tool_calls(message.tool_calls),
+      tool_results: extract_tool_results(message.tool_results),
+      metadata: extract_metadata(message.metadata)
+    }
+
     %{
-      content: %{
-        raw_content: extract_content(message.content),
-        processed_content: message.processed_content,
-        status: message.status,
-        role: message.role,
-        name: message.name,
-        tool_calls: extract_tool_calls(message.tool_calls),
-        tool_results: extract_tool_results(message.tool_results),
-        metadata: extract_metadata(message.metadata)
-      },
+      content: deep_extract_structs(content),
       index: message.index,
       type: message.role
     }
@@ -57,7 +59,7 @@ defmodule Swarm.Agents.Message do
         %{
           type: type,
           content: text,
-          options: options
+          options: extract_options(options)
         }
 
       %{type: type, content: text} ->
@@ -74,6 +76,48 @@ defmodule Swarm.Agents.Message do
   defp extract_content(content) when is_binary(content), do: content
   defp extract_content(nil), do: nil
   defp extract_content([]), do: []
+  defp extract_content(content), do: inspect(content)
+
+  # Deep extraction function to ensure no structs remain anywhere in the data
+  defp deep_extract_structs(value) when is_map(value) do
+    if Map.has_key?(value, :__struct__) do
+      # Convert struct to map and recursively extract
+      value
+      |> Map.from_struct()
+      |> Enum.map(fn {key, val} -> {key, deep_extract_structs(val)} end)
+      |> Enum.into(%{})
+    else
+      value
+      |> Enum.map(fn {key, val} -> {key, deep_extract_structs(val)} end)
+      |> Enum.into(%{})
+    end
+  end
+
+  defp deep_extract_structs(value) when is_list(value) do
+    Enum.map(value, &deep_extract_structs/1)
+  end
+
+  defp deep_extract_structs(value), do: value
+
+  # Helper function to extract options from ContentPart
+  defp extract_options(options) when is_list(options) do
+    Enum.map(options, fn
+      {key, value} when is_map(value) ->
+        {key, extract_nested_map(value)}
+
+      {key, value} ->
+        {key, value}
+
+      other ->
+        inspect(other)
+    end)
+  end
+
+  defp extract_options(options) when is_map(options) do
+    extract_nested_map(options)
+  end
+
+  defp extract_options(options), do: options
 
   # Helper function to extract tool calls
   defp extract_tool_calls(tool_calls) when is_list(tool_calls) do
@@ -91,13 +135,14 @@ defmodule Swarm.Agents.Message do
           type: type,
           call_id: call_id,
           name: name,
-          arguments: arguments,
+          arguments: deep_extract_structs(arguments),
           index: index
         }
 
       other ->
         %{type: :unknown, content: inspect(other)}
     end)
+    |> deep_extract_structs()
   end
 
   defp extract_tool_calls(nil), do: []
@@ -120,16 +165,17 @@ defmodule Swarm.Agents.Message do
           type: type,
           tool_call_id: tool_call_id,
           name: name,
-          content: content,
-          processed_content: processed_content,
+          content: deep_extract_structs(content),
+          processed_content: deep_extract_structs(processed_content),
           display_text: display_text,
           is_error: is_error,
-          options: options
+          options: deep_extract_structs(options)
         }
 
       other ->
         %{type: :unknown, content: inspect(other)}
     end)
+    |> deep_extract_structs()
   end
 
   defp extract_tool_results(nil), do: []
@@ -147,13 +193,14 @@ defmodule Swarm.Agents.Message do
         {key, extract_nested_map(value)}
 
       {key, value} ->
-        {key, value}
+        {key, deep_extract_structs(value)}
     end)
     |> Enum.into(%{})
+    |> deep_extract_structs()
   end
 
   defp extract_metadata(nil), do: %{}
-  defp extract_metadata(metadata), do: metadata
+  defp extract_metadata(metadata), do: deep_extract_structs(metadata)
 
   # Helper function to extract nested maps and structs
   defp extract_nested_map(map) when is_map(map) do
@@ -161,9 +208,12 @@ defmodule Swarm.Agents.Message do
       # Convert struct to map, excluding the __struct__ key
       map
       |> Map.from_struct()
+      |> Enum.map(fn {key, value} -> {key, deep_extract_structs(value)} end)
       |> Enum.into(%{})
     else
       map
+      |> Enum.map(fn {key, value} -> {key, deep_extract_structs(value)} end)
+      |> Enum.into(%{})
     end
   end
 end

@@ -11,7 +11,13 @@ export type MessageContent = {
 export type ToolResult = {
   name: string
   type: string
-  content: string
+  content:
+    | string
+    | Array<{
+        content: string
+        type: string
+        options: unknown[]
+      }>
   tool_call_id: string
 }
 

@@ -129,7 +129,10 @@ defmodule Swarm.Agents.LLMChain do
           metadata: message_attrs.content.metadata
         }
 
-        SwarmWeb.Endpoint.broadcast("agent:#{agent_id}", "message", message_map)
+        # Apply deep extraction to ensure no structs remain in the message map
+        clean_message_map = deep_extract_structs(message_map)
+
+        SwarmWeb.Endpoint.broadcast("agent:#{agent_id}", "message", clean_message_map)
 
         {:ok, _message} =
           Swarm.Agents.create_message(agent_id, message_attrs)
@@ -141,4 +144,25 @@ defmodule Swarm.Agents.LLMChain do
   defp extract_content(%{content: %{content: text}}) when is_binary(text), do: text
   defp extract_content(%{content: text}) when is_binary(text), do: text
   defp extract_content(_), do: ""
+
+  # Deep extraction function to ensure no structs remain anywhere in the data
+  defp deep_extract_structs(value) when is_map(value) do
+    if Map.has_key?(value, :__struct__) do
+      # Convert struct to map and recursively extract
+      value
+      |> Map.from_struct()
+      |> Enum.map(fn {key, val} -> {key, deep_extract_structs(val)} end)
+      |> Enum.into(%{})
+    else
+      value
+      |> Enum.map(fn {key, val} -> {key, deep_extract_structs(val)} end)
+      |> Enum.into(%{})
+    end
+  end
+
+  defp deep_extract_structs(value) when is_list(value) do
+    Enum.map(value, &deep_extract_structs/1)
+  end
+
+  defp deep_extract_structs(value), do: value
 end

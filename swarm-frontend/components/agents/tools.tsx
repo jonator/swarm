@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import type { ToolResult } from '@/hooks/use-agent-channel'
 import type { CombinedToolExecution } from '@/lib/models/messages'
 import { cn } from '@/lib/utils/shadcn'
 import {
@@ -263,6 +264,26 @@ function formatArguments(args: unknown): string {
   }
 }
 
+// Helper function to extract text content from tool result
+function extractToolResultContent(toolResult: ToolResult | undefined): string {
+  if (!toolResult?.content) return ''
+
+  // Handle string content directly
+  if (typeof toolResult.content === 'string') {
+    return toolResult.content
+  }
+
+  // Handle array of content objects
+  if (Array.isArray(toolResult.content)) {
+    return toolResult.content
+      .filter((item) => item.type === 'text')
+      .map((item) => item.content)
+      .join('\n')
+  }
+
+  return ''
+}
+
 // Component to display combined tool executions
 export function CombinedToolExecutionDisplay({
   toolExecution,
@@ -281,7 +302,7 @@ export function CombinedToolExecutionDisplay({
     truncateContent(formattedArgs, 200)
 
   // Format tool result content if available
-  const resultContent = toolExecution.toolResult?.content || ''
+  const resultContent = extractToolResultContent(toolExecution.toolResult)
   const { truncated: truncatedResult, isTruncated: isResultTruncated } =
     truncateContent(resultContent, 300)
 
