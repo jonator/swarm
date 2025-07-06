@@ -10,6 +10,7 @@ defmodule Swarm.Agents.LLMChain do
 
   alias LangChain.Chains.LLMChain
   alias LangChain.ChatModels.ChatAnthropic
+  alias LangChain.ChatModels.ChatOpenAI
   alias Swarm.Agents.Agent
   alias Swarm.Agents.Message
 
@@ -66,7 +67,13 @@ defmodule Swarm.Agents.LLMChain do
   with consistent error handling.
   """
   def run_until_finished(chain, tool_name \\ "finished") do
-    case LLMChain.run_until_tool_used(chain, tool_name) do
+    fallback_model =
+      ChatOpenAI.new!(%{
+        model: "o3",
+        stream: true
+      })
+
+    case LLMChain.run_until_tool_used(chain, tool_name, with_fallbacks: [fallback_model]) do
       {:ok, updated_chain, _matching_call} ->
         Logger.info("LLM chain completed successfully")
         {:ok, updated_chain.last_message.content}

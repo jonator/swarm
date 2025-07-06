@@ -24,7 +24,13 @@ defmodule Swarm.Instructor.AgentName do
             You are a helpful assistant that generates a descriptive, human-readable name for an AI agent based on the following instructions or context.
 
             The name should be concise, clear, and reflect the purpose or task described. Avoid generic names; be specific to the context.
+            They should be similar to names you'd write for a pull request title.
             Avoid leaking low level identifiers, these are for human consumption only.
+
+            Examples:
+            Improve Spacing
+            Add Tests
+            Research Authentication Implementation
 
             Instructions/context:
             #{instructions}

@@ -157,7 +157,8 @@ defmodule Swarm.Workers.Coder do
       Message.new_system!("""
       You are a software developer called Swarm AI implementing changes to a codebase. Examine the files carefully and implement the requested changes according to the instructions.
       Write files and commit changes immediately- do not ask for confirmation.
-      Push changes and open a pull request once completed. If there are newline file terminators, keep them.
+      You're in a temporary dev environment with a checked out branch where you can make changes and push them to the remote repository.
+      Open a pull request once completed. If there are newline file terminators, keep them.
 
       Repo info #{repository.owner}/#{repository.name}:
       - Branch: #{git_repo.branch}
