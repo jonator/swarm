@@ -1,14 +1,10 @@
 'use client'
 
 import { useAgentChannel } from '@/hooks/use-agent-channel'
-import type {
-  Message,
-  MessageContent,
-  ToolCall,
-  ToolResult,
-} from '@/hooks/use-agent-channel'
+import type { Message, MessageContent } from '@/hooks/use-agent-channel'
 import { cn } from '@/lib/utils/shadcn'
-import { Wrench, Zap, CheckCircle } from 'lucide-react'
+import { Zap, Bot, User, RefreshCw, MessageSquare } from 'lucide-react'
+import { ToolCallDisplay, ToolResultDisplay } from './tools'
 
 interface AgentMessagesProps {
   agentId: string
@@ -30,64 +26,65 @@ function extractTextContent(content: string | MessageContent[]): string {
   return ''
 }
 
-// Helper function to safely convert unknown arguments to string
-function formatArguments(args: unknown): string {
-  if (typeof args === 'string') {
-    return args
-  }
-  try {
-    return JSON.stringify(args, null, 2) || 'No arguments'
-  } catch {
-    return 'Invalid arguments'
-  }
-}
-
-// Component to display tool calls
-function ToolCallDisplay({ toolCall }: { toolCall: ToolCall }) {
-  return (
-    <div className='mt-2 p-2 bg-muted/50 rounded border border-muted-foreground/20'>
-      <div className='flex items-center gap-2 mb-1'>
-        <Wrench className='h-3 w-3 text-muted-foreground' />
-        <span className='text-xs font-medium'>{toolCall.name}</span>
-      </div>
-      {toolCall.arguments != null && (
-        <div className='text-xs text-muted-foreground font-mono'>
-          {formatArguments(toolCall.arguments)}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Component to display tool results
-function ToolResultDisplay({ toolResult }: { toolResult: ToolResult }) {
-  return (
-    <div className='mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800'>
-      <div className='flex items-center gap-2 mb-1'>
-        <CheckCircle className='h-3 w-3 text-green-600' />
-        <span className='text-xs font-medium text-green-800 dark:text-green-200'>
-          {toolResult.name} result
-        </span>
-      </div>
-      <div className='text-xs text-green-700 dark:text-green-300 font-mono whitespace-pre-wrap max-h-32 overflow-y-auto'>
-        {toolResult.content}
-      </div>
-    </div>
-  )
-}
-
-// Component to display usage metadata
+// Enhanced usage display component
 function UsageDisplay({ message }: { message: Message }) {
   if (!message.metadata?.usage) return null
 
   const { input, output } = message.metadata.usage
 
   return (
-    <div className='mt-2 flex items-center gap-2 text-xs text-muted-foreground'>
-      <Zap className='h-3 w-3' />
-      <span>{input} in</span>
-      <span>•</span>
-      <span>{output} out</span>
+    <div className='mt-3 flex items-center gap-3 text-xs text-muted-foreground bg-muted/30 rounded-md p-2'>
+      <div className='flex items-center gap-1'>
+        <Zap className='h-3 w-3' />
+        <span>Tokens:</span>
+      </div>
+      <div className='flex items-center gap-1'>
+        <span className='font-mono'>{input}</span>
+        <span>in</span>
+      </div>
+      <div className='w-px h-3 bg-muted-foreground/30' />
+      <div className='flex items-center gap-1'>
+        <span className='font-mono'>{output}</span>
+        <span>out</span>
+      </div>
+    </div>
+  )
+}
+
+// Enhanced message role display
+function MessageRoleDisplay({ role }: { role: string }) {
+  const roleConfig = {
+    user: {
+      icon: User,
+      color: 'text-foreground',
+      bgColor: 'bg-muted',
+    },
+    assistant: {
+      icon: Bot,
+      color: 'text-foreground',
+      bgColor: 'bg-muted',
+    },
+    system: {
+      icon: MessageSquare,
+      color: 'text-foreground',
+      bgColor: 'bg-muted',
+    },
+  }
+
+  const config =
+    roleConfig[role as keyof typeof roleConfig] || roleConfig.system
+  const IconComponent = config.icon
+
+  return (
+    <div className='flex items-center gap-2 mb-3'>
+      <div className={cn('p-1.5 rounded-md', config.bgColor)}>
+        <IconComponent className={cn('h-4 w-4', config.color)} />
+      </div>
+      <div className='flex items-center gap-2'>
+        <span className={cn('text-sm font-medium capitalize', config.color)}>
+          {role}
+        </span>
+      </div>
     </div>
   )
 }
@@ -98,7 +95,7 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
   console.log('state', state)
 
   return (
-    <div className='space-y-3 p-4'>
+    <div className='space-y-4 p-4'>
       {state.messages.map((message, messageIndex) => {
         const textContent = extractTextContent(message.content)
 
@@ -106,32 +103,25 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
           <div
             key={message.index ?? messageIndex}
             className={cn(
-              'p-3 rounded-lg border',
+              'p-4 rounded-xl border transition-all duration-200',
               message.role === 'user'
-                ? 'bg-primary/5 border-primary/20'
+                ? 'bg-card border-border'
                 : message.role === 'assistant'
-                  ? 'bg-secondary/50 border-secondary'
-                  : 'bg-muted border-muted-foreground/20',
+                  ? 'bg-muted/30 border-border'
+                  : 'bg-secondary/30 border-border',
             )}
           >
-            <div className='flex items-center gap-2 mb-2'>
-              <span className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-                {message.role}
-              </span>
-              {message.index !== null && (
-                <span className='text-xs text-muted-foreground'>
-                  #{message.index}
-                </span>
-              )}
-            </div>
+            <MessageRoleDisplay role={message.role} />
 
             {textContent && (
-              <div className='text-sm whitespace-pre-wrap'>{textContent}</div>
+              <div className='text-sm whitespace-pre-wrap leading-relaxed mb-3'>
+                {textContent}
+              </div>
             )}
 
             {/* Display tool calls if they exist */}
             {message.tool_calls && message.tool_calls.length > 0 && (
-              <div className='mt-2 space-y-1'>
+              <div className='space-y-2'>
                 {message.tool_calls.map((toolCall) => (
                   <ToolCallDisplay key={toolCall.call_id} toolCall={toolCall} />
                 ))}
@@ -140,7 +130,7 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
 
             {/* Display tool results if they exist */}
             {message.tool_results && message.tool_results.length > 0 && (
-              <div className='mt-2 space-y-1'>
+              <div className='space-y-2'>
                 {message.tool_results.map((toolResult) => (
                   <ToolResultDisplay
                     key={toolResult.tool_call_id}
@@ -158,24 +148,40 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
 
       {/* Show partial message if it exists */}
       {state.lastPartialMessage && (
-        <div className='p-3 rounded-lg border bg-secondary/30 border-secondary/50'>
-          <div className='flex items-center gap-2 mb-2'>
-            <span className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
-              assistant
-            </span>
-            <span className='text-xs text-muted-foreground animate-pulse'>
-              typing...
-            </span>
+        <div className='p-4 rounded-xl border bg-muted/30 border-border'>
+          <div className='flex items-center gap-2 mb-3'>
+            <div className='p-1.5 rounded-md bg-muted'>
+              <Bot className='h-4 w-4 text-foreground' />
+            </div>
+            <div className='flex items-center gap-2'>
+              <span className='text-sm font-medium text-foreground'>
+                Assistant
+              </span>
+              <div className='flex items-center gap-1'>
+                <RefreshCw className='h-3 w-3 text-muted-foreground animate-spin' />
+                <span className='text-xs text-muted-foreground'>
+                  Thinking...
+                </span>
+              </div>
+            </div>
           </div>
-          <div className='text-sm whitespace-pre-wrap'>
+          <div className='text-sm whitespace-pre-wrap leading-relaxed'>
             {state.lastPartialMessage}
           </div>
         </div>
       )}
 
       {state.messages.length === 0 && !state.lastPartialMessage && (
-        <div className='text-center py-8 text-muted-foreground'>
-          No messages yet
+        <div className='text-center py-12'>
+          <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/30 mb-4'>
+            <MessageSquare className='h-8 w-8 text-muted-foreground' />
+          </div>
+          <h3 className='text-lg font-medium text-muted-foreground mb-2'>
+            No messages yet
+          </h3>
+          <p className='text-sm text-muted-foreground'>
+            Start a conversation with your agent to see messages here
+          </p>
         </div>
       )}
     </div>
