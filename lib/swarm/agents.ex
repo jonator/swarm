@@ -92,22 +92,34 @@ defmodule Swarm.Agents do
       nil
 
   """
-  def get_agent(id), do: Repo.get(Agent, id)
+  def get_agent(id) do
+    case Ecto.UUID.cast(id) do
+      {:ok, valid_id} -> Repo.get(Agent, valid_id)
+      :error -> nil
+    end
+  end
 
   def get_agent(%User{} = user, id) do
-    user_organization_ids =
-      user
-      |> Repo.preload(:organizations)
-      |> Map.get(:organizations)
-      |> Enum.map(& &1.id)
+    # Return nil if id is not a valid UUID
+    case Ecto.UUID.cast(id) do
+      {:ok, valid_id} ->
+        user_organization_ids =
+          user
+          |> Repo.preload(:organizations)
+          |> Map.get(:organizations)
+          |> Enum.map(& &1.id)
 
-    from(a in Agent,
-      where: a.id == ^id,
-      join: r in assoc(a, :repository),
-      join: o in assoc(r, :organization),
-      where: o.id in ^user_organization_ids
-    )
-    |> Repo.one()
+        from(a in Agent,
+          where: a.id == ^valid_id,
+          join: r in assoc(a, :repository),
+          join: o in assoc(r, :organization),
+          where: o.id in ^user_organization_ids
+        )
+        |> Repo.one()
+
+      :error ->
+        nil
+    end
   end
 
   @doc """

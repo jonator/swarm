@@ -3,7 +3,6 @@ import { AgentMessages } from '@/components/agents/messages'
 import { AgentBreadcrumb } from '@/components/agents/status'
 import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
-import { parseAgent } from '@/lib/models/agents'
 import { agentQuery } from '@/lib/queries/keys/agents'
 import { getAgent } from '@/lib/services/agents'
 import { getUser } from '@/lib/services/users'
@@ -15,7 +14,7 @@ export default async function AgentPage({
   params,
 }: { params: Promise<{ owner: string; repo: string; id: string }> }) {
   const { owner, repo, id } = await params
-  
+
   const [{ user }, headerList, { agent }] = await Promise.all([
     getUser(),
     headers(),

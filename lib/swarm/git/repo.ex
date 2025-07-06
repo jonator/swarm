@@ -20,8 +20,9 @@ defmodule Swarm.Git.Repo do
     Logger.debug("Opening repository: url=#{url}, slug=#{slug}, branch=#{branch}, path=#{path}")
 
     with {:ok, _} <- clone_repo(url, path),
+         {:ok, default_branch} <- get_default_branch(path),
          {:ok, _} <- switch_branch(path, branch) do
-      {:ok, %__MODULE__{url: url, path: path, branch: branch, base_branch: branch}}
+      {:ok, %__MODULE__{url: url, path: path, branch: branch, base_branch: default_branch}}
     else
       {:error, error} ->
         {:error, "Failed to open repository: #{url} #{error}"}
@@ -31,13 +32,15 @@ defmodule Swarm.Git.Repo do
   @doc """
   Closes a git repository and deletes the directory.
   """
-  def close(%__MODULE__{url: url, path: path, branch: branch}) do
-    Logger.debug("Closing repository: url=#{url}, path=#{path}, branch=#{branch}")
+  def close(%__MODULE__{url: url, path: path, branch: branch, base_branch: base_branch}) do
+    Logger.debug(
+      "Closing repository: url=#{url}, path=#{path}, branch=#{branch}, base_branch=#{base_branch}"
+    )
 
     case File.rm_rf(path) do
       {:ok, _} ->
         {:ok,
-         %__MODULE__{url: url, path: path, branch: branch, base_branch: branch, closed: true}}
+         %__MODULE__{url: url, path: path, branch: branch, base_branch: base_branch, closed: true}}
 
       error ->
         error
@@ -167,6 +170,36 @@ defmodule Swarm.Git.Repo do
     case System.cmd("git", ["switch", "-C", branch], cd: path) do
       {output, 0} -> {:ok, output}
       _ -> {:error, "Failed to switch to branch #{branch}"}
+    end
+  end
+
+  defp get_default_branch(path) do
+    case System.cmd("git", ["symbolic-ref", "refs/remotes/origin/HEAD"], cd: path) do
+      {output, 0} ->
+        # Output format: "refs/remotes/origin/main"
+        default_branch =
+          output
+          |> String.trim()
+          |> String.split("/")
+          |> List.last()
+
+        {:ok, default_branch}
+
+      _ ->
+        # Fall back to checking common default branches
+        case System.cmd("git", ["branch", "-r"], cd: path) do
+          {output, 0} ->
+            cond do
+              String.contains?(output, "origin/main") -> {:ok, "main"}
+              String.contains?(output, "origin/master") -> {:ok, "master"}
+              # Default fallback
+              true -> {:ok, "main"}
+            end
+
+          _ ->
+            # Final fallback
+            {:ok, "main"}
+        end
     end
   end
 

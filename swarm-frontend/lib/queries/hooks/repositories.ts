@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  getRepository,
   type GetRepositoriesParams,
+  getRepository,
 } from '../../services/repositories'
 import { repositoriesQuery, repositoryQuery } from '../keys/repositories'
 

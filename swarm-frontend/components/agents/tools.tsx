@@ -1,33 +1,33 @@
 'use client'
 
-import { useState } from 'react'
-import { cn } from '@/lib/utils/shadcn'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { CombinedToolExecution } from '@/lib/models/messages'
+import { cn } from '@/lib/utils/shadcn'
 import {
-  FolderOpen,
-  Search,
-  Plus,
-  Upload,
-  RotateCcw,
-  Eye,
-  Edit3,
   Activity,
-  GitPullRequest,
-  MessageCircle,
-  Check,
-  Save,
-  CheckCircle,
   AlertCircle,
-  RefreshCw,
-  Clock,
   Bot,
+  Check,
+  CheckCircle,
   ChevronDown,
   ChevronUp,
+  Clock,
   Copy,
+  Edit3,
+  Eye,
+  FolderOpen,
+  GitPullRequest,
   type LucideIcon,
+  MessageCircle,
+  Plus,
+  RefreshCw,
+  RotateCcw,
+  Save,
+  Search,
+  Upload,
 } from 'lucide-react'
+import { useState } from 'react'
 
 export type ToolCategory = 'git' | 'github' | 'agent'
 export type ToolStatus = 'success' | 'error' | 'pending' | 'running'

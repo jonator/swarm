@@ -1,19 +1,19 @@
 'use client'
 
+import { useAgent } from '@/lib/queries/hooks/agents'
+import type { AgentStatus, AgentType } from '@/lib/services/agents'
+import { cn } from '@/lib/utils/shadcn'
 import {
   CheckCircle,
   Clock,
-  FileText,
   Code,
+  FileText,
+  type LucideProps,
   Play,
   Search,
   XCircle,
-  type LucideProps,
 } from 'lucide-react'
-import type { AgentStatus, AgentType } from '@/lib/services/agents'
 import type { ForwardRefExoticComponent, RefAttributes } from 'react'
-import { cn } from '@/lib/utils/shadcn'
-import { useAgent } from '@/lib/queries/hooks/agents'
 
 export const statusMap: Record<
   AgentStatus,

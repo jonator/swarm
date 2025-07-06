@@ -78,6 +78,8 @@ defmodule Swarm.Services.GitHub do
     # https://docs.github.com/en/rest/apops/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
     with {200, installations, _} <- Tentacat.App.Installations.list_for_user(client) do
       {:ok, installations}
+    else
+      error -> {:error, format_error(error)}
     end
   end
 
@@ -123,7 +125,7 @@ defmodule Swarm.Services.GitHub do
         {:ok, items}
 
       error ->
-        error
+        {:error, format_error(error)}
     end
   end
 
@@ -139,6 +141,8 @@ defmodule Swarm.Services.GitHub do
     # https://docs.github.com/en/rest/git/trees?apiVersion=2022-11-28#get-a-tree
     with {200, tree, _} <- Tentacat.Trees.find_recursive(owner, repo, branch, client) do
       {:ok, tree}
+    else
+      error -> {:error, format_error(error)}
     end
   end
 
@@ -160,6 +164,8 @@ defmodule Swarm.Services.GitHub do
     # https://docs.github.com/en/rest/repos/repos?apiVersion=2022-11-28#get-a-repository
     with {200, repo_info, _} <- Tentacat.Repositories.repo_get(client, owner, repo) do
       {:ok, repo_info}
+    else
+      error -> {:error, format_error(error)}
     end
   end
 
@@ -177,14 +183,14 @@ defmodule Swarm.Services.GitHub do
             {:ok, decoded_content}
 
           error ->
-            error
+            {:error, "Failed to decode base64 content: #{inspect(error)}"}
         end
 
       {200, %{"content" => content}, _} ->
         {:ok, content}
 
       error ->
-        error
+        {:error, format_error(error)}
     end
   end
 
@@ -210,7 +216,7 @@ defmodule Swarm.Services.GitHub do
         {:ok, body}
 
       error ->
-        error
+        {:error, format_error(error)}
     end
   end
 
@@ -286,7 +292,7 @@ defmodule Swarm.Services.GitHub do
         {:ok, comments}
 
       error ->
-        error
+        {:error, format_error(error)}
     end
   end
 
@@ -307,7 +313,7 @@ defmodule Swarm.Services.GitHub do
         {:ok, comment}
 
       error ->
-        error
+        {:error, format_error(error)}
     end
   end
 
@@ -345,6 +351,8 @@ defmodule Swarm.Services.GitHub do
     # https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
     with {201, %{"number" => number}, _} <- Tentacat.Pulls.create(client, owner, repo, attrs) do
       {:ok, number}
+    else
+      error -> {:error, format_error(error)}
     end
   end
 
@@ -358,7 +366,7 @@ defmodule Swarm.Services.GitHub do
     # https://developer.github.com/v3/reactions/#create-reaction-for-an-issue-comment
     case Tentacat.Issues.Comments.Reactions.create(client, owner, repo, comment_id, body) do
       {201, reaction, _} -> {:ok, reaction}
-      error -> error
+      error -> {:error, format_error(error)}
     end
   end
 
@@ -372,7 +380,7 @@ defmodule Swarm.Services.GitHub do
     # https://developer.github.com/v3/reactions/#create-reaction-for-an-issue
     case Tentacat.Issues.Reactions.create(client, owner, repo, issue_id, body) do
       {201, reaction, _} -> {:ok, reaction}
-      error -> error
+      error -> {:error, format_error(error)}
     end
   end
 
@@ -479,6 +487,38 @@ defmodule Swarm.Services.GitHub do
       {401, %{"message" => message}, _} -> {:unauthorized, "Unauthorized with GitHub: #{message}"}
       {:error, error} -> {:error, "Failed to fetch user from github: #{inspect(error)}"}
       _ -> {:error, "Failed to fetch user from github: unknown error"}
+    end
+  end
+
+  @doc """
+  Formats a GitHub API error response into a readable error message.
+
+  ## Examples
+
+      iex> format_error({422, %{"message" => "Validation Failed", "errors" => [%{"message" => "Head sha can't be blank"}]}, %{}})
+      "Validation Failed: Head sha can't be blank"
+
+      iex> format_error({404, %{"message" => "Not Found"}, %{}})
+      "Not Found"
+
+      iex> format_error({:error, "Network timeout"})
+      "Network timeout"
+  """
+  def format_error(error) do
+    case error do
+      {_status_code, %{"message" => message, "errors" => errors}, _} ->
+        error_details =
+          Enum.map_join(errors, "; ", fn error ->
+            Map.get(error, "message", "Unknown error")
+          end)
+
+        "#{message}: #{error_details}"
+
+      {_status_code, %{"message" => message}, _} ->
+        message
+
+      _ ->
+        "#{inspect(error)}"
     end
   end
 end

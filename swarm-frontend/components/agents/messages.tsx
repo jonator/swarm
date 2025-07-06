@@ -2,9 +2,9 @@
 
 import { useAgentChannel } from '@/hooks/use-agent-channel'
 import type { MessageContent } from '@/hooks/use-agent-channel'
-import { processMessages, type ProcessedMessage } from '@/lib/models/messages'
+import { type ProcessedMessage, processMessages } from '@/lib/models/messages'
 import { cn } from '@/lib/utils/shadcn'
-import { Zap, Bot, User, RefreshCw, MessageSquare } from 'lucide-react'
+import { Bot, MessageSquare, RefreshCw, User, Zap } from 'lucide-react'
 import { CombinedToolExecutionDisplay } from './tools'
 
 interface AgentMessagesProps {

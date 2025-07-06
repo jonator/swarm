@@ -35,6 +35,7 @@ defmodule Swarm.Tools.GitHub do
       function: fn %{"title" => title, "body" => body},
                    %{"git_repo" => git_repo, "repository" => repository, "organization" => org} ->
         name = Map.get(repository, :name)
+        owner = Map.get(repository, :owner)
 
         attrs = %{
           "title" => title,
@@ -44,8 +45,12 @@ defmodule Swarm.Tools.GitHub do
         }
 
         case GitHub.create_pull(org, name, attrs) do
-          {:ok, pr_number} -> {:ok, %{pr_number: pr_number}}
-          error -> error
+          {:ok, pr_number} ->
+            {:ok,
+             "Created pull request ##{pr_number}: https://github.com/#{owner}/#{name}/pull/#{pr_number}"}
+
+          {:error, error_message} ->
+            {:error, error_message}
         end
       end
     })

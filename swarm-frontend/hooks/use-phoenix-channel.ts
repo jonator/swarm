@@ -1,13 +1,13 @@
-import {
-  useEffect,
-  useReducer,
-  useState,
-  type Reducer,
-  type ActionDispatch,
-} from 'react'
 import { useSocket } from '@/context/socket'
 import { useTemporaryToken } from '@/lib/queries/hooks/token'
 import type { Socket } from 'phoenix'
+import {
+  type ActionDispatch,
+  type Reducer,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react'
 
 function mustJoinChannelWarning() {
   return () =>

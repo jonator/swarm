@@ -1,15 +1,15 @@
 import { getQueryClient } from '@/config/tanstack-query'
+import { SocketProvider } from '@/context/socket'
 import {
   repositoriesQuery,
   repositoryQuery,
 } from '@/lib/queries/keys/repositories'
+import { temporaryTokenQuery } from '@/lib/queries/keys/token'
 import { usersQuery } from '@/lib/queries/keys/users'
 import { getRepositories } from '@/lib/services/repositories'
-import { getUser } from '@/lib/services/users'
 import { temporaryToken } from '@/lib/services/token'
+import { getUser } from '@/lib/services/users'
 import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
-import { temporaryTokenQuery } from '@/lib/queries/keys/token'
-import { SocketProvider } from '@/context/socket'
 
 export default async function DashboardLayout({
   children,

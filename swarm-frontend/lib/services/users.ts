@@ -1,7 +1,7 @@
 'use server'
 
-import { apiClientWithAuth, authGuard } from '@/lib/client/authed'
 import crypto from 'node:crypto'
+import { apiClientWithAuth, authGuard } from '@/lib/client/authed'
 
 export type User = {
   id: number

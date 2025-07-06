@@ -1,11 +1,11 @@
+import { utc } from '@date-fns/utc'
+import { parseISO } from 'date-fns'
 import type {
   AgentSource,
   AgentStatus,
   AgentType,
   ResponseAgent,
 } from '../services/agents'
-import { parseISO } from 'date-fns'
-import { utc } from '@date-fns/utc'
 
 export type Agent = {
   id: string

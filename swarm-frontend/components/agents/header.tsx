@@ -1,21 +1,21 @@
 'use client'
 
+import { LinearLogo } from '@/components/linear-logo'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { LinearLogo } from '@/components/linear-logo'
-import { StatusBadge, TypeBadge } from './status'
-import { useUser } from '@/lib/queries/hooks/users'
 import { useAgent } from '@/lib/queries/hooks/agents'
+import { useUser } from '@/lib/queries/hooks/users'
 import { cn } from '@/lib/utils/shadcn'
 import {
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Github,
   MessageSquare,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react'
 import Link from 'next/link'
 import { useState } from 'react'
+import { StatusBadge, TypeBadge } from './status'
 import { AgentCreatedTime, AgentDuration } from './time'
 
 export function AgentHeader({
@@ -31,7 +31,7 @@ export function AgentHeader({
   // Early return if agent is not loaded yet
   if (!agent) {
     return (
-      <header className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+      <header className='p-6'>
         <div className='space-y-4'>
           <Skeleton className='h-4 w-1/4' />
           <Skeleton className='h-8 w-1/2' />
@@ -44,7 +44,7 @@ export function AgentHeader({
   // Time helpers - now using extracted components
 
   return (
-    <header className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+    <header className='p-6'>
       {/* Top Row - Status & Actions */}
       <div className='flex items-center justify-between mb-4'>
         <div className='flex items-center gap-2'>
