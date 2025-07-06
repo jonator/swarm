@@ -98,7 +98,7 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
   console.log('state', state)
 
   return (
-    <div className='space-y-3'>
+    <div className='space-y-3 p-4'>
       {state.messages.map((message, messageIndex) => {
         const textContent = extractTextContent(message.content)
 
