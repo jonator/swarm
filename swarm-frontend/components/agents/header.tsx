@@ -6,21 +6,16 @@ import { StatusBadge, TypeBadge } from './status'
 import { useUser } from '@/lib/queries/hooks/users'
 import { cn } from '@/lib/utils/shadcn'
 import {
-  Calendar,
-  Clock,
   ExternalLink,
   Github,
   MessageSquare,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react'
-import { formatDistanceStrict, formatDistanceToNowStrict } from 'date-fns'
-import { format, toZonedTime } from 'date-fns-tz'
 import Link from 'next/link'
-import { ClientOnly } from '@/components/client-only'
-import { useIntervalTimer } from '@/hooks/use-interval-timer'
 import type { Agent } from '@/lib/models/agents'
 import { useState } from 'react'
+import { AgentCreatedTime, AgentDuration } from './time'
 
 export function AgentHeader({
   agent,
@@ -31,27 +26,7 @@ export function AgentHeader({
   const isActive = agent.status === 'running'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
-  // Time helpers
-  const createdAtZoned = toZonedTime(agent.created_at, timeZone)
-  const createdAgo = formatDistanceToNowStrict(createdAtZoned, {
-    addSuffix: true,
-  })
-  const startedAtZoned = agent.started_at
-    ? toZonedTime(agent.started_at, timeZone)
-    : undefined
-  const completedAtZoned = agent.completed_at
-    ? toZonedTime(agent.completed_at, timeZone)
-    : undefined
-  const currentNow = useIntervalTimer(now, isActive, 1000)
-  let durationLabel: string | null = null
-  let durationTitle = ''
-  if (isActive && agent.started_at) {
-    durationLabel = `Running for ${formatDistanceStrict(currentNow, agent.started_at)}`
-    durationTitle = `Started at: ${format(startedAtZoned!, 'PPpp', { timeZone })}`
-  } else if (agent.completed_at && agent.started_at) {
-    durationLabel = `Completed in ${formatDistanceStrict(agent.completed_at, agent.started_at)}`
-    durationTitle = `Started: ${format(startedAtZoned!, 'PPpp', { timeZone })}\nCompleted: ${format(completedAtZoned!, 'PPpp', { timeZone })}`
-  }
+  // Time helpers - now using extracted components
 
   return (
     <header className='bg-card border border-border rounded-lg p-6 shadow-sm'>
@@ -86,24 +61,19 @@ export function AgentHeader({
 
       {/* Metadata Row */}
       <div className='flex items-center gap-4 text-xs text-muted-foreground mb-4 flex-wrap'>
-        <ClientOnly>
-          <div
-            className='flex items-center gap-1.5'
-            title={format(createdAtZoned, 'PPpp', { timeZone })}
-          >
-            <Calendar className='h-4 w-4' />
-            Created {createdAgo}
-          </div>
-        </ClientOnly>
+        <AgentCreatedTime
+          createdAt={agent.created_at}
+          timeZone={timeZone}
+          now={now}
+        />
 
-        {durationLabel && (
-          <ClientOnly>
-            <div className='flex items-center gap-1.5' title={durationTitle}>
-              <Clock className='h-4 w-4' />
-              {durationLabel}
-            </div>
-          </ClientOnly>
-        )}
+        <AgentDuration
+          isActive={isActive}
+          startedAt={agent.started_at}
+          completedAt={agent.completed_at}
+          now={now}
+          timeZone={timeZone}
+        />
 
         {agent.external_ids?.github_pr_id && (
           <Link
@@ -123,12 +93,13 @@ export function AgentHeader({
             href={agent.external_ids.linear_issue_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs font-mono hover:bg-muted/80 transition-colors duration-200'
+            className='inline-flex items-center gap-1 text-primary transition-colors duration-150 hover:text-primary/80 hover:underline focus:outline-none'
+            aria-label='View Linear Issue'
           >
-            <LinearLogo className='h-3 w-3' />
+            <LinearLogo className='h-4 w-4' />
             {agent.external_ids.linear_issue_identifier ||
               agent.external_ids.linear_issue_id}
-            <ExternalLink className='h-3 w-3' />
+            <ExternalLink className='ml-0.5 h-3 w-3' />
           </Link>
         )}
 
