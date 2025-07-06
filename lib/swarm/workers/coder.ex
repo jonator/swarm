@@ -179,7 +179,7 @@ defmodule Swarm.Workers.Coder do
         "git_repo_index" => git_repo_index,
         "repository" => repository,
         "organization" => organization,
-        "external_ids" => agent.external_ids
+        "agent" => agent
       },
       verbose: false
       #  verbose: Logger.level() == :debug

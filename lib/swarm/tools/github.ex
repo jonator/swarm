@@ -33,10 +33,12 @@ defmodule Swarm.Tools.GitHub do
         })
       ],
       function: fn %{"title" => title, "body" => body},
-                   %{"git_repo" => git_repo, "repository" => repository, "organization" => org} ->
-        name = Map.get(repository, :name)
-        owner = Map.get(repository, :owner)
-
+                   %{
+                     "git_repo" => git_repo,
+                     "repository" => repository,
+                     "organization" => org,
+                     "agent" => agent
+                   } ->
         attrs = %{
           "title" => title,
           "body" => body,
@@ -44,10 +46,16 @@ defmodule Swarm.Tools.GitHub do
           "base" => git_repo.base_branch
         }
 
-        case GitHub.create_pull(org, name, attrs) do
-          {:ok, pr_number} ->
-            {:ok,
-             "Created pull request ##{pr_number}: https://github.com/#{owner}/#{name}/pull/#{pr_number}"}
+        case GitHub.create_pull(org, repository.name, attrs) do
+          {:ok, %{id: pr_id, number: pr_number, html_url: url}} ->
+            Swarm.Agents.update_agent(agent, %{
+              external_ids:
+                Map.put(agent.external_ids, "github_pull_request_id", pr_id)
+                |> Map.put("github_pull_request_url", url)
+                |> Map.put("github_pull_request_number", pr_number)
+            })
+
+            {:ok, "Created pull request ##{pr_number}"}
 
           {:error, error_message} ->
             {:error, error_message}
@@ -61,7 +69,8 @@ defmodule Swarm.Tools.GitHub do
       name: "acknowledge",
       description: "Acknowledges a GitHub issue or comment with an emoji reaction.",
       parameters: [],
-      function: fn _args, %{"external_ids" => external_ids, "repository" => repository} ->
+      function: fn _args,
+                   %{"agent" => %{:external_ids => external_ids}, "repository" => repository} ->
         repository = Swarm.Repo.preload(repository, :organization)
 
         case external_ids do
@@ -105,7 +114,7 @@ defmodule Swarm.Tools.GitHub do
         })
       ],
       function: fn %{"message" => message},
-                   %{"external_ids" => external_ids, "repository" => repository} ->
+                   %{"agent" => %{:external_ids => external_ids}, "repository" => repository} ->
         repository = Swarm.Repo.preload(repository, :organization)
 
         case external_ids do

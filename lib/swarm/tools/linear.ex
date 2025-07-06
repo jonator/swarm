@@ -15,7 +15,7 @@ defmodule Swarm.Tools.Linear do
       name: "acknowledge",
       description: "Acknowledges a Linear issue or comment with an emoji reaction.",
       parameters: [],
-      function: fn _args, %{"external_ids" => external_ids} ->
+      function: fn _args, %{"agent" => %{:external_ids => external_ids}} ->
         case external_ids do
           %{
             "linear_issue_id" => _issue_id,
@@ -54,7 +54,7 @@ defmodule Swarm.Tools.Linear do
           required: true
         })
       ],
-      function: fn %{"message" => message}, %{"external_ids" => external_ids} ->
+      function: fn %{"message" => message}, %{"agent" => %{:external_ids => external_ids}} ->
         case external_ids do
           %{
             "linear_issue_id" => issue_id,
@@ -94,7 +94,7 @@ defmodule Swarm.Tools.Linear do
           required: true
         })
       ],
-      function: fn %{"message" => message}, %{"external_ids" => external_ids} ->
+      function: fn %{"message" => message}, %{"agent" => %{:external_ids => external_ids}} ->
         case external_ids do
           %{"linear_comment_id" => comment_id, "linear_app_user_id" => app_user_id} ->
             case Linear.mutate_comment(app_user_id, comment_id, message) do
@@ -128,7 +128,8 @@ defmodule Swarm.Tools.Linear do
           required: true
         })
       ],
-      function: fn %{"description" => description}, %{"external_ids" => external_ids} ->
+      function: fn %{"description" => description},
+                   %{"agent" => %{:external_ids => external_ids}} ->
         case external_ids do
           %{"linear_issue_id" => issue_id, "linear_app_user_id" => app_user_id} ->
             case Linear.update_issue_description(app_user_id, issue_id, description) do

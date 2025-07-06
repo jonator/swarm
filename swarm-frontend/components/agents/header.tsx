@@ -90,15 +90,15 @@ export function AgentHeader({
           timeZone={timeZone}
         />
 
-        {agent.external_ids?.github_pr_id && (
+        {agent.external_ids?.github_pull_request_url && (
           <Link
-            href={`https://github.com/pr/${agent.external_ids.github_pr_id}`}
+            href={agent.external_ids.github_pull_request_url}
             target='_blank'
             rel='noopener noreferrer'
-            className='inline-flex items-center gap-1 px-2 py-1 bg-muted rounded text-xs font-mono hover:bg-muted/80 transition-colors duration-200'
+            className='inline-flex items-center gap-1 text-primary transition-colors duration-150 hover:text-primary/80 hover:underline focus:outline-none'
           >
             <Github className='h-3 w-3' />
-            PR #{agent.external_ids.github_pr_id}
+            PR #{agent.external_ids.github_pull_request_number}
             <ExternalLink className='h-3 w-3' />
           </Link>
         )}

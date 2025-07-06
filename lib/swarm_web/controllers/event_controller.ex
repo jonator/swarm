@@ -13,6 +13,17 @@ defmodule SwarmWeb.EventController do
     headers = Enum.into(conn.req_headers, %{})
     remote_ip = :inet_parse.ntoa(conn.remote_ip) |> to_string()
 
+    # Write event data to tmp directory for debugging
+    tmp_dir = Path.join(System.tmp_dir!(), "swarm_events")
+    File.mkdir_p!(tmp_dir)
+
+    timestamp = DateTime.utc_now() |> DateTime.to_iso8601() |> String.replace(":", "-")
+    filename = "#{source}_#{timestamp}.json"
+    filepath = Path.join(tmp_dir, filename)
+
+    File.write!(filepath, Jason.encode!(event_data, pretty: true))
+    Logger.info("Event data written to: #{filepath}")
+
     case Verify.verify(raw_body, event_data, headers, remote_ip, source) do
       :ok ->
         case Swarm.Ingress.process_event(event_data, source) do

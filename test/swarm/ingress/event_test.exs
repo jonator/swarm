@@ -277,6 +277,24 @@ defmodule Swarm.Ingress.EventTest do
 
       assert {:error, "Unknown GitHub event type"} = Event.new(event_data, :github)
     end
+
+    test "creates event from GitHub pull request description updated with mention" do
+      event_data = GitHubEventsFixtures.github_pull_request_description_updated_mentioned_event()
+
+      assert {:ok, event} = Event.new(event_data, :github)
+
+      assert event.source == :github
+      assert event.type == "pull_request"
+      assert event.repository_external_id == "github:958906859"
+      assert event.external_ids["github_pull_request_id"] == 2_644_991_950
+      assert event.external_ids["github_pull_request_number"] == 12
+
+      assert event.external_ids["github_pull_request_url"] ==
+               "https://github.com/jonator/swarm/pull/12"
+
+      assert event.external_ids["github_sender_login"] == "jonator"
+      assert event.external_ids["github_repository_id"] == 958_906_859
+    end
   end
 
   describe "new/3 with Slack events" do

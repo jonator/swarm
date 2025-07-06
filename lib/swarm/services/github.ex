@@ -349,8 +349,9 @@ defmodule Swarm.Services.GitHub do
 
   def create_pull(%__MODULE__{client: client}, owner, repo, attrs) do
     # https://docs.github.com/en/rest/pulls/pulls?apiVersion=2022-11-28#create-a-pull-request
-    with {201, %{"number" => number}, _} <- Tentacat.Pulls.create(client, owner, repo, attrs) do
-      {:ok, number}
+    with {201, %{"id" => id, "number" => number, "html_url" => html_url}, _} <-
+           Tentacat.Pulls.create(client, owner, repo, attrs) do
+      {:ok, %{id: id, number: number, html_url: html_url}}
     else
       error -> {:error, format_error(error)}
     end

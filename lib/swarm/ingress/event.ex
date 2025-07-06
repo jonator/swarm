@@ -34,6 +34,7 @@ defmodule Swarm.Ingress.Event do
   ## Returns
     - `{:ok, %Event{}}` - Successfully created event
     - `{:error, reason}` - Failed to create event
+    - `{:ok, :ignored}` - Event was valid but ignored (e.g., not relevant)
   """
   def new(event_data, source, opts \\ []) when is_atom(source) do
     with {:ok, type} <- extract_event_type(event_data, source),
@@ -65,15 +66,15 @@ defmodule Swarm.Ingress.Event do
       data["issue"] -> {:ok, "issue"}
       data["push"] -> {:ok, "push"}
       data["repository"] -> {:ok, "repository"}
-      true -> {:error, "Unknown GitHub event type"}
+      true -> {:ok, :ignored}
     end
   end
 
   defp extract_event_type(data, :linear) do
     case data["action"] do
-      nil -> {:error, "Missing action field in Linear event"}
+      nil -> {:ok, :ignored}
       action when is_binary(action) -> {:ok, action}
-      _ -> {:error, "Invalid action field in Linear event"}
+      _ -> {:ok, :ignored}
     end
   end
 
@@ -86,7 +87,7 @@ defmodule Swarm.Ingress.Event do
         {:ok, "direct_message"}
 
       true ->
-        {:error, "Unknown Slack event type"}
+        {:ok, :ignored}
     end
   end
 
@@ -133,6 +134,8 @@ defmodule Swarm.Ingress.Event do
     |> extract_github_repository_id(data)
     |> extract_github_sender_login(data)
     |> extract_github_pull_request_id(data)
+    |> extract_github_pull_request_number(data)
+    |> extract_github_pull_request_url(data)
     |> extract_github_issue_id(data)
     |> extract_github_issue_number(data)
     |> extract_github_issue_url(data)
@@ -195,6 +198,22 @@ defmodule Swarm.Ingress.Event do
   defp extract_github_pull_request_id(external_ids, data) do
     if data["pull_request"] do
       Map.put(external_ids, "github_pull_request_id", data["pull_request"]["id"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_pull_request_number(external_ids, data) do
+    if data["pull_request"] do
+      Map.put(external_ids, "github_pull_request_number", data["pull_request"]["number"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_github_pull_request_url(external_ids, data) do
+    if data["pull_request"] do
+      Map.put(external_ids, "github_pull_request_url", data["pull_request"]["html_url"])
     else
       external_ids
     end
