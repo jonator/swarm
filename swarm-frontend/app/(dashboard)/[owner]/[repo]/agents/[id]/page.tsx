@@ -48,7 +48,7 @@ export default async function AgentPage({
       />
 
       <main className='dashboard-container'>
-        <AgentHeader agent={parseAgent(agent)} now={now} timeZone={timeZone} />
+        <AgentHeader agentId={id} now={now} timeZone={timeZone} />
         <AgentMessages agentId={id} />
       </main>
     </HydrationBoundary>

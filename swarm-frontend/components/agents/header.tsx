@@ -1,9 +1,11 @@
 'use client'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { LinearLogo } from '@/components/linear-logo'
 import { StatusBadge, TypeBadge } from './status'
 import { useUser } from '@/lib/queries/hooks/users'
+import { useAgent } from '@/lib/queries/hooks/agents'
 import { cn } from '@/lib/utils/shadcn'
 import {
   ExternalLink,
@@ -13,18 +15,31 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import Link from 'next/link'
-import type { Agent } from '@/lib/models/agents'
 import { useState } from 'react'
 import { AgentCreatedTime, AgentDuration } from './time'
 
 export function AgentHeader({
-  agent,
+  agentId,
   now,
   timeZone,
-}: { agent: Agent; now: Date; timeZone: string }) {
-  const { data: user } = useUser(agent.user_id)
-  const isActive = agent.status === 'running'
+}: { agentId: string; now: Date; timeZone: string }) {
+  const { data: agent } = useAgent(agentId)
+  const { data: user } = useUser(agent?.user_id)
+  const isActive = agent?.status === 'running'
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
+
+  // Early return if agent is not loaded yet
+  if (!agent) {
+    return (
+      <header className='bg-card border border-border rounded-lg p-6 shadow-sm'>
+        <div className='space-y-4'>
+          <Skeleton className='h-4 w-1/4' />
+          <Skeleton className='h-8 w-1/2' />
+          <Skeleton className='h-4 w-3/4' />
+        </div>
+      </header>
+    )
+  }
 
   // Time helpers - now using extracted components
 
