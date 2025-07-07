@@ -119,19 +119,6 @@ export function AgentCard({
             </span>
           )}
           {/* External Links */}
-          {agent.external_ids?.github_pr_id && (
-            <Link
-              href={`https://github.com/pr/${agent.external_ids.github_pr_id}`}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='inline-flex items-center gap-1 text-primary transition-colors duration-150 hover:text-primary/80 hover:underline focus:outline-none'
-              aria-label='View GitHub PR'
-            >
-              <Github className='h-4 w-4 text-muted-foreground' /> PR #
-              {agent.external_ids.github_pr_id}
-              <ExternalLink className='ml-0.5 h-3 w-3' />
-            </Link>
-          )}
           {agent.external_ids?.linear_issue_url && (
             <Link
               href={agent.external_ids.linear_issue_url}
@@ -143,6 +130,20 @@ export function AgentCard({
               <LinearLogo className='h-4 w-4' />
               {agent.external_ids.linear_issue_identifier ||
                 agent.external_ids.linear_issue_id}
+              <ExternalLink className='ml-0.5 h-3 w-3' />
+            </Link>
+          )}
+          {/* GitHub PR Link (new, after Linear Issue) */}
+          {agent.external_ids?.github_pull_request_url && (
+            <Link
+              href={agent.external_ids.github_pull_request_url}
+              target='_blank'
+              rel='noopener noreferrer'
+              className='inline-flex items-center gap-1 text-primary transition-colors duration-150 hover:text-primary/80 hover:underline focus:outline-none'
+              aria-label='View GitHub PR'
+            >
+              <Github className='h-4 w-4 text-muted-foreground' /> PR #
+              {agent.external_ids.github_pull_request_number}
               <ExternalLink className='ml-0.5 h-3 w-3' />
             </Link>
           )}
