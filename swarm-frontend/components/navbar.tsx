@@ -79,8 +79,8 @@ export default function Navbar({
   }, [repositories])
 
   return (
-    <header className='fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 px-4 pt-4'>
-      <div className='flex items-center justify-between mb-3'>
+    <header className='fixed h-navbar top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50 flex flex-col'>
+      <div className='flex items-center justify-between flex-1 px-4 pt-2'>
         {/* Logo */}
         <div className='flex items-center gap-2'>
           <Link href='/home'>
@@ -111,24 +111,26 @@ export default function Navbar({
         </div>
       </div>
 
-      {/* Tabs */}
-      <NavigationMenu>
-        <NavigationMenuList>
-          {tabs.map((tab) => (
-            <NavigationMenuItem key={tab.href}>
-              <NavigationMenuLink
-                className={navigationMenuTriggerStyle()}
-                asChild
-              >
-                <Link data-active={tab.active} href={tab.href}>
-                  {tab.label}
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-          ))}
-          <NavigationMenuIndicator />
-        </NavigationMenuList>
-      </NavigationMenu>
+      {/* Tabs - aligned to bottom */}
+      <div className='px-4'>
+        <NavigationMenu>
+          <NavigationMenuList>
+            {tabs.map((tab) => (
+              <NavigationMenuItem key={tab.href}>
+                <NavigationMenuLink
+                  className={navigationMenuTriggerStyle()}
+                  asChild
+                >
+                  <Link data-active={tab.active} href={tab.href}>
+                    {tab.label}
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            ))}
+            <NavigationMenuIndicator />
+          </NavigationMenuList>
+        </NavigationMenu>
+      </div>
     </header>
   )
 }

@@ -2,14 +2,13 @@
 
 import { useAgentChannel } from '@/hooks/use-agent-channel'
 import type { MessageContent } from '@/hooks/use-agent-channel'
-import { type ProcessedMessage, processMessages } from '@/lib/models/messages'
+import type { ProcessedMessage } from '@/lib/models/messages'
 import { cn } from '@/lib/utils/shadcn'
 import { Bot, MessageSquare, RefreshCw, User, Zap } from 'lucide-react'
 import { CombinedToolExecutionDisplay } from './tools'
-
-interface AgentMessagesProps {
-  agentId: string
-}
+import { motion } from 'motion/react'
+import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
+import { useEffect } from 'react'
 
 // Helper function to extract text content from message content (string or array)
 function extractTextContent(content: string | MessageContent[]): string {
@@ -90,15 +89,28 @@ function MessageRoleDisplay({ role }: { role: string }) {
   )
 }
 
-export function AgentMessages({ agentId }: AgentMessagesProps) {
-  const { state } = useAgentChannel(agentId)
+interface AgentMessagesProps {
+  agentId: string
+}
 
-  // Process messages to combine tool calls and results
-  const processedMessages = processMessages(state.messages)
+export function AgentMessages({ agentId }: AgentMessagesProps) {
+  const { messages, state } = useAgentChannel(agentId)
+  const {
+    endRef,
+    isAtBottom,
+    scrollToBottom,
+    onViewportEnter,
+    onViewportLeave,
+  } = useScrollToBottom()
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to scroll to bottom when the user is at the bottom when there are new messages
+  useEffect(() => {
+    if (isAtBottom) scrollToBottom()
+  }, [messages, isAtBottom, scrollToBottom])
 
   return (
     <div className='space-y-4 p-4'>
-      {processedMessages.map((message, messageIndex) => {
+      {messages.map((message, messageIndex) => {
         const textContent = extractTextContent(message.raw_content)
 
         return (
@@ -164,7 +176,7 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
         </div>
       )}
 
-      {processedMessages.length === 0 && !state.lastPartialMessage && (
+      {messages.length === 0 && !state.lastPartialMessage && (
         <div className='text-center py-12'>
           <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/30 mb-4'>
             <MessageSquare className='h-8 w-8 text-muted-foreground' />
@@ -177,6 +189,13 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
           </p>
         </div>
       )}
+
+      <motion.div
+        ref={endRef}
+        className='shrink-0 min-w-[24px] min-h-[24px]'
+        onViewportLeave={onViewportLeave}
+        onViewportEnter={onViewportEnter}
+      />
     </div>
   )
 }

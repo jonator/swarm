@@ -46,9 +46,11 @@ export default async function AgentPage({
         breadcrumb={<AgentBreadcrumb id={id} />}
       />
 
-      <main className='dashboard-container'>
-        <AgentHeader agentId={id} now={now} timeZone={timeZone} />
-        <AgentMessages agentId={id} />
+      <main className='pt-navbar h-screen'>
+        <section className='container mx-auto flex flex-col gap-4'>
+          <AgentHeader agentId={id} now={now} timeZone={timeZone} />
+          <AgentMessages agentId={id} />
+        </section>
       </main>
     </HydrationBoundary>
   )

@@ -1,5 +1,6 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { usePhoenixChannel } from './use-phoenix-channel'
+import { processMessages } from '@/lib/models/messages'
 
 // Types for message content
 export type MessageContent = {
@@ -163,8 +164,14 @@ export function useAgentChannel(agentId: string, fetchInitialMessages = true) {
     }
   }, [isJoined, broadcast, fetchInitialMessages])
 
+  const messages = useMemo(
+    () => processMessages(state.messages),
+    [state.messages],
+  )
+
   return {
     state,
+    messages,
     sendMessage,
     broadcast,
   }
