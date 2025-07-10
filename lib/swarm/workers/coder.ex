@@ -68,9 +68,7 @@ defmodule Swarm.Workers.Coder do
   defp implement_changes_in_repository(%Agent{context: context, repository: repository} = agent) do
     with {:ok, branch_name} <- get_branch_name(agent),
          {:ok, git_repo} <- clone_repository(agent, branch_name),
-         {:ok, index} <- create_repository_index(git_repo),
-         {:ok, implementation_result} <-
-           implement_changes(agent, git_repo, index, repository, context) do
+         {:ok, implementation_result} <- implement_changes(agent, git_repo, repository, context) do
       Logger.info("Code implementation completed for agent #{agent.id}")
       {:ok, %{branch: branch_name, changes: implementation_result}}
     else
@@ -130,21 +128,7 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp create_repository_index(repo) do
-    Logger.debug("Creating repository index for: #{repo.path}")
-
-    case Git.Index.from(repo) do
-      {:ok, index} ->
-        Logger.debug("Successfully created repository index")
-        {:ok, index}
-
-      {:error, reason} ->
-        Logger.error("Failed to create repository index: #{inspect(reason)}")
-        {:error, reason}
-    end
-  end
-
-  defp implement_changes(agent, git_repo, git_repo_index, repository, instructions) do
+  defp implement_changes(agent, git_repo, repository, instructions) do
     Logger.debug("Implementing changes")
 
     # Note: finished tool is used so this agent can handle creating pull requests as needed in response to issues or code reviews
@@ -176,7 +160,6 @@ defmodule Swarm.Workers.Coder do
       temperature: 0.7,
       custom_context: %{
         "git_repo" => git_repo,
-        "git_repo_index" => git_repo_index,
         "repository" => repository,
         "organization" => organization,
         "agent" => agent
@@ -186,6 +169,6 @@ defmodule Swarm.Workers.Coder do
     )
     |> LLMChain.add_messages(messages)
     |> LLMChain.add_tools(tools)
-    |> SharedLLMChain.run_until_finished("finished")
+    |> SharedLLMChain.run_until_finished()
   end
 end

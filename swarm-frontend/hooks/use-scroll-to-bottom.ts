@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useLayoutEffect, useCallback, useState } from 'react'
 
 type ScrollFlag = ScrollBehavior | false
 
@@ -6,10 +6,12 @@ export function useScrollToBottom() {
   const containerRef = useRef<HTMLDivElement>(null)
   const endRef = useRef<HTMLDivElement>(null)
 
-  const [isAtBottom, setIsAtBottom] = useState(false)
+  // Initialize as true so first messages auto-scroll
+  const [isAtBottom, setIsAtBottom] = useState(true)
   const [scrollBehavior, setScrollBehavior] = useState<ScrollFlag>(false)
 
-  useEffect(() => {
+  // Use useLayoutEffect for better timing with DOM updates
+  useLayoutEffect(() => {
     if (scrollBehavior) {
       endRef.current?.scrollIntoView({ behavior: scrollBehavior })
       setScrollBehavior(false)
@@ -23,13 +25,13 @@ export function useScrollToBottom() {
     [],
   )
 
-  function onViewportEnter() {
+  const onViewportEnter = useCallback(() => {
     setIsAtBottom(true)
-  }
+  }, [])
 
-  function onViewportLeave() {
+  const onViewportLeave = useCallback(() => {
     setIsAtBottom(false)
-  }
+  }, [])
 
   return {
     containerRef,

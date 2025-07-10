@@ -53,9 +53,9 @@ defmodule Swarm.Git.Repo do
   def status(%__MODULE__{path: path}) do
     Logger.debug("Getting repository status: path=#{path}")
 
-    case System.cmd("git", ["status"], cd: path) do
+    case System.cmd("git", ["status"], cd: path, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to get status"}
+      {error, _} -> {:error, "Failed to get status: #{error}"}
     end
   end
 
@@ -65,7 +65,7 @@ defmodule Swarm.Git.Repo do
   def list_files(%__MODULE__{path: path}) do
     Logger.debug("Listing repository files: path=#{path}")
 
-    case System.cmd("git", ["ls-files"], cd: path) do
+    case System.cmd("git", ["ls-files"], cd: path, stderr_to_stdout: true) do
       {output, 0} ->
         file_list = String.split(output, "\n", trim: true)
         {:ok, file_list}
@@ -101,9 +101,12 @@ defmodule Swarm.Git.Repo do
   def rename_file(%__MODULE__{path: path}, old_file, new_file) do
     Logger.debug("Renaming file: path=#{path}, old_file=#{old_file}, new_file=#{new_file}")
 
-    case System.cmd("git", ["mv", "--quiet", old_file, new_file], cd: path) do
+    case System.cmd("git", ["mv", "--quiet", old_file, new_file],
+           cd: path,
+           stderr_to_stdout: true
+         ) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to rename file from #{old_file} to #{new_file}"}
+      {error, _} -> {:error, "Failed to rename file from #{old_file} to #{new_file}: #{error}"}
     end
   end
 
@@ -113,9 +116,9 @@ defmodule Swarm.Git.Repo do
   def add_file(%__MODULE__{path: path}, file) do
     Logger.debug("Adding file: path=#{path}, file=#{file}")
 
-    case System.cmd("git", ["add", file], cd: path) do
+    case System.cmd("git", ["add", file], cd: path, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to add file #{file}"}
+      {error, _} -> {:error, "Failed to add file #{file}: #{error}"}
     end
   end
 
@@ -125,9 +128,9 @@ defmodule Swarm.Git.Repo do
   def add_all_files(%__MODULE__{path: path}) do
     Logger.debug("Adding all files: path=#{path}")
 
-    case System.cmd("git", ["add", "."], cd: path) do
+    case System.cmd("git", ["add", "."], cd: path, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to add all files"}
+      {error, _} -> {:error, "Failed to add all files: #{error}"}
     end
   end
 
@@ -137,9 +140,9 @@ defmodule Swarm.Git.Repo do
   def commit(%__MODULE__{path: path}, message) do
     Logger.debug("Committing changes: path=#{path}, message=#{message}")
 
-    case System.cmd("git", ["commit", "-m", message], cd: path) do
+    case System.cmd("git", ["commit", "-m", message], cd: path, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to commit changes with message: #{message}"}
+      {error, _} -> {:error, "Failed to commit changes with message: #{message}: #{error}"}
     end
   end
 
@@ -149,9 +152,58 @@ defmodule Swarm.Git.Repo do
   def push_origin(%__MODULE__{path: path, branch: branch}) do
     Logger.debug("Pushing to origin: path=#{path}, branch=#{branch}")
 
-    case System.cmd("git", ["push", "--set-upstream", "origin", branch], cd: path) do
+    case System.cmd("git", ["push", "--set-upstream", "origin", branch],
+           cd: path,
+           stderr_to_stdout: true
+         ) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to push to origin"}
+      {error, _} -> {:error, "Failed to push to origin: #{error}"}
+    end
+  end
+
+  @doc """
+  Searches the repository files for matching content using a string term or regex expression.
+  See: https://github.com/BurntSushi/ripgrep
+  Now supports include_patterns and exclude_patterns as lists of globs.
+  """
+  def search(%__MODULE__{path: path}, args) do
+    Logger.debug("Searching files: path=#{path}, args=#{inspect(args)}")
+
+    # Add the path as the final argument for rg
+    args_with_path = args ++ ["."]
+
+    case Rambo.run("rg", args_with_path, cd: path, timeout: 10_000) do
+      {:ok, %{status: 0, out: output, err: ""}} -> {:ok, output}
+      {:error, %{status: _, out: _, err: error}} -> {:error, "Failed to search files: #{error}"}
+      error -> {:error, "Failed to search files: #{inspect(error)}"}
+    end
+  end
+
+  @doc """
+  Analyzes the codebase symbols and generate a report using the aid command.
+  See: https://github.com/janreges/ai-distiller
+  Args should be a list of command-line arguments to pass to aid.
+  """
+  def symbolic_analysis(%__MODULE__{path: path}, args) do
+    Logger.debug("Analyzing codebase: path=#{path}, args=#{inspect(args)}")
+
+    cond do
+      # If analyzing entire codebase and no --include flag is present, return error
+      length(args) > 0 and hd(args) == "." and not Enum.any?(tl(args), &(&1 == "--include")) ->
+        {:error,
+         "Avoid analyzing the entire codebase. Use the search tool or a sub path instead."}
+
+      true ->
+        case Rambo.run("aid", args, cd: path, timeout: 10_000) do
+          {:ok, %{status: 0, out: output, err: ""}} ->
+            {:ok, output}
+
+          {:error, %{status: _, out: "", err: error}} ->
+            {:error, "Failed to analyze codebase: #{error}"}
+
+          error ->
+            {:error, "Failed to analyze codebase: #{inspect(error)}"}
+        end
     end
   end
 
@@ -159,22 +211,27 @@ defmodule Swarm.Git.Repo do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       {:ok, "Already cloned"}
     else
-      case System.cmd("git", ["clone", "--filter=blob:none", "--quiet", url, path]) do
+      case System.cmd("git", ["clone", "--filter=blob:none", "--quiet", url, path],
+             stderr_to_stdout: true
+           ) do
         {output, 0} -> {:ok, output}
-        _ -> {:error, "Failed to clone repository: #{url}"}
+        {error, _} -> {:error, "Failed to clone repository: #{url}: #{error}"}
       end
     end
   end
 
   defp switch_branch(path, branch) do
-    case System.cmd("git", ["switch", "-C", branch], cd: path) do
+    case System.cmd("git", ["switch", "-C", branch], cd: path, stderr_to_stdout: true) do
       {output, 0} -> {:ok, output}
-      _ -> {:error, "Failed to switch to branch #{branch}"}
+      {error, _} -> {:error, "Failed to switch to branch #{branch}: #{error}"}
     end
   end
 
   defp get_default_branch(path) do
-    case System.cmd("git", ["symbolic-ref", "refs/remotes/origin/HEAD"], cd: path) do
+    case System.cmd("git", ["symbolic-ref", "refs/remotes/origin/HEAD"],
+           cd: path,
+           stderr_to_stdout: true
+         ) do
       {output, 0} ->
         # Output format: "refs/remotes/origin/main"
         default_branch =
@@ -185,9 +242,9 @@ defmodule Swarm.Git.Repo do
 
         {:ok, default_branch}
 
-      _ ->
+      {_error, _} ->
         # Fall back to checking common default branches
-        case System.cmd("git", ["branch", "-r"], cd: path) do
+        case System.cmd("git", ["branch", "-r"], cd: path, stderr_to_stdout: true) do
           {output, 0} ->
             cond do
               String.contains?(output, "origin/main") -> {:ok, "main"}
@@ -196,9 +253,9 @@ defmodule Swarm.Git.Repo do
               true -> {:ok, "main"}
             end
 
-          _ ->
+          {error2, _} ->
             # Final fallback
-            {:ok, "main"}
+            {:error, "Failed to get default branch: #{error2}"}
         end
     end
   end

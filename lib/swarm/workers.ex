@@ -15,7 +15,7 @@ defmodule Swarm.Workers do
   alias Swarm.Agents.Agent
   alias Swarm.Instructor.{AgentType, AgentName}
 
-  @agent_update_window_seconds 30
+  @agent_update_window_seconds 5
 
   @doc """
   Spawns an appropriate agent based on the event context and agent attributes.

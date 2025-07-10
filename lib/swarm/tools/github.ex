@@ -6,7 +6,9 @@ defmodule Swarm.Tools.GitHub do
   alias LangChain.FunctionParam
   alias Swarm.Services.GitHub
 
-  def all_tools(_mode \\ :read_write) do
+  def all_tools(:read), do: []
+
+  def all_tools(:read_write) do
     [
       create_pr(),
       acknowledge(),

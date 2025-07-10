@@ -72,7 +72,9 @@ defmodule Swarm.Workers.Researcher do
 
     finished_tool = SharedLLMChain.create_finished_tool("Indicates that the research is complete")
 
-    tools = Swarm.Tools.for_agent(agent, :read) ++ [finished_tool]
+    tools =
+      Swarm.Tools.for_agent(agent, :read) ++
+        Swarm.Tools.Linear.all_tools(:read_write) ++ [finished_tool]
 
     messages = [
       Message.new_system!("""
@@ -98,13 +100,13 @@ defmodule Swarm.Workers.Researcher do
       agent: agent,
       custom_context: %{
         "git_repo" => git_repo,
-        "external_ids" => agent.external_ids,
-        "repository" => agent.repository
+        "repository" => agent.repository,
+        "agent" => agent
       }
     )
     |> LLMChain.add_messages(messages)
     |> LLMChain.add_tools(tools)
-    |> SharedLLMChain.run_until_finished("finished")
+    |> SharedLLMChain.run_until_finished()
   end
 
   defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}) do

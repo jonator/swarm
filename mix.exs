@@ -8,6 +8,7 @@ defmodule Swarm.MixProject do
       elixir: "~> 1.18.2",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      compilers: [:rambo] ++ Mix.compilers(),
       aliases: aliases(),
       deps: deps()
     ]
@@ -62,7 +63,6 @@ defmodule Swarm.MixProject do
       {:oban_web, "~> 2.11"},
       {:typed_struct, "~> 0.3.0"},
       {:instructor, "~> 0.1.0"},
-      {:search, "~> 0.3"},
       # {:langchain, github: "brainlid/langchain"},
       {:langchain, github: "jonator/langchain", branch: "main"},
       {:flame, github: "jonator/flame", branch: "main"},
@@ -75,7 +75,8 @@ defmodule Swarm.MixProject do
       {:absinthe_client, "~> 0.1.1"},
       {:mock, "~> 0.3.9", only: :test},
       {:mix_test_watch, "~> 1.0", only: [:dev, :test], runtime: false},
-      {:tidewave, "~> 0.1", only: :dev}
+      {:tidewave, "~> 0.1", only: :dev},
+      {:rambo, "~> 0.3"}
     ]
   end
 

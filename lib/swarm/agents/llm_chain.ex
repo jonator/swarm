@@ -73,7 +73,10 @@ defmodule Swarm.Agents.LLMChain do
         stream: true
       })
 
-    case LLMChain.run_until_tool_used(chain, tool_name, with_fallbacks: [fallback_model]) do
+    case LLMChain.run_until_tool_used(chain, tool_name,
+           with_fallbacks: [fallback_model],
+           max_runs: 50
+         ) do
       {:ok, updated_chain, _matching_call} ->
         Logger.info("LLM chain completed successfully")
         {:ok, updated_chain.last_message.content}

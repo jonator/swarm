@@ -82,54 +82,24 @@ type EventPayload =
   | { status: string; response: { messages: Message[] } }
 
 type Event =
-  | { event: 'delta'; payload: { delta: string } }
+  | { event: 'message_delta'; payload: { delta: string } }
   | { event: 'message'; payload: Message }
   | {
       event: 'phx_reply'
       payload: { status: string; response: { messages: MessageRecord[] } }
     }
 
+export type AgentChannelOptions = {
+  fetchInitialMessages?: boolean
+  onMessage?: (message: Message) => void
+  onDelta?: (delta: string, fullPartialMessage: string) => void
+  onMessagesLoaded?: (messages: Message[]) => void
+  onStateChange?: (state: State) => void
+}
+
 const initialState: State = {
   messages: [],
   lastPartialMessage: '',
-}
-
-function agentChannelReducer(
-  state: State,
-  action: { event: string; payload: EventPayload },
-): State {
-  // Cast to narrower type
-  const event = action as Event
-
-  switch (event.event) {
-    case 'delta':
-      return {
-        ...state,
-        lastPartialMessage: state.lastPartialMessage + event.payload.delta,
-      }
-    case 'message':
-      return {
-        ...state,
-        messages: [...state.messages, event.payload],
-        lastPartialMessage: '', // clear delta on new message
-      }
-    case 'phx_reply':
-      // Handle Phoenix reply events
-      if (event.payload.status === 'ok' && event.payload.response?.messages) {
-        return {
-          ...state,
-          messages: event.payload.response.messages.map(
-            ({ index, content }) => ({
-              ...content,
-              index,
-            }),
-          ),
-        }
-      }
-      return state
-    default:
-      return state
-  }
 }
 
 /**
@@ -139,7 +109,53 @@ function agentChannelReducer(
  * @param initialMessages - Optional initial messages array
  * @returns { state, sendMessage, broadcast }
  */
-export function useAgentChannel(agentId: string, fetchInitialMessages = true) {
+export function useAgentChannel(agentId: string, opts?: AgentChannelOptions) {
+  function agentChannelReducer(
+    state: State,
+    action: { event: string; payload: EventPayload },
+  ): State {
+    // Cast to narrower type
+    const event = action as Event
+
+    switch (event.event) {
+      case 'message_delta':
+        opts?.onDelta?.(event.payload.delta, state.lastPartialMessage)
+        return {
+          ...state,
+          lastPartialMessage: state.lastPartialMessage + event.payload.delta,
+        }
+      case 'message':
+        opts?.onMessage?.(event.payload)
+        return {
+          ...state,
+          messages: [...state.messages, event.payload],
+          lastPartialMessage: '', // clear delta on new message
+        }
+      case 'phx_reply':
+        // Handle Phoenix reply events, which are equivalent to REST API calls
+        if (event.payload.status === 'ok' && event.payload.response?.messages) {
+          opts?.onMessagesLoaded?.(
+            event.payload.response.messages.map(({ index, content }) => ({
+              ...content,
+              index,
+            })),
+          )
+          return {
+            ...state,
+            messages: event.payload.response.messages.map(
+              ({ index, content }) => ({
+                ...content,
+                index,
+              }),
+            ),
+          }
+        }
+        return state
+      default:
+        return state
+    }
+  }
+
   const topic = `agent:${agentId}`
   const [state, broadcast, isJoined] = usePhoenixChannel(
     topic,
@@ -159,10 +175,10 @@ export function useAgentChannel(agentId: string, fetchInitialMessages = true) {
   )
 
   useEffect(() => {
-    if (isJoined && fetchInitialMessages) {
+    if (isJoined && (opts?.fetchInitialMessages ?? true)) {
       broadcast('messages')
     }
-  }, [isJoined, broadcast, fetchInitialMessages])
+  }, [isJoined, broadcast, opts?.fetchInitialMessages])
 
   const messages = useMemo(
     () => processMessages(state.messages),
@@ -170,7 +186,7 @@ export function useAgentChannel(agentId: string, fetchInitialMessages = true) {
   )
 
   return {
-    state,
+    lastPartialMessage: state.lastPartialMessage,
     messages,
     sendMessage,
     broadcast,

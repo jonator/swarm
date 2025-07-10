@@ -94,7 +94,6 @@ interface AgentMessagesProps {
 }
 
 export function AgentMessages({ agentId }: AgentMessagesProps) {
-  const { messages, state } = useAgentChannel(agentId)
   const {
     endRef,
     isAtBottom,
@@ -103,10 +102,22 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
     onViewportLeave,
   } = useScrollToBottom()
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: we want to scroll to bottom when the user is at the bottom when there are new messages
+  const { messages, lastPartialMessage } = useAgentChannel(agentId)
+
+  // Auto-scroll to bottom when new messages arrive or partial message updates
   useEffect(() => {
-    if (isAtBottom) scrollToBottom()
-  }, [messages, isAtBottom, scrollToBottom])
+    // Always scroll to bottom for new messages if user was at bottom, or if it's the first message
+    if (messages.length > 0 && (isAtBottom || messages.length === 1)) {
+      scrollToBottom()
+    }
+  }, [messages.length, isAtBottom, scrollToBottom])
+
+  // Auto-scroll when partial message updates if user is at bottom
+  useEffect(() => {
+    if (lastPartialMessage && isAtBottom) {
+      scrollToBottom()
+    }
+  }, [lastPartialMessage, isAtBottom, scrollToBottom])
 
   return (
     <div className='space-y-4 p-4'>
@@ -152,7 +163,7 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
       })}
 
       {/* Show partial message if it exists */}
-      {state.lastPartialMessage && (
+      {lastPartialMessage && (
         <div className='p-4 rounded-xl border bg-muted/30 border-border'>
           <div className='flex items-center gap-2 mb-3'>
             <div className='p-1.5 rounded-md bg-muted'>
@@ -171,12 +182,12 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
             </div>
           </div>
           <div className='text-sm whitespace-pre-wrap leading-relaxed'>
-            {state.lastPartialMessage}
+            {lastPartialMessage}
           </div>
         </div>
       )}
 
-      {messages.length === 0 && !state.lastPartialMessage && (
+      {messages.length === 0 && !lastPartialMessage && (
         <div className='text-center py-12'>
           <div className='inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted/30 mb-4'>
             <MessageSquare className='h-8 w-8 text-muted-foreground' />

@@ -6,7 +6,9 @@ defmodule Swarm.Tools.Linear do
   alias LangChain.FunctionParam
   alias Swarm.Services.Linear
 
-  def all_tools(_mode \\ :read_write) do
+  def all_tools(:read), do: []
+
+  def all_tools(:read_write) do
     [acknowledge(), reply(), edit_comment(), update_issue_description()]
   end
 
