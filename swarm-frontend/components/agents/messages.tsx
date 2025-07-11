@@ -108,14 +108,14 @@ export function AgentMessages({ agentId }: AgentMessagesProps) {
   useEffect(() => {
     // Always scroll to bottom for new messages if user was at bottom, or if it's the first message
     if (messages.length > 0 && (isAtBottom || messages.length === 1)) {
-      scrollToBottom()
+      scrollToBottom('instant')
     }
   }, [messages.length, isAtBottom, scrollToBottom])
 
   // Auto-scroll when partial message updates if user is at bottom
   useEffect(() => {
     if (lastPartialMessage && isAtBottom) {
-      scrollToBottom()
+      scrollToBottom('instant')
     }
   }, [lastPartialMessage, isAtBottom, scrollToBottom])
 
