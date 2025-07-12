@@ -1,6 +1,5 @@
 defmodule SwarmWeb.AgentChannel do
   use SwarmWeb, :channel
-  alias Phoenix.Socket.Broadcast
 
   @impl true
   def join("agent:" <> agent_id, payload, socket) do
@@ -26,7 +25,7 @@ defmodule SwarmWeb.AgentChannel do
   end
 
   @impl true
-  def handle_info(%Broadcast{topic: _, event: event, payload: payload}, socket) do
+  def handle_info({event, payload}, socket) do
     push(socket, event, payload)
     {:noreply, socket}
   end

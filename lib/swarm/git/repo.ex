@@ -2,6 +2,9 @@ defmodule Swarm.Git.Repo do
   use TypedStruct
   require Logger
 
+  alias Swarm.Agents.Agent
+  alias Swarm.Services.GitHub
+
   @base_dir Path.join(System.tmp_dir(), Atom.to_string(__MODULE__))
 
   typedstruct enforce: true do
@@ -9,229 +12,113 @@ defmodule Swarm.Git.Repo do
     field :branch, String.t(), enforce: true
     field :base_branch, String.t(), enforce: true
     field :path, String.t(), enforce: true
+    field :linux_user, String.t(), enforce: true
+    field :github_client, GitHub.t(), enforce: true
     field :closed, boolean(), default: false
   end
 
   @doc """
-  Opens a git repository and switches to a branch.
+  Opens a git repository using an Agent struct.
+  Creates a Linux user, gets GitHub installation token, and clones the repository.
   """
-  def open(url, slug, branch) do
-    path = make_path(url, slug)
-    Logger.debug("Opening repository: url=#{url}, slug=#{slug}, branch=#{branch}, path=#{path}")
+  def open(%Agent{id: agent_id, type: type, repository: repository}, branch) do
+    organization = Swarm.Repo.preload(repository, :organization).organization
+    slug = "#{type}-#{agent_id}-#{repository.name}"
 
-    with {:ok, _} <- clone_repo(url, path),
-         {:ok, default_branch} <- get_default_branch(path),
-         {:ok, _} <- switch_branch(path, branch) do
-      {:ok, %__MODULE__{url: url, path: path, branch: branch, base_branch: default_branch}}
-    else
-      {:error, error} ->
-        {:error, "Failed to open repository: #{url} #{error}"}
-    end
-  end
-
-  @doc """
-  Closes a git repository and deletes the directory.
-  """
-  def close(%__MODULE__{url: url, path: path, branch: branch, base_branch: base_branch}) do
     Logger.debug(
-      "Closing repository: url=#{url}, path=#{path}, branch=#{branch}, base_branch=#{base_branch}"
+      "Opening repository for agent: #{agent_id}, repo: #{repository.owner}/#{repository.name}"
     )
 
-    case File.rm_rf(path) do
-      {:ok, _} ->
-        {:ok,
-         %__MODULE__{url: url, path: path, branch: branch, base_branch: base_branch, closed: true}}
+    with {:ok, github_client} <- GitHub.new(organization),
+         auth_url <-
+           "https://x-access-token:#{github_client.client.auth.access_token}@github.com/#{repository.owner}/#{repository.name}.git",
+         path <- make_path(auth_url, slug),
+         {:ok, linux_user} <- ensure_linux_user(organization),
+         {:ok, _} <- create_repo_directory(auth_url, path, linux_user),
+         {:ok, default_branch} <- get_default_branch(path, linux_user),
+         {:ok, _} <- switch_branch(path, branch, linux_user) do
+      {:ok,
+       %__MODULE__{
+         url: auth_url,
+         path: path,
+         branch: branch,
+         base_branch: default_branch,
+         linux_user: linux_user,
+         github_client: github_client
+       }}
+    else
+      {:error, error} ->
+        Logger.error("Failed to open repository for agent #{agent_id}: #{error}")
+        {:error, "Failed to open repository: #{error}"}
 
       error ->
-        error
+        Logger.error(
+          "Unexpected failure to open repository for agent #{agent_id}: #{inspect(error)}"
+        )
+
+        {:error, "Failed to open repository: #{inspect(error)}"}
     end
   end
 
-  @doc """
-  Gets the status of a git repository.
-  """
-  def status(%__MODULE__{path: path}) do
-    Logger.debug("Getting repository status: path=#{path}")
-
-    case System.cmd("git", ["status"], cd: path, stderr_to_stdout: true) do
+  def list_files(%__MODULE__{path: path, linux_user: linux_user}) do
+    case cmd_as_user(linux_user, "git", ["ls-files"], cd: path) do
       {output, 0} -> {:ok, output}
-      {error, _} -> {:error, "Failed to get status: #{error}"}
+      {error, _} -> {:error, "Failed to list files: #{error}"}
     end
   end
 
-  @doc """
-  Lists all relative file paths in the repository.
-  """
-  def list_files(%__MODULE__{path: path}) do
-    Logger.debug("Listing repository files: path=#{path}")
-
-    case System.cmd("git", ["ls-files"], cd: path, stderr_to_stdout: true) do
-      {output, 0} ->
-        file_list = String.split(output, "\n", trim: true)
-        {:ok, file_list}
-
-      {error, _} ->
-        {:error, "Failed to list repository files: #{error}"}
-    end
-  end
-
-  @doc """
-  Opens a relative file path in the repository.
-  """
-  def open_file(%__MODULE__{path: path}, file) do
-    Logger.debug("Opening file: path=#{path}, file=#{file}")
-    File.read(Path.join(path, file))
-  end
-
-  @doc """
-  Writes content to a relative file path in the repository.
-  """
-  def write_file(%__MODULE__{path: path}, file, content) do
-    Logger.debug("Writing file: path=#{path}, file=#{file}")
-
-    case File.write(Path.join(path, file), content) do
-      :ok -> {:ok, "File written successfully"}
-      error -> {:error, "Failed to write file: #{error}"}
-    end
-  end
-
-  @doc """
-  Renames a file in the repository.
-  """
-  def rename_file(%__MODULE__{path: path}, old_file, new_file) do
-    Logger.debug("Renaming file: path=#{path}, old_file=#{old_file}, new_file=#{new_file}")
-
-    case System.cmd("git", ["mv", "--quiet", old_file, new_file],
-           cd: path,
-           stderr_to_stdout: true
-         ) do
+  def open_file(%__MODULE__{path: path, linux_user: linux_user}, file) do
+    case cmd_as_user(linux_user, "cat", [file], cd: path) do
       {output, 0} -> {:ok, output}
-      {error, _} -> {:error, "Failed to rename file from #{old_file} to #{new_file}: #{error}"}
+      {error, _} -> {:error, "Failed to open file: #{error}"}
     end
   end
 
   @doc """
-  Adds a file to the staging area of the repository.
+  Runs a shell command in the repository's working directory as the linux user.
   """
-  def add_file(%__MODULE__{path: path}, file) do
-    Logger.debug("Adding file: path=#{path}, file=#{file}")
+  def run_shell_command(%__MODULE__{path: path, linux_user: linux_user}, command, opts \\ []) do
+    env = Keyword.get(opts, :env, [])
+    timeout = Keyword.get(opts, :timeout, 20_000)
 
-    case System.cmd("git", ["add", file], cd: path, stderr_to_stdout: true) do
-      {output, 0} -> {:ok, output}
-      {error, _} -> {:error, "Failed to add file #{file}: #{error}"}
-    end
-  end
+    Logger.debug("Running shell command as user #{linux_user}: #{command}")
 
-  @doc """
-  Adds all files to the staging area of the repository.
-  """
-  def add_all_files(%__MODULE__{path: path}) do
-    Logger.debug("Adding all files: path=#{path}")
+    # Use Task to run System.cmd with timeout support
+    task =
+      Task.async(fn ->
+        System.cmd(
+          "sudo",
+          ["-u", linux_user, "sh", "-c", command],
+          env: env,
+          cd: path,
+          stderr_to_stdout: true
+        )
+      end)
 
-    case System.cmd("git", ["add", "."], cd: path, stderr_to_stdout: true) do
-      {output, 0} -> {:ok, output}
-      {error, _} -> {:error, "Failed to add all files: #{error}"}
-    end
-  end
+    try do
+      case Task.await(task, timeout) do
+        {output, 0} ->
+          {:ok, output}
 
-  @doc """
-  Commits the changes to the repository.
-  """
-  def commit(%__MODULE__{path: path}, message) do
-    Logger.debug("Committing changes: path=#{path}, message=#{message}")
-
-    case System.cmd("git", ["commit", "-m", message], cd: path, stderr_to_stdout: true) do
-      {output, 0} -> {:ok, output}
-      {error, _} -> {:error, "Failed to commit changes with message: #{message}: #{error}"}
-    end
-  end
-
-  @doc """
-  Pushes the current branch to origin.
-  """
-  def push_origin(%__MODULE__{path: path, branch: branch}) do
-    Logger.debug("Pushing to origin: path=#{path}, branch=#{branch}")
-
-    case System.cmd("git", ["push", "--set-upstream", "origin", branch],
-           cd: path,
-           stderr_to_stdout: true
-         ) do
-      {output, 0} -> {:ok, output}
-      {error, _} -> {:error, "Failed to push to origin: #{error}"}
-    end
-  end
-
-  @doc """
-  Searches the repository files for matching content using a string term or regex expression.
-  See: https://github.com/BurntSushi/ripgrep
-  Now supports include_patterns and exclude_patterns as lists of globs.
-  """
-  def search(%__MODULE__{path: path}, args) do
-    Logger.debug("Searching files: path=#{path}, args=#{inspect(args)}")
-
-    # Add the path as the final argument for rg
-    args_with_path = args ++ ["."]
-
-    case Rambo.run("rg", args_with_path, cd: path, timeout: 10_000) do
-      {:ok, %{status: 0, out: output, err: ""}} -> {:ok, output}
-      {:error, %{status: _, out: _, err: error}} -> {:error, "Failed to search files: #{error}"}
-      error -> {:error, "Failed to search files: #{inspect(error)}"}
-    end
-  end
-
-  @doc """
-  Analyzes the codebase symbols and generate a report using the aid command.
-  See: https://github.com/janreges/ai-distiller
-  Args should be a list of command-line arguments to pass to aid.
-  """
-  def symbolic_analysis(%__MODULE__{path: path}, args) do
-    Logger.debug("Analyzing codebase: path=#{path}, args=#{inspect(args)}")
-
-    cond do
-      # If analyzing entire codebase and no --include flag is present, return error
-      length(args) > 0 and hd(args) == "." and not Enum.any?(tl(args), &(&1 == "--include")) ->
-        {:error,
-         "Avoid analyzing the entire codebase. Use the search tool or a sub path instead."}
-
-      true ->
-        case Rambo.run("aid", args, cd: path, timeout: 10_000) do
-          {:ok, %{status: 0, out: output, err: ""}} ->
-            {:ok, output}
-
-          {:error, %{status: _, out: "", err: error}} ->
-            {:error, "Failed to analyze codebase: #{error}"}
-
-          error ->
-            {:error, "Failed to analyze codebase: #{inspect(error)}"}
-        end
-    end
-  end
-
-  defp clone_repo(url, path) do
-    if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
-      {:ok, "Already cloned"}
-    else
-      case System.cmd("git", ["clone", "--filter=blob:none", "--quiet", url, path],
-             stderr_to_stdout: true
-           ) do
-        {output, 0} -> {:ok, output}
-        {error, _} -> {:error, "Failed to clone repository: #{url}: #{error}"}
+        {output, exit_code} ->
+          {:error, "Command failed with code #{exit_code}: #{output}"}
       end
+    catch
+      :exit, {:timeout, _} ->
+        Task.shutdown(task, :brutal_kill)
+        {:error, "Command timed out after #{timeout}ms"}
     end
   end
 
-  defp switch_branch(path, branch) do
-    case System.cmd("git", ["switch", "-C", branch], cd: path, stderr_to_stdout: true) do
+  defp switch_branch(path, branch, linux_user) do
+    case cmd_as_user(linux_user, "git", ["switch", "-C", branch], cd: path) do
       {output, 0} -> {:ok, output}
       {error, _} -> {:error, "Failed to switch to branch #{branch}: #{error}"}
     end
   end
 
-  defp get_default_branch(path) do
-    case System.cmd("git", ["symbolic-ref", "refs/remotes/origin/HEAD"],
-           cd: path,
-           stderr_to_stdout: true
-         ) do
+  defp get_default_branch(path, linux_user) do
+    case cmd_as_user(linux_user, "git", ["symbolic-ref", "refs/remotes/origin/HEAD"], cd: path) do
       {output, 0} ->
         # Output format: "refs/remotes/origin/main"
         default_branch =
@@ -244,7 +131,7 @@ defmodule Swarm.Git.Repo do
 
       {_error, _} ->
         # Fall back to checking common default branches
-        case System.cmd("git", ["branch", "-r"], cd: path, stderr_to_stdout: true) do
+        case cmd_as_user(linux_user, "git", ["branch", "-r"], cd: path) do
           {output, 0} ->
             cond do
               String.contains?(output, "origin/main") -> {:ok, "main"}
@@ -269,5 +156,94 @@ defmodule Swarm.Git.Repo do
       |> Enum.join("/")
 
     Path.join([@base_dir, slug, path])
+  end
+
+  # Helper functions for Agent-based repo opening
+
+  defp ensure_linux_user(organization) do
+    username = "swarm-#{organization.name}"
+
+    case System.cmd("id", [username], stderr_to_stdout: true) do
+      {_, 0} ->
+        Logger.debug("Linux user #{username} already exists")
+        {:ok, username}
+
+      {_, _} ->
+        Logger.debug("Creating Linux user #{username}")
+
+        case System.cmd("sudo", ["useradd", "-G", "swarm-agents", "-m", username],
+               stderr_to_stdout: true
+             ) do
+          {_, 0} ->
+            Logger.debug("Successfully created Linux user #{username}")
+            {:ok, username}
+
+          {error, _} ->
+            Logger.error("Failed to create Linux user #{username}: #{error}")
+            {:error, "Failed to create Linux user: #{error}"}
+        end
+    end
+  end
+
+  # Helper function to run git commands as a specific linux user
+  defp cmd_as_user(linux_user, command, args, opts \\ []) do
+    System.cmd(
+      "sudo",
+      ["-u", linux_user] ++ [command] ++ args,
+      Keyword.merge([stderr_to_stdout: true], opts)
+    )
+  end
+
+  defp create_repo_directory(auth_url, path, linux_user) do
+    if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
+      Logger.warning("Repository already exists at #{path}, deleting and re-cloning")
+
+      case cmd_as_user(linux_user, "rm", ["-rf", path]) do
+        {_, 0} ->
+          Logger.debug("Successfully deleted existing repository at #{path}")
+          clone_repository(auth_url, path, linux_user)
+
+        {error, _} ->
+          Logger.error("Failed to delete existing repository at #{path}: #{error}")
+          {:error, "Failed to delete existing repository: #{error}"}
+      end
+    else
+      Logger.debug("Cloning repository as user #{linux_user}")
+      clone_repository(auth_url, path, linux_user)
+    end
+  end
+
+  defp clone_repository(auth_url, path, linux_user) do
+    case cmd_as_user(linux_user, "git", [
+           "clone",
+           "--filter=blob:none",
+           "--quiet",
+           auth_url,
+           path
+         ]) do
+      {output, 0} ->
+        # Configure git user for Swarm GitHub App
+        configure_git_user(path, linux_user)
+        {:ok, output}
+
+      {error, _} ->
+        {:error, "Failed to clone repository: #{auth_url}: #{error}"}
+    end
+  end
+
+  defp configure_git_user(path, linux_user) do
+    github_app_id = Application.get_env(:swarm, :github_client_id)
+
+    # Add repository to Git safe directories to prevent dubious ownership warnings
+    cmd_as_user(linux_user, "git", ["config", "--global", "--add", "safe.directory", path])
+
+    # Set git user name as swarm[bot]
+    cmd_as_user(linux_user, "git", ["config", "user.name", "swarm[bot]"], cd: path)
+
+    # Set git user email as {app_id}+swarm[bot]@users.noreply.github.com
+    email = "#{github_app_id}+swarm[bot]@users.noreply.github.com"
+    cmd_as_user(linux_user, "git", ["config", "user.email", email], cd: path)
+
+    Logger.debug("Configured git user for Swarm GitHub App: swarm[bot] <#{email}>")
   end
 end

@@ -16,9 +16,7 @@ defmodule Swarm.Workers.Coder do
   alias Swarm.Agents
   alias Swarm.Agents.Agent
   alias Swarm.Agents.LLMChain, as: SharedLLMChain
-  alias Swarm.Git
   alias Swarm.Instructor
-  alias Swarm.Repositories.Repository
   alias Swarm.Services.Linear
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
@@ -111,19 +109,18 @@ defmodule Swarm.Workers.Coder do
     end
   end
 
-  defp clone_repository(%Agent{repository: repository, id: agent_id}, branch_name) do
+  defp clone_repository(%Agent{repository: repository, id: agent_id} = agent, branch_name) do
     Logger.debug(
-      "Cloning repository: #{repository.owner}/#{repository.name} with branch: #{branch_name}"
+      "Cloning repository for agent #{agent_id}: #{repository.owner}/#{repository.name}"
     )
 
-    with repo_url <- Repository.build_repository_url(repository),
-         {:ok, git_repo} <- Git.Repo.open(repo_url, "coder-#{agent_id}", branch_name) do
-      Logger.debug("Successfully cloned repository to: #{git_repo.path}")
-      {:ok, git_repo}
-    else
-      {:error, reason} ->
-        Logger.error("Failed to clone repository: #{inspect(reason)}")
+    case Swarm.Git.Repo.open(agent, branch_name) do
+      {:ok, git_repo} ->
+        Logger.debug("Successfully cloned repository for agent #{agent_id}")
+        {:ok, git_repo}
 
+      {:error, reason} ->
+        Logger.error("Failed to clone repository for agent #{agent_id}: #{reason}")
         {:error, reason}
     end
   end
@@ -151,21 +148,14 @@ defmodule Swarm.Workers.Coder do
       Message.new_user!("I need to implement the following changes: #{inspect(instructions)}")
     ]
 
-    organization = Swarm.Repo.preload(repository, :organization).organization
-
     # Create LLM chain with shared logic
     SharedLLMChain.create(
       agent: agent,
       max_tokens: 64000,
-      temperature: 0.7,
       custom_context: %{
         "git_repo" => git_repo,
-        "repository" => repository,
-        "organization" => organization,
         "agent" => agent
-      },
-      verbose: false
-      #  verbose: Logger.level() == :debug
+      }
     )
     |> LLMChain.add_messages(messages)
     |> LLMChain.add_tools(tools)

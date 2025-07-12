@@ -1,0 +1,96 @@
+ARG ELIXIR_VERSION=1.18.2
+ARG OTP_VERSION=27.2.4
+ARG DEBIAN_VERSION=bullseye-20250224-slim
+
+ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
+
+FROM ${BUILDER_IMAGE} AS dev
+
+# Install development dependencies
+RUN apt-get update -y && apt-get install -y \
+    build-essential \
+    git \
+    inotify-tools \
+    sudo \
+    coreutils \
+    bash \
+    passwd \
+    adduser \
+    procps \
+    curl \
+    wget \
+    ca-certificates \
+    findutils \
+    grep \
+    sed \
+    gawk \
+    tar \
+    gzip \
+    zip \
+    unzip \
+    jq \
+    sqlite3 \
+    tree \
+    file \
+    less \
+    psmisc \
+    net-tools \
+    python3 \
+    python3-pip \
+    nodejs \
+    npm \
+    && apt-get clean && rm -f /var/lib/apt/lists/*_*
+
+# Install Rust for compiling Rambo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Create swarm-agents group for user management
+RUN groupadd swarm-agents
+
+# Configure sudo to work without password in container
+RUN echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+
+# Install gh
+RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
+    && mkdir -p -m 755 /etc/apt/keyrings \
+    && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && mkdir -p -m 755 /etc/apt/sources.list.d \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt update \
+    && apt install gh -y
+
+
+# Prepare app directory
+WORKDIR /app
+
+# Install hex + rebar
+RUN mix local.hex --force && \
+    mix local.rebar --force
+
+# Set development environment
+ENV MIX_ENV=dev
+
+COPY . .
+
+RUN mix deps.get && mix deps.compile
+
+# EPMD port for node discovery
+EXPOSE 4369
+
+# Use iex with 
+# docker run -it --rm --name swarmdev \
+#   --publish 127.0.0.1:4369:4369 \
+#   --publish 9000-9010:9000-9010 \
+#   --publish 4000:4000 \
+#   --env NODE_SNAME=swarmdev \
+#   --env SECRET_KEY_BASE=test \
+#   --env RELEASE_COOKIE=test \
+#   --env RELEASE_NODE=swarmdev \
+#   --network host \
+#   swarmdev:latest
+# to debug with repl
+# CMD ["iex", "--sname", "swarmdev", "--cookie", "test", "-S", "mix"]
+CMD ["elixir", "--sname", "swarmdev", "--cookie", "test", "-S", "mix", "phx.server"]

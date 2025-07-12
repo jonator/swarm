@@ -34,25 +34,4 @@ defmodule Swarm.Repositories.Repository do
     )
     |> validate_exclusion(:name, ["admin", "system", "root"], message: "is reserved")
   end
-
-  @doc """
-  Builds the git clone URL for a repository.
-
-  Currently supports GitHub repositories. Returns a git clone URL
-  based on the repository's external_id, owner, and name.
-
-  ## Examples
-
-      iex> repo = %Repository{external_id: "github:123", owner: "myorg", name: "myrepo"}
-      iex> Repository.build_repository_url(repo)
-      "https://github.com/myorg/myrepo.git"
-
-  """
-  def build_repository_url(%__MODULE__{
-        external_id: "github:" <> _github_id,
-        name: name,
-        owner: owner
-      }) do
-    "https://github.com/#{owner}/#{name}.git"
-  end
 end

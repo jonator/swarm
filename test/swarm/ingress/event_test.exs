@@ -270,12 +270,14 @@ defmodule Swarm.Ingress.EventTest do
       assert String.contains?(event.context.comment["body"], "@swarm-ai-dev")
     end
 
-    test "returns error for unknown GitHub event type" do
+    test "creates ignored event for unknown GitHub event type" do
       event_data = %{
         "unknown_field" => %{"id" => 12345}
       }
 
-      assert {:error, "Unknown GitHub event type"} = Event.new(event_data, :github)
+      assert {:ok, event} = Event.new(event_data, :github)
+      assert event.type == :ignored
+      assert event.source == :github
     end
 
     test "creates event from GitHub pull request description updated with mention" do
@@ -337,7 +339,7 @@ defmodule Swarm.Ingress.EventTest do
       assert event.external_ids["slack_thread_id"] == "1234567890.123456"
     end
 
-    test "returns error for unknown Slack event type" do
+    test "creates ignored event for unknown Slack event type" do
       event_data = %{
         "event" => %{
           "type" => "unknown_type",
@@ -346,7 +348,9 @@ defmodule Swarm.Ingress.EventTest do
         "team_id" => "T123456"
       }
 
-      assert {:error, "Unknown Slack event type"} = Event.new(event_data, :slack)
+      assert {:ok, event} = Event.new(event_data, :slack)
+      assert event.type == :ignored
+      assert event.source == :slack
     end
   end
 
@@ -374,17 +378,21 @@ defmodule Swarm.Ingress.EventTest do
     end
   end
 
-  describe "new/3 error cases" do
-    test "returns error for Linear event without action" do
+  describe "new/3 edge cases" do
+    test "creates ignored event for Linear event without action" do
       event_data = %{"data" => %{"issue" => %{"id" => "123"}}}
 
-      assert {:error, "Missing action field in Linear event"} = Event.new(event_data, :linear)
+      assert {:ok, event} = Event.new(event_data, :linear)
+      assert event.type == :ignored
+      assert event.source == :linear
     end
 
-    test "returns error for Linear event with invalid action" do
+    test "creates ignored event for Linear event with invalid action" do
       event_data = %{"action" => 123, "data" => %{"issue" => %{"id" => "123"}}}
 
-      assert {:error, "Invalid action field in Linear event"} = Event.new(event_data, :linear)
+      assert {:ok, event} = Event.new(event_data, :linear)
+      assert event.type == :ignored
+      assert event.source == :linear
     end
   end
 

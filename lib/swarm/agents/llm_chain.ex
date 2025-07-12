@@ -13,6 +13,7 @@ defmodule Swarm.Agents.LLMChain do
   alias LangChain.ChatModels.ChatOpenAI
   alias Swarm.Agents.Agent
   alias Swarm.Agents.Message
+  alias Phoenix.PubSub
 
   @doc """
   Creates a new LLM chain with common configuration.
@@ -69,7 +70,7 @@ defmodule Swarm.Agents.LLMChain do
   def run_until_finished(chain, tool_name \\ "finished") do
     fallback_model =
       ChatOpenAI.new!(%{
-        model: "o3",
+        model: "o3-mini-2025-01-31",
         stream: true
       })
 
@@ -109,9 +110,11 @@ defmodule Swarm.Agents.LLMChain do
           # Extract the actual content from the ContentPart struct
           content = extract_content(delta)
 
-          SwarmWeb.Endpoint.broadcast("agent:#{agent_id}", "message_delta", %{
-            delta: content
-          })
+          PubSub.broadcast(
+            Swarm.PubSub,
+            "agent:#{agent_id}",
+            {"message_delta", %{delta: content}}
+          )
         end)
       end,
       on_message_processed: fn _chain, %LangChain.Message{} = message ->
@@ -135,7 +138,7 @@ defmodule Swarm.Agents.LLMChain do
         # Apply deep extraction to ensure no structs remain in the message map
         clean_message_map = deep_extract_structs(message_map)
 
-        SwarmWeb.Endpoint.broadcast("agent:#{agent_id}", "message", clean_message_map)
+        PubSub.broadcast(Swarm.PubSub, "agent:#{agent_id}", {"message", clean_message_map})
 
         {:ok, _message} =
           Swarm.Agents.create_message(agent_id, message_attrs)

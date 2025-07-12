@@ -14,20 +14,21 @@ defmodule Swarm.Application do
         SwarmWeb.Telemetry,
         Swarm.Repo,
         {DNSCluster, query: Application.get_env(:swarm, :dns_cluster_query) || :ignore},
-        {Phoenix.PubSub, name: Swarm.PubSub},
+        {Phoenix.PubSub, name: Swarm.PubSub, pool_size: 4},
         {Finch, name: Swarm.Finch},
         !flame_parent && {Oban, Application.fetch_env!(:swarm, Oban)},
         {
           FLAME.Pool,
-          # backend:
-          #   {FLAME.DockerBackend, image: "swarmnextjsdev", env: %{"DOCKER_IP" => "127.0.0.1"}},
+          # Run socat TCP-LISTEN:2375,reuseaddr,fork UNIX-CONNECT:/var/run/docker.sock & to expose docker API locally
+          backend:
+            {FLAME.DockerBackend,
+             image: "swarmdev", env: %{"DOCKER_IP" => "host.docker.internal"}},
           name: Swarm.FlamePool,
           min: 0,
           max: 10,
           max_concurrency: 5,
-          idle_shutdown_after: :timer.minutes(15),
-          timeout: :timer.minutes(15),
-          single_use: true,
+          idle_shutdown_after: :timer.minutes(5),
+          timeout: :timer.minutes(5),
           log: :debug
         },
         # Start to serve requests, typically the last entry

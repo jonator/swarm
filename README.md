@@ -317,3 +317,34 @@ The swarm system provides several extension points for customization:
 ## License
 
 This project is licensed under the terms specified in the repository.
+
+## Docker FLAME Backend
+
+If using orbstack, ensure you use it's context before building images:
+```bash
+docker context use orbstack
+```
+
+Expose Docker Engine API in local loop:
+```bash
+socat TCP-LISTEN:2375,reuseaddr,fork UNIX-CONNECT:/var/run/docker.sock &
+```
+
+Build the docker image:
+```bash
+docker build -f ./Dockerfile.dev --target dev -t swarmdev:latest .
+```
+
+Run for debugging:
+```bash
+docker run -it --rm --name swarmdev \
+  --publish 127.0.0.1:4369:4369 \
+  --publish 9000-9010:9000-9010 \
+  --publish 4000:4000 \
+  --env NODE_SNAME=swarmdev \
+  --env SECRET_KEY_BASE=test \
+  --env RELEASE_COOKIE=test \
+  --env RELEASE_NODE=swarmdev \
+  --network host \
+  swarmdev:latest
+```

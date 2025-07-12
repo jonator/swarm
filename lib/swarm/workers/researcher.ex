@@ -15,9 +15,7 @@ defmodule Swarm.Workers.Researcher do
   alias Swarm.Agents
   alias Swarm.Agents.Agent
   alias Swarm.Agents.LLMChain, as: SharedLLMChain
-  alias Swarm.Git
-  alias Swarm.Repositories.Repository
-  alias Swarm.Services.GitHub
+
   alias LangChain.Chains.LLMChain
   alias LangChain.Message
 
@@ -50,7 +48,7 @@ defmodule Swarm.Workers.Researcher do
         {:error, "Agent not found"}
 
       agent ->
-        agent = Swarm.Repo.preload(agent, [:user, :repository])
+        agent = Swarm.Repo.preload(agent, [:user, repository: :organization])
         {:ok, agent}
     end
   end
@@ -73,8 +71,7 @@ defmodule Swarm.Workers.Researcher do
     finished_tool = SharedLLMChain.create_finished_tool("Indicates that the research is complete")
 
     tools =
-      Swarm.Tools.for_agent(agent, :read) ++
-        Swarm.Tools.Linear.all_tools(:read_write) ++ [finished_tool]
+      Swarm.Tools.for_agent(agent, :read_write) ++ [finished_tool]
 
     messages = [
       Message.new_system!("""
@@ -109,19 +106,24 @@ defmodule Swarm.Workers.Researcher do
     |> SharedLLMChain.run_until_finished()
   end
 
-  defp clone_repository(%Agent{user: user, repository: repository, id: agent_id}) do
-    Logger.debug("Cloning repository: #{repository.owner}/#{repository.name}")
+  defp clone_repository(%Agent{repository: repository, id: agent_id} = agent) do
+    Logger.debug(
+      "Cloning repository for agent #{agent_id}: #{repository.owner}/#{repository.name}"
+    )
 
-    # Get repository information from GitHub API
-    # Note: In the future when organizations are supported, we will need to
-    # get the repository using the organization and not the user
-    with {:ok, repo_info} <- GitHub.repository_info(user, repository.owner, repository.name),
+    # Organization should already be preloaded before entering FLAME worker
+    organization = agent.repository.organization
+
+    with {:ok, repo_info} <-
+           Swarm.Services.GitHub.repository_info(organization, repository.owner, repository.name),
          default_branch <- Map.get(repo_info, "default_branch", "main"),
-         repo_url <- Repository.build_repository_url(repository),
-         # Clone using the default branch
-         {:ok, git_repo} <- Git.Repo.open(repo_url, "research-#{agent_id}", default_branch) do
-      Logger.debug("Successfully cloned repository to: #{git_repo.path}")
+         {:ok, git_repo} <- Swarm.Git.Repo.open(agent, default_branch) do
+      Logger.debug("Successfully cloned repository for agent #{agent_id} to: #{git_repo.path}")
       {:ok, git_repo}
+    else
+      {:error, reason} ->
+        Logger.error("Failed to clone repository for agent #{agent_id}: #{reason}")
+        {:error, reason}
     end
   end
 end

@@ -318,17 +318,6 @@ defmodule Swarm.RepositoriesTest do
       assert {:name, {"is reserved", [validation: :exclusion, enum: ["admin", "system", "root"]]}} in changeset.errors
     end
 
-    test "build_repository_url/1 returns the correct GitHub URL" do
-      repository = %Repository{
-        external_id: "github:123456",
-        name: "my-repo",
-        owner: "myuser"
-      }
-
-      assert Repository.build_repository_url(repository) ==
-               "https://github.com/myuser/my-repo.git"
-    end
-
     test "validates external_id format for repositories" do
       user = Swarm.AccountsFixtures.user_fixture()
       _organization = personal_organization_fixture(user)
