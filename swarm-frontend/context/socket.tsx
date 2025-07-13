@@ -1,10 +1,10 @@
 'use client'
 
-import { useTemporaryToken } from '@/lib/queries/hooks/token'
-import { socketManager } from '@/lib/services/socket'
 import type { Socket } from 'phoenix'
 import type React from 'react'
 import { createContext, useContext, useEffect, useState } from 'react'
+import { useTemporaryToken } from '@/lib/queries/hooks/token'
+import { socketManager } from '@/lib/services/socket'
 
 interface SocketContextType {
   socket: Socket | null

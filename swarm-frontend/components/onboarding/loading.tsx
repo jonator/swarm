@@ -5,7 +5,9 @@ import { Skeleton } from '../ui/skeleton'
 
 export const SkeletonCard = ({
   bodyContent = false,
-}: { bodyContent?: boolean }) => (
+}: {
+  bodyContent?: boolean
+}) => (
   <Card className='w-96'>
     <CardHeader>
       <Skeleton className='w-full h-10' />

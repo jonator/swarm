@@ -1,5 +1,8 @@
 'use client'
 
+import { BookIcon, ExternalLink, Github, MessageSquare } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { LinearLogo } from '@/components/linear-logo'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -13,9 +16,6 @@ import type { Agent } from '@/lib/models/agents'
 import { useRepository } from '@/lib/queries/hooks/repositories'
 import { useUser } from '@/lib/queries/hooks/users'
 import { cn } from '@/lib/utils/shadcn'
-import { BookIcon, ExternalLink, Github, MessageSquare } from 'lucide-react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { StatusBadge, TypeBadge } from './status'
 import { AgentCreatedTime, AgentDuration } from './time'
 
@@ -87,9 +87,14 @@ export function AgentCard({
         <AgentCardHeader agent={agent} />
       )}
       <CardContent className='flex flex-col gap-2 pt-0'>
-        <CardDescription className='line-clamp-2' title={agent.context}>
-          {agent.context}
-        </CardDescription>
+        {agent.description && (
+          <CardDescription
+            className='text-sm text-foreground'
+            title={agent.description}
+          >
+            {agent.description}
+          </CardDescription>
+        )}
         <div className='mt-1 flex flex-wrap items-center gap-3 text-xs text-muted-foreground'>
           {repository && (
             <span className='inline-flex items-center gap-1'>

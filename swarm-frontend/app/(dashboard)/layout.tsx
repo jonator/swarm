@@ -1,3 +1,4 @@
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { getQueryClient } from '@/config/tanstack-query'
 import { SocketProvider } from '@/context/socket'
 import {
@@ -9,7 +10,6 @@ import { usersQuery } from '@/lib/queries/keys/users'
 import { getRepositories } from '@/lib/services/repositories'
 import { temporaryToken } from '@/lib/services/token'
 import { getUser } from '@/lib/services/users'
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
 
 export default async function DashboardLayout({
   children,

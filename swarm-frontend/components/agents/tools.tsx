@@ -1,10 +1,5 @@
 'use client'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import type { ToolResult } from '@/hooks/use-agent-channel'
-import type { CombinedToolExecution } from '@/lib/models/messages'
-import { cn } from '@/lib/utils/shadcn'
 import {
   Activity,
   AlertCircle,
@@ -31,6 +26,11 @@ import {
   Upload,
 } from 'lucide-react'
 import { useState } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import type { ToolResult } from '@/hooks/use-agent-channel'
+import type { CombinedToolExecution } from '@/lib/models/messages'
+import { cn } from '@/lib/utils/shadcn'
 
 export type ToolCategory = 'git' | 'github' | 'agent'
 export type ToolStatus = 'success' | 'error' | 'pending' | 'running'

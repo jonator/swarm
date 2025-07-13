@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { usePhoenixChannel } from './use-phoenix-channel'
 import { processMessages } from '@/lib/models/messages'
+import { usePhoenixChannel } from './use-phoenix-channel'
 
 // Types for message content
 export type MessageContent = {

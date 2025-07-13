@@ -1,9 +1,9 @@
 'use client'
 
+import { type PropsWithChildren, useEffect, useState } from 'react'
 import { submitGithubAuthCode } from '@/actions/auth'
 import SwarmLogo from '@/components/swarm-logo'
 import { cn } from '@/lib/utils/shadcn'
-import { type PropsWithChildren, useEffect, useState } from 'react'
 
 export default function GithubCallbackPage() {
   const [isError, setIsError] = useState(false)

@@ -1,20 +1,12 @@
 'use client'
 
+import { ExternalLink, Github, MessageSquare } from 'lucide-react'
+import Link from 'next/link'
 import { LinearLogo } from '@/components/linear-logo'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAgent } from '@/lib/queries/hooks/agents'
 import { useUser } from '@/lib/queries/hooks/users'
-import { cn } from '@/lib/utils/shadcn'
-import {
-  ChevronDown,
-  ChevronUp,
-  ExternalLink,
-  Github,
-  MessageSquare,
-} from 'lucide-react'
-import Link from 'next/link'
-import { useState } from 'react'
 import { StatusBadge, TypeBadge } from './status'
 import { AgentCreatedTime, AgentDuration } from './time'
 
@@ -22,11 +14,14 @@ export function AgentHeader({
   agentId,
   now,
   timeZone,
-}: { agentId: string; now: Date; timeZone: string }) {
+}: {
+  agentId: string
+  now: Date
+  timeZone: string
+}) {
   const { data: agent } = useAgent(agentId)
   const { data: user } = useUser(agent?.user_id)
   const isActive = agent?.status === 'running'
-  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
   // Early return if agent is not loaded yet
   if (!agent) {
@@ -133,34 +128,15 @@ export function AgentHeader({
       </div>
 
       {/* Description Section */}
-      {agent.context && (
+      {(agent.description || agent.context) && (
         <div className='space-y-2'>
-          <div
-            className={cn(
-              'text-sm text-muted-foreground leading-relaxed',
-              !isDescriptionExpanded && 'line-clamp-2',
-            )}
-            title={agent.context}
-          >
-            {agent.context}
-          </div>
-          {agent.context.length > 150 && (
-            <button
-              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-              className='flex items-center gap-1 text-xs text-primary hover:text-primary/80 cursor-pointer transition-colors duration-200'
+          {agent.description && (
+            <div
+              className='text-base text-foreground font-medium'
+              title={agent.description}
             >
-              {isDescriptionExpanded ? (
-                <>
-                  <ChevronUp className='h-3 w-3' />
-                  Show less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className='h-3 w-3' />
-                  Show more
-                </>
-              )}
-            </button>
+              {agent.description}
+            </div>
           )}
         </div>
       )}

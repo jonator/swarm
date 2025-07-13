@@ -1,9 +1,9 @@
 'use server'
 
+import { redirect } from 'next/navigation'
 import { authGuard } from '@/lib/client/authed'
 import { getInstallations } from '@/lib/services/github'
 import { getRepositories } from '@/lib/services/repositories'
-import { redirect } from 'next/navigation'
 
 /**
  * Routes entry into app, whether onboarding or the default

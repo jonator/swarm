@@ -1,5 +1,5 @@
-import { type GetUserParams, getUser } from '@/lib/services/users'
 import { queryOptions } from '@tanstack/react-query'
+import { type GetUserParams, getUser } from '@/lib/services/users'
 
 export const usersQuery = (params: GetUserParams = {}) =>
   queryOptions({

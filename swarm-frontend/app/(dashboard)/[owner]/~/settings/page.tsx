@@ -3,7 +3,9 @@ import { getUser } from '@/lib/services/users'
 
 export default async function OwnerSettingsPage({
   params,
-}: { params: Promise<{ owner: string }> }) {
+}: {
+  params: Promise<{ owner: string }>
+}) {
   const [{ owner }, { user }] = await Promise.all([params, getUser()])
 
   return (

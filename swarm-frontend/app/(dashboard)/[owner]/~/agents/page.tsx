@@ -1,15 +1,17 @@
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
+import { headers } from 'next/headers'
 import { AgentsList } from '@/components/agents/list'
 import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
 import { agentsQuery } from '@/lib/queries/keys/agents'
 import { getUser } from '@/lib/services/users'
 import { getNow } from '@/lib/utils/date'
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
-import { headers } from 'next/headers'
 
 export default async function OwnerAgentsPage({
   params,
-}: { params: Promise<{ owner: string }> }) {
+}: {
+  params: Promise<{ owner: string }>
+}) {
   const [{ owner }, { user }, headerList] = await Promise.all([
     params,
     getUser(),

@@ -1,14 +1,14 @@
 'use client'
 
-import { useAgentChannel } from '@/hooks/use-agent-channel'
+import { Bot, MessageSquare, RefreshCw, User, Zap } from 'lucide-react'
+import { motion } from 'motion/react'
+import { useEffect } from 'react'
 import type { MessageContent } from '@/hooks/use-agent-channel'
+import { useAgentChannel } from '@/hooks/use-agent-channel'
+import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
 import type { ProcessedMessage } from '@/lib/models/messages'
 import { cn } from '@/lib/utils/shadcn'
-import { Bot, MessageSquare, RefreshCw, User, Zap } from 'lucide-react'
 import { CombinedToolExecutionDisplay } from './tools'
-import { motion } from 'motion/react'
-import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom'
-import { useEffect } from 'react'
 
 // Helper function to extract text content from message content (string or array)
 function extractTextContent(content: string | MessageContent[]): string {

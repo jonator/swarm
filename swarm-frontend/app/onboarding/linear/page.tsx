@@ -1,8 +1,8 @@
+import { redirect } from 'next/navigation'
 import { InstallLinear } from '@/components/onboarding/linear'
 import { authGuard } from '@/lib/client/authed'
 import { hasLinearAccess } from '@/lib/services/linear'
 import { getRepositories } from '@/lib/services/repositories'
-import { redirect } from 'next/navigation'
 
 export default async function LinearOnboardingPage() {
   await authGuard()

@@ -1,6 +1,6 @@
-import { QueryClient, isServer } from '@tanstack/react-query'
+import { isServer, QueryClient } from '@tanstack/react-query'
 
-let browserQueryClient: QueryClient | undefined = undefined
+let browserQueryClient: QueryClient | undefined
 
 /*
  * This section is reserved for initializing the browserQueryClient

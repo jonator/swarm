@@ -10,6 +10,7 @@ import type {
 export type Agent = {
   id: string
   name: string
+  description: string
   context: string
   status: AgentStatus
   source: AgentSource
@@ -29,6 +30,7 @@ export function parseAgent(agent: ResponseAgent): Agent {
   return {
     id: agent.id,
     name: agent.name,
+    description: agent.description,
     context: agent.context,
     status: agent.status,
     source: agent.source,

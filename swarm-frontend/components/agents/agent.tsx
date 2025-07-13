@@ -7,7 +7,11 @@ export function AgentDisplay({
   id,
   now,
   timeZone,
-}: { id: string; now: Date; timeZone: string }) {
+}: {
+  id: string
+  now: Date
+  timeZone: string
+}) {
   const { data: agent, isLoading, error } = useAgent(id)
 
   if (isLoading) {

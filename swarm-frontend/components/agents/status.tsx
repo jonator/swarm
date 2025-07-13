@@ -1,8 +1,5 @@
 'use client'
 
-import { useAgent } from '@/lib/queries/hooks/agents'
-import type { AgentStatus, AgentType } from '@/lib/services/agents'
-import { cn } from '@/lib/utils/shadcn'
 import {
   CheckCircle,
   Clock,
@@ -14,6 +11,9 @@ import {
   XCircle,
 } from 'lucide-react'
 import type { ForwardRefExoticComponent, RefAttributes } from 'react'
+import { useAgent } from '@/lib/queries/hooks/agents'
+import type { AgentStatus, AgentType } from '@/lib/services/agents'
+import { cn } from '@/lib/utils/shadcn'
 
 export const statusMap: Record<
   AgentStatus,
@@ -117,7 +117,10 @@ export function AgentBreadcrumb({ id }: { id: string }) {
 export function StatusBadge({
   status,
   className,
-}: { status: AgentStatus; className?: string }) {
+}: {
+  status: AgentStatus
+  className?: string
+}) {
   const StatusIcon = statusMap[status].icon
   return (
     <span
@@ -138,7 +141,10 @@ export function StatusBadge({
 export function TypeBadge({
   type,
   className,
-}: { type: AgentType; className?: string }) {
+}: {
+  type: AgentType
+  className?: string
+}) {
   const TypeIcon = typeMap[type].icon
   return (
     <span

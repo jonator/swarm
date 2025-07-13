@@ -1,3 +1,5 @@
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
+import { headers } from 'next/headers'
 import { AgentHeader } from '@/components/agents/header'
 import { AgentMessages } from '@/components/agents/messages'
 import { AgentBreadcrumb } from '@/components/agents/status'
@@ -7,12 +9,12 @@ import { agentQuery } from '@/lib/queries/keys/agents'
 import { getAgent } from '@/lib/services/agents'
 import { getUser } from '@/lib/services/users'
 import { getNow } from '@/lib/utils/date'
-import { HydrationBoundary, dehydrate } from '@tanstack/react-query'
-import { headers } from 'next/headers'
 
 export default async function AgentPage({
   params,
-}: { params: Promise<{ owner: string; repo: string; id: string }> }) {
+}: {
+  params: Promise<{ owner: string; repo: string; id: string }>
+}) {
   const { owner, repo, id } = await params
 
   const [{ user }, headerList, { agent }] = await Promise.all([

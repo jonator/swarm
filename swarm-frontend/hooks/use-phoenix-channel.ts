@@ -1,5 +1,3 @@
-import { useSocket } from '@/context/socket'
-import { useTemporaryToken } from '@/lib/queries/hooks/token'
 import type { Socket } from 'phoenix'
 import {
   type ActionDispatch,
@@ -8,6 +6,8 @@ import {
   useReducer,
   useState,
 } from 'react'
+import { useSocket } from '@/context/socket'
+import { useTemporaryToken } from '@/lib/queries/hooks/token'
 
 function mustJoinChannelWarning() {
   return () =>

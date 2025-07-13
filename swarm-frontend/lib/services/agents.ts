@@ -10,6 +10,7 @@ export type ResponseAgent = {
   /** UUID */
   id: string
   name: string
+  description: string
   context: string
   status: AgentStatus
   source: AgentSource

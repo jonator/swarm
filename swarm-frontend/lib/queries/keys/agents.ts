@@ -1,10 +1,10 @@
+import { queryOptions } from '@tanstack/react-query'
 import { parseAgent } from '@/lib/models/agents'
 import {
   type GetAgentsParams,
   getAgent,
   getAgents,
 } from '@/lib/services/agents'
-import { queryOptions } from '@tanstack/react-query'
 
 export const agentsQuery = (params: GetAgentsParams) =>
   queryOptions({

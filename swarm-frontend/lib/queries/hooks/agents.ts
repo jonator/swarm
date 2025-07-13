@@ -1,5 +1,5 @@
-import type { GetAgentsParams } from '@/lib/services/agents'
 import { useQuery } from '@tanstack/react-query'
+import type { GetAgentsParams } from '@/lib/services/agents'
 import { agentQuery, agentsQuery } from '../keys/agents'
 
 export const useAgents = (params: GetAgentsParams) =>

@@ -1,16 +1,16 @@
 'use client'
 
-import { getRepositoryFrameworks } from '@/lib/services/github'
-import type { Repository } from '@/lib/services/github'
-import { createRepository } from '@/lib/services/repositories'
-import type { CreateRepositoryParams } from '@/lib/services/repositories'
-import { cn } from '@/lib/utils/shadcn'
 import { useQuery } from '@tanstack/react-query'
 import { BookIcon, Info } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { toast } from 'sonner'
+import type { Repository } from '@/lib/services/github'
+import { getRepositoryFrameworks } from '@/lib/services/github'
+import type { CreateRepositoryParams } from '@/lib/services/repositories'
+import { createRepository } from '@/lib/services/repositories'
+import { cn } from '@/lib/utils/shadcn'
 import { Button } from '../ui/button'
 import {
   Card,
@@ -37,7 +37,9 @@ import {
 
 export const ChooseRepo = ({
   repositories,
-}: { repositories: Repository[] }) => {
+}: {
+  repositories: Repository[]
+}) => {
   const [repository, setRepository] = useState<Repository | null>(null)
   const router = useRouter()
 
@@ -86,7 +88,10 @@ export const ChooseRepo = ({
 const ChooseGitHubRepo = ({
   repositories,
   onSelectRepo,
-}: { repositories: Repository[]; onSelectRepo: (repoId: string) => void }) => {
+}: {
+  repositories: Repository[]
+  onSelectRepo: (repoId: string) => void
+}) => {
   // id
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null)
 

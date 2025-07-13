@@ -1,8 +1,8 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { ThemeProvider as NextThemesProvider } from 'next-themes'
 import { Providers } from '@/components/providers'
 import { Toaster } from '@/components/ui/sonner'
-import { ThemeProvider as NextThemesProvider } from 'next-themes'
 
 export const metadata: Metadata = {
   title: 'Swarm',
