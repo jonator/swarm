@@ -22,7 +22,7 @@ export const apiClient = ky.create({
         // See: https://github.com/sindresorhus/ky/blob/main/source/errors/HTTPError.ts
         const { response } = error
         if (response?.body) {
-          // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+          // biome-ignore lint/suspicious/noExplicitAny: false positive
           let body: any
           try {
             body = (await response.json()) as ApiError

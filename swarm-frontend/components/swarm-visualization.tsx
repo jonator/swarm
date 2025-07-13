@@ -52,6 +52,7 @@ function GitHubLogo({ position }: GitHubLogoProps) {
       floatIntensity={0.3}
       position={position}
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: Three.js <group> is used for 3D interactivity and cannot use role or tabIndex */}
       <group
         ref={ref}
         onPointerOver={() => setHovered(true)}
