@@ -35,7 +35,7 @@ defmodule Swarm.Agents.LLMChain do
       iex> {:ok, result, _} = LLMChain.run_until_tool_used(chain, "finished")
   """
   def create(opts \\ []) do
-    model = Keyword.get(opts, :model, "claude-sonnet-4-20250514")
+    model = Keyword.get(opts, :model, "claude-3-5-haiku-latest")
     max_tokens = Keyword.get(opts, :max_tokens, 8192)
     temperature = Keyword.get(opts, :temperature, 0.5)
     custom_context = Keyword.get(opts, :custom_context, %{})
@@ -110,11 +110,13 @@ defmodule Swarm.Agents.LLMChain do
           # Extract the actual content from the ContentPart struct
           content = extract_content(delta)
 
-          PubSub.broadcast(
-            Swarm.PubSub,
-            "agent:#{agent_id}",
-            {"message_delta", %{delta: content}}
-          )
+          if content != "" do
+            PubSub.broadcast(
+              Swarm.PubSub,
+              "agent:#{agent_id}",
+              {"message_delta", %{delta: content}}
+            )
+          end
         end)
       end,
       on_message_processed: fn _chain, %LangChain.Message{} = message ->

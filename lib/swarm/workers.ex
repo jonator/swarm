@@ -13,7 +13,7 @@ defmodule Swarm.Workers do
   alias Swarm.Egress
   alias Swarm.Agents
   alias Swarm.Agents.Agent
-  alias Swarm.Instructor.{AgentType, AgentName}
+  alias Swarm.Instructor.{AgentType, AgentName, AgentDescription}
 
   @agent_update_window_seconds 5
 
@@ -37,15 +37,19 @@ defmodule Swarm.Workers do
 
     # Run agent type and agent name determination concurrently
     type_task = Task.async(fn -> AgentType.determine(context) end)
-    name_task = Task.async(fn -> AgentName.generate_agent_name(context) end)
-    [type_result, name_result] = Task.await_many([type_task, name_task], 15_000)
+    description_task = Task.async(fn -> AgentDescription.generate(context) end)
+    name_task = Task.async(fn -> AgentName.generate(context) end)
+
+    [type_result, description_result, name_result] =
+      Task.await_many([type_task, description_task, name_task], 15_000)
 
     frontend_origin = Application.get_env(:swarm, :frontend_origin)
 
     with {:ok, %AgentType{agent_type: agent_type}} <- type_result,
+         {:ok, %AgentDescription{agent_description: agent_description}} <- description_result,
          {:ok, %AgentName{agent_name: agent_name}} <- name_result,
          {:ok, %{agent: agent, action: action}} <-
-           create_or_update_agent(agent_attrs, agent_type, agent_name, event) do
+           create_or_update_agent(agent_attrs, agent_type, agent_description, agent_name, event) do
       repo = Repo.preload(agent, :repository).repository
 
       case action do
@@ -77,12 +81,13 @@ defmodule Swarm.Workers do
     end
   end
 
-  defp create_or_update_agent(agent_attrs, agent_type, agent_name, event) do
+  defp create_or_update_agent(agent_attrs, agent_type, agent_description, agent_name, event) do
     # Check for existing pending agent with overlapping agent_attrs
     case Agents.find_pending_agent_with_any_ids(agent_attrs) do
       nil ->
         # Create new agent
-        with {:ok, agent} <- create_new_agent(agent_attrs, agent_type, agent_name, event) do
+        with {:ok, agent} <-
+               create_new_agent(agent_attrs, agent_type, agent_description, agent_name, event) do
           {:ok, %{agent: agent, action: :created}}
         end
 
@@ -90,19 +95,26 @@ defmodule Swarm.Workers do
         # Update existing agent with new data
         Logger.info("Found existing pending agent #{existing_agent.id}, updating data")
 
-        case update_existing_agent(existing_agent, agent_attrs, agent_type, agent_name) do
+        case update_existing_agent(
+               existing_agent,
+               agent_attrs,
+               agent_type,
+               agent_description,
+               agent_name
+             ) do
           {:ok, agent} -> {:ok, %{agent: agent, action: :updated}}
           error -> error
         end
     end
   end
 
-  defp create_new_agent(agent_attrs, agent_type, agent_name, event) do
+  defp create_new_agent(agent_attrs, agent_type, agent_description, agent_name, event) do
     # Use external_ids from agent_attrs, or fall back to event external_ids
     external_ids = Map.get(agent_attrs, :external_ids, event.external_ids || %{})
 
     agent_params = %{
       name: agent_name,
+      description: agent_description,
       context: Map.get(agent_attrs, :context, ""),
       status: :pending,
       source: Map.get(agent_attrs, :source, event.source),
@@ -115,7 +127,7 @@ defmodule Swarm.Workers do
     Agents.create_agent(agent_params)
   end
 
-  defp update_existing_agent(agent, agent_attrs, agent_type, agent_name) do
+  defp update_existing_agent(agent, agent_attrs, agent_type, agent_description, agent_name) do
     # Use external_ids from agent_attrs, merge with existing agent external_ids
     new_external_ids = Map.get(agent_attrs, :external_ids, %{})
     merged_external_ids = Map.merge(agent.external_ids || %{}, new_external_ids)
@@ -124,6 +136,7 @@ defmodule Swarm.Workers do
       context: Map.get(agent_attrs, :context, agent.context),
       type: agent_type,
       name: agent_name,
+      description: agent_description,
       external_ids: merged_external_ids,
       # Keep the agent as pending, don't change status
       status: :pending

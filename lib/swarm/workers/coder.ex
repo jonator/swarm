@@ -151,7 +151,6 @@ defmodule Swarm.Workers.Coder do
     # Create LLM chain with shared logic
     SharedLLMChain.create(
       agent: agent,
-      max_tokens: 64000,
       custom_context: %{
         "git_repo" => git_repo,
         "agent" => agent

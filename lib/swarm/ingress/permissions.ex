@@ -44,14 +44,14 @@ defmodule Swarm.Ingress.Permissions do
   """
   def find_user(%Event{user_id: user_id}) when not is_nil(user_id) do
     case Accounts.get_user(user_id) do
-      nil -> {:error, "User not found: #{user_id}"}
+      nil -> {:unauthorized, "User not found: #{user_id}"}
       %User{} = user -> {:ok, user}
     end
   end
 
   def find_user(%Event{source: :manual, user_id: user_id}) when not is_nil(user_id) do
     case Accounts.get_user(user_id) do
-      nil -> {:error, "User not found: #{user_id}"}
+      nil -> {:unauthorized, "User not found: #{user_id}"}
       %User{} = user -> {:ok, user}
     end
   end
@@ -60,7 +60,7 @@ defmodule Swarm.Ingress.Permissions do
     sender_login = Map.get(external_ids, "github_sender_login")
 
     case sender_login do
-      nil -> {:error, "No sender found in GitHub event"}
+      nil -> {:unauthorized, "No sender found in GitHub event"}
       username -> find_user_by_github_username(username)
     end
   end
@@ -69,7 +69,7 @@ defmodule Swarm.Ingress.Permissions do
     actor = get_in(context, [:actor, "email"])
 
     case actor do
-      nil -> {:error, "No actor email found in Linear event"}
+      nil -> {:unauthorized, "No actor email found in Linear event"}
       email -> find_user_by_email(email)
     end
   end
@@ -78,13 +78,13 @@ defmodule Swarm.Ingress.Permissions do
     user_id = get_in(context, [:event, "user"])
 
     case user_id do
-      nil -> {:error, "No user ID found in Slack event"}
+      nil -> {:unauthorized, "No user ID found in Slack event"}
       slack_user_id -> find_user_by_slack_id(slack_user_id)
     end
   end
 
   def find_user(_event) do
-    {:error, "Unable to identify user from event"}
+    {:unauthorized, "Unable to identify user from event"}
   end
 
   @doc """
@@ -98,10 +98,10 @@ defmodule Swarm.Ingress.Permissions do
       %Event{source: :github, repository_external_id: repo_id} when not is_nil(repo_id) ->
         case Repositories.get_user_repository(user, repo_id) do
           nil ->
-            {:error, "User does not have access to repository: #{repo_id}"}
+            {:unauthorized, "User does not have access to repository: #{repo_id}"}
 
           %Repository{organization: nil} ->
-            {:error, "Repository does not have an organization"}
+            {:unauthorized, "Repository does not have an organization"}
 
           repository ->
             repository = Swarm.Repo.preload(repository, :organization)
@@ -112,7 +112,7 @@ defmodule Swarm.Ingress.Permissions do
       %Event{repository_external_id: repo_id} when not is_nil(repo_id) ->
         case Repositories.get_user_repository(user, repo_id) do
           nil ->
-            {:error, "User does not have access to repository: #{repo_id}"}
+            {:unauthorized, "User does not have access to repository: #{repo_id}"}
 
           repository ->
             repository = Swarm.Repo.preload(repository, :organization)
@@ -132,21 +132,21 @@ defmodule Swarm.Ingress.Permissions do
     # For now, we assume GitHub username matches our internal username
     # This could be enhanced to use a mapping table if needed
     case Accounts.get_user_by_username(username) do
-      nil -> {:error, "No user found with GitHub username: #{username}"}
+      nil -> {:unauthorized, "No user found with GitHub username: #{username}"}
       %User{} = user -> {:ok, user}
     end
   end
 
   defp find_user_by_email(email) do
     case Accounts.get_user_by_email(email) do
-      nil -> {:error, "No user found with email: #{email}"}
+      nil -> {:unauthorized, "No user found with email: #{email}"}
       %User{} = user -> {:ok, user}
     end
   end
 
   defp find_user_by_slack_id(_slack_user_id) do
     # TODO: Implement Slack user ID to internal user mapping
-    {:error, "Slack user mapping not yet implemented"}
+    {:unauthorized, "Slack user mapping not yet implemented"}
   end
 
   defp find_linear_event_repository(user, type, external_ids) do
@@ -159,7 +159,7 @@ defmodule Swarm.Ingress.Permissions do
             external_ids["linear_project_id"]
           )
         else
-          {:error, "No team information found in Linear event"}
+          {:unauthorized, "No team information found in Linear event"}
         end
 
       team_id ->
@@ -171,7 +171,7 @@ defmodule Swarm.Ingress.Permissions do
     # Look for repositories that have this Linear team ID in their external IDs
     case Repositories.list_repositories(user) do
       [] ->
-        {:error, "No repositories found for user"}
+        {:unauthorized, "No repositories found for user"}
 
       repositories ->
         matching_repo =
@@ -181,7 +181,7 @@ defmodule Swarm.Ingress.Permissions do
 
         case matching_repo do
           nil ->
-            {:error, "No repository found with Linear team ID: #{team_id}"}
+            {:unauthorized, "No repository found with Linear team ID: #{team_id}"}
 
           repository ->
             repository = Swarm.Repo.preload(repository, :organization)
@@ -189,7 +189,7 @@ defmodule Swarm.Ingress.Permissions do
             if repository.organization do
               {:ok, repository, repository.organization}
             else
-              {:error, "Repository #{repository.id} does not have an organization"}
+              {:unauthorized, "Repository #{repository.id} does not have an organization"}
             end
         end
     end
@@ -200,7 +200,7 @@ defmodule Swarm.Ingress.Permissions do
       {:ok, %{"project" => %{"teams" => %{"nodes" => teams}}}} ->
         case teams do
           [] ->
-            {:error,
+            {:unauthorized,
              "No teams available for finding repository with Linear project ID: #{project_id}"}
 
           [team] ->
@@ -215,7 +215,7 @@ defmodule Swarm.Ingress.Permissions do
         end
 
       {:error, _reason} ->
-        {:error, "No repository found with Linear project ID: #{project_id}"}
+        {:unauthorized, "No repository found with Linear project ID: #{project_id}"}
     end
   end
 end

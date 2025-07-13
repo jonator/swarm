@@ -24,7 +24,7 @@ defmodule Swarm.Agents.Message do
   def changeset(message, attrs) do
     message
     |> cast(attrs, [:content, :index, :type, :agent_id])
-    |> validate_required([:content, :index, :type, :agent_id])
+    |> validate_required([:index, :type, :agent_id])
   end
 
   @doc """

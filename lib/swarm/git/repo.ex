@@ -83,13 +83,31 @@ defmodule Swarm.Git.Repo do
 
     Logger.debug("Running shell command as user #{linux_user}: #{command}")
 
+    # Build environment variable prefix for the command
+    # The issue is that when using sudo -u <user> to run commands as a different Linux user, environment variables don't get passed through to the target user's shell session. The sudo command resets the environment for security reasons.
+    # This is ideal as the swarm app has full control over the environment variables.
+    # And doesn't have to worry about cleaning up any Swarm app or system environment variables.
+    env_prefix =
+      env
+      |> Enum.map(fn {key, value} -> "#{key}=#{value}" end)
+      |> Enum.join(" ")
+
+    # Prepend environment variables to the command if any exist
+    full_command =
+      if env_prefix != "" do
+        "#{env_prefix} #{command}"
+      else
+        command
+      end
+
+    Logger.debug("Full command with environment: #{full_command}")
+
     # Use Task to run System.cmd with timeout support
     task =
       Task.async(fn ->
         System.cmd(
           "sudo",
-          ["-u", linux_user, "sh", "-c", command],
-          env: env,
+          ["-u", linux_user, "sh", "-c", full_command],
           cd: path,
           stderr_to_stdout: true
         )

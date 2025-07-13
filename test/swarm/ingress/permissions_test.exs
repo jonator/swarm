@@ -47,7 +47,7 @@ defmodule Swarm.Ingress.PermissionsTest do
       assert found_repo.id == repository.id
     end
 
-    test "returns error when no team mapping exists", %{user: user} do
+    test "returns unauthorized when no team mapping exists", %{user: user} do
       # Create repository without matching team ID
       _repo =
         repository_fixture(user, %{
@@ -60,7 +60,7 @@ defmodule Swarm.Ingress.PermissionsTest do
       params = linear_issue_assigned_to_swarm_params()
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
 
-      assert {:error,
+      assert {:unauthorized,
               "No repository found with Linear team ID: 2564b0ba-7e78-4dc4-9012-bbd1e9acd1d2"} =
                Permissions.validate_repository_access(user, event)
     end
@@ -69,7 +69,7 @@ defmodule Swarm.Ingress.PermissionsTest do
       params = linear_issue_assigned_to_swarm_params()
       {:ok, event} = Event.new(params, :linear, user_id: user.id)
 
-      assert {:error, "No repositories found for user"} =
+      assert {:unauthorized, "No repositories found for user"} =
                Permissions.validate_repository_access(user, event)
     end
 

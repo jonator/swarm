@@ -5,6 +5,7 @@ defmodule Swarm.Repo.Migrations.CreateAgents do
     create table(:agents, primary_key: false) do
       add :id, :uuid, primary_key: true, null: false
       add :name, :string, null: false
+      add :description, :text, null: false
       add :context, :text, null: false
       add :status, :string, null: false
       add :source, :string, null: false

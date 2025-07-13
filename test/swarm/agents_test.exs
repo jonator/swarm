@@ -12,6 +12,7 @@ defmodule Swarm.AgentsTest do
 
     @invalid_attrs %{
       name: nil,
+      description: nil,
       status: nil,
       type: nil,
       context: nil,
@@ -33,6 +34,7 @@ defmodule Swarm.AgentsTest do
 
       valid_attrs = %{
         name: "some name",
+        description: "Research code implementation and architecture",
         status: :pending,
         type: :researcher,
         context: "some context",
@@ -52,6 +54,7 @@ defmodule Swarm.AgentsTest do
 
       assert {:ok, %Agent{} = agent} = Agents.create_agent(valid_attrs)
       assert agent.name == "some name"
+      assert agent.description == "Research code implementation and architecture"
       assert agent.status == :pending
       assert agent.type == :researcher
       assert agent.context == "some context"
@@ -80,6 +83,7 @@ defmodule Swarm.AgentsTest do
 
       update_attrs = %{
         name: "some updated name",
+        description: "Implement new feature functionality",
         status: :running,
         type: :coder,
         context: "some updated context",
@@ -98,6 +102,7 @@ defmodule Swarm.AgentsTest do
       assert {:ok, %Agent{} = agent} = Agents.update_agent(agent, update_attrs)
       assert is_binary(agent.id)
       assert agent.name == "some updated name"
+      assert agent.description == "Implement new feature functionality"
       assert agent.status == :running
       assert agent.type == :coder
       assert agent.context == "some updated context"

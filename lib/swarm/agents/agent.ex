@@ -21,6 +21,7 @@ defmodule Swarm.Agents.Agent do
   @primary_key {:id, Ecto.UUID, autogenerate: true}
   schema "agents" do
     field :name, :string
+    field :description, :string
     field :context, :string
     field :status, Ecto.Enum, values: [:pending, :running, :completed, :failed]
     field :source, Ecto.Enum, values: [:manual, :linear, :slack, :github]
@@ -42,6 +43,7 @@ defmodule Swarm.Agents.Agent do
     agent
     |> cast(attrs, [
       :name,
+      :description,
       :context,
       :status,
       :source,
@@ -56,6 +58,7 @@ defmodule Swarm.Agents.Agent do
     ])
     |> validate_required([
       :name,
+      :description,
       :context,
       :status,
       :source,

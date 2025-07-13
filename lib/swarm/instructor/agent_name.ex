@@ -12,7 +12,7 @@ defmodule Swarm.Instructor.AgentName do
     field(:agent_name, :string)
   end
 
-  def generate_agent_name(instructions) do
+  def generate(instructions) do
     Instructor.chat_completion(
       [
         model: "gpt-4o-mini",
@@ -39,7 +39,8 @@ defmodule Swarm.Instructor.AgentName do
         ]
       ],
       adapter: Instructor.Adapters.OpenAI,
-      api_key: Application.fetch_env!(:instructor, :openai)[:api_key]
+      api_key: Application.fetch_env!(:instructor, :openai)[:api_key],
+      http_options: [retry: :transient]
     )
   end
 end

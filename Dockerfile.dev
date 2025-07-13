@@ -6,7 +6,7 @@ ARG BUILDER_IMAGE="hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-$
 
 FROM ${BUILDER_IMAGE} AS dev
 
-# Install development dependencies
+# Install development dependencies including asdf prerequisites
 RUN apt-get update -y && apt-get install -y \
     build-essential \
     git \
@@ -35,15 +35,24 @@ RUN apt-get update -y && apt-get install -y \
     less \
     psmisc \
     net-tools \
-    python3 \
-    python3-pip \
-    nodejs \
-    npm \
+    # asdf prerequisites
+    autoconf \
+    automake \
+    autotools-dev \
+    libncurses5-dev \
+    libtool \
+    pkg-config \
+    zlib1g-dev \
+    libssl-dev \
+    libreadline-dev \
+    libyaml-dev \
+    libsqlite3-dev \
+    libxml2-dev \
+    libxslt1-dev \
+    libcurl4-openssl-dev \
+    libffi-dev \
+    libbz2-dev \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
-
-# Install Rust for compiling Rambo
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Create swarm-agents group for user management
 RUN groupadd swarm-agents
@@ -62,6 +71,47 @@ RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
     && apt update \
     && apt install gh -y
 
+# Install asdf
+RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1
+
+# Add asdf to PATH and shell initialization
+RUN echo '. $HOME/.asdf/asdf.sh' >> ~/.bashrc
+RUN echo '. $HOME/.asdf/completions/asdf.bash' >> ~/.bashrc
+
+# Set HOME and ASDF_DIR for asdf
+ENV HOME=/root
+ENV ASDF_DIR=/root/.asdf
+ENV PATH="/root/.asdf/bin:/root/.asdf/shims:$PATH"
+
+# Install asdf plugins
+RUN . /root/.asdf/asdf.sh && \
+    asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git && \
+    asdf plugin add python https://github.com/asdf-community/asdf-python.git && \
+    asdf plugin add golang https://github.com/asdf-community/asdf-golang.git && \
+    asdf plugin add ruby https://github.com/asdf-vm/asdf-ruby.git && \
+    asdf plugin add bun https://github.com/cometkim/asdf-bun.git && \
+    asdf plugin add deno https://github.com/asdf-community/asdf-deno.git && \
+    asdf plugin add rust https://github.com/asdf-community/asdf-rust.git
+
+# Install latest versions of tools
+RUN . /root/.asdf/asdf.sh && \
+    asdf install nodejs latest && \
+    asdf install python latest && \
+    asdf install golang latest && \
+    asdf install ruby latest && \
+    asdf install bun latest && \
+    asdf install deno latest && \
+    asdf install rust latest
+
+# Set global versions
+RUN . /root/.asdf/asdf.sh && \
+    asdf global nodejs latest && \
+    asdf global python latest && \
+    asdf global golang latest && \
+    asdf global ruby latest && \
+    asdf global bun latest && \
+    asdf global deno latest && \
+    asdf global rust latest
 
 # Prepare app directory
 WORKDIR /app

@@ -1,6 +1,8 @@
 defmodule Swarm.Services.GitHub do
   @moduledoc """
   This module implements a GitHub service for interacting with the GitHub API as needed by Swarm.
+
+  Built on Tentacat: https://hexdocs.pm/tentacat/Tentacat.html
   """
   use TypedStruct
 
@@ -191,6 +193,25 @@ defmodule Swarm.Services.GitHub do
 
       error ->
         {:error, format_error(error)}
+    end
+  end
+
+  def pull_request_info(%Organization{} = organization, owner, repo, pr_number) do
+    with {:ok, %__MODULE__{} = client} <- new(organization) do
+      pull_request_info(client, owner, repo, pr_number)
+    end
+  end
+
+  def pull_request_info(%User{} = user, owner, repo, pr_number) do
+    with {:ok, %__MODULE__{} = client} <- new(user) do
+      pull_request_info(client, owner, repo, pr_number)
+    end
+  end
+
+  def pull_request_info(%__MODULE__{client: client}, owner, repo, pr_number) do
+    case Tentacat.Pulls.find(client, owner, repo, pr_number) do
+      {200, pr_info, _} -> {:ok, pr_info}
+      error -> {:error, format_error(error)}
     end
   end
 
