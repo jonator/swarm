@@ -153,6 +153,9 @@ defmodule Swarm.Ingress.Event do
     |> extract_linear_team_id(data)
     |> extract_linear_project_id(data)
     |> extract_linear_app_user_id(data)
+    |> extract_linear_actor_id(data)
+    |> extract_linear_actor_email(data)
+    |> extract_linear_actor_name(data)
     |> then(&{:ok, &1})
   end
 
@@ -354,6 +357,30 @@ defmodule Swarm.Ingress.Event do
   defp extract_linear_app_user_id(external_ids, data) do
     if data["appUserId"] do
       Map.put(external_ids, "linear_app_user_id", data["appUserId"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_linear_actor_id(external_ids, data) do
+    if data["notification"]["actorId"] do
+      Map.put(external_ids, "linear_actor_id", data["notification"]["actorId"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_linear_actor_email(external_ids, data) do
+    if data["notification"]["actor"]["email"] do
+      Map.put(external_ids, "linear_actor_email", data["notification"]["actor"]["email"])
+    else
+      external_ids
+    end
+  end
+
+  defp extract_linear_actor_name(external_ids, data) do
+    if data["notification"]["actor"]["name"] do
+      Map.put(external_ids, "linear_actor_name", data["notification"]["actor"]["name"])
     else
       external_ids
     end

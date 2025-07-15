@@ -8,6 +8,7 @@ defmodule Swarm.Accounts do
 
   alias Swarm.Accounts.User
   alias Swarm.Accounts.Token
+  alias Swarm.Accounts.Identity
 
   @doc """
   Returns the list of users.
@@ -54,18 +55,25 @@ defmodule Swarm.Accounts do
   def get_user(id), do: Repo.get(User, id)
 
   @doc """
-  Gets a single user by username.
+  Gets a single user by primary username.
 
   Returns `nil` if the User does not exist.
   """
   def get_user_by_username(username), do: Repo.get_by(User, username: username)
 
   @doc """
-  Gets a single user by email.
+  Gets a single user by primary email.
 
   Returns `nil` if the User does not exist.
   """
   def get_user_by_email(email), do: Repo.get_by(User, email: email)
+
+  @doc """
+  Gets a single user by identity.
+
+  Returns `nil` if the User does not exist.
+  """
+  def get_user_by_identity(identity), do: Repo.get_by(User, identity: identity)
 
   @doc """
   Gets a single user by username and email or creates a new user if they don't exist.
@@ -241,5 +249,33 @@ defmodule Swarm.Accounts do
     Token
     |> where(linear_workspace_external_id: ^external_id)
     |> Repo.one()
+  end
+
+  @doc """
+  Gets an identity by provider and external ID.
+  """
+  def get_identity(provider, external_id) do
+    Identity
+    |> where(provider: ^provider)
+    |> where(external_id: ^external_id)
+    |> Repo.one()
+  end
+
+  @doc """
+  Creates an identity for a user for a given provider.
+  Returns {:ok, %Identity{}} or {:error, %Ecto.Changeset{}}
+  """
+  def create_identity(%User{} = user, provider, external_id, email, username) do
+    attrs = %{
+      provider: provider,
+      external_id: external_id,
+      email: email,
+      username: username,
+      user_id: user.id
+    }
+
+    %Identity{}
+    |> Identity.changeset(attrs)
+    |> Repo.insert(on_conflict: :nothing, conflict_target: [:provider, :external_id])
   end
 end

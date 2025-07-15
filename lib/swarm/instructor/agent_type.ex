@@ -5,12 +5,12 @@ defmodule Swarm.Instructor.AgentType do
 
   @llm_doc """
   ## Fields
-  - `agent_type`: An enum indicating the type of agent that should handle this task (:researcher, :coder, :code_reviewer).
+  - `agent_type`: An enum indicating the type of agent that should handle this task (:researcher, :coder).
   - `reason`: A string explaining why this agent type was selected for the given instruction.
   """
   @primary_key false
   embedded_schema do
-    field(:agent_type, Ecto.Enum, values: [:researcher, :coder, :code_reviewer])
+    field(:agent_type, Ecto.Enum, values: [:researcher, :coder])
     field(:reason, :string)
   end
 
@@ -33,8 +33,6 @@ defmodule Swarm.Instructor.AgentType do
             - **researcher**: For tasks that require analyzing code, understanding requirements, gathering information, or providing insights about codebases. Use when the task involves investigation, documentation review, or initial analysis. Also notice if a task is a follow up to a previous plan or comment.
 
             - **coder**: For tasks that involve implementing features, writing code, fixing bugs, creating new functionality, or making specific code changes. Use when the task requires actual coding work. ONLY if the instruction contains a specific step-by-step development plan with specific files mentioned, etc.
-
-            - **code_reviewer**: For tasks that involve reviewing pull requests, analyzing existing code quality, providing feedback on implementations, or evaluating code changes. Use when the task involves assessment or review of existing code.
 
             Return the appropriate agent_type and provide a clear reason for your selection.
             """

@@ -42,7 +42,14 @@ defmodule SwarmWeb.EventController do
             |> json(%{status: "agent_updated", message: "Existing agent updated"})
 
           {:ok, :ignored} ->
-            json(conn, %{status: "ignored", message: "Event was ignored"})
+            conn
+            |> put_status(:ok)
+            |> json(%{status: "ignored", message: "Event was ignored"})
+
+          {:unauthorized, reason} ->
+            conn
+            |> put_status(:unauthorized)
+            |> json(%{status: "unauthorized", message: reason})
 
           {:error, reason} ->
             Logger.error("Error processing event: #{reason}")

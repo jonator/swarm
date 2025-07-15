@@ -61,14 +61,14 @@ defmodule Swarm.Git.Repo do
   end
 
   def list_files(%__MODULE__{path: path, linux_user: linux_user}) do
-    case cmd_as_user(linux_user, "git", ["ls-files"], cd: path) do
+    case ucmd(linux_user, "git", ["ls-files"], cd: path) do
       {output, 0} -> {:ok, output}
       {error, _} -> {:error, "Failed to list files: #{error}"}
     end
   end
 
   def open_file(%__MODULE__{path: path, linux_user: linux_user}, file) do
-    case cmd_as_user(linux_user, "cat", [file], cd: path) do
+    case ucmd(linux_user, "cat", [file], cd: path) do
       {output, 0} -> {:ok, output}
       {error, _} -> {:error, "Failed to open file: #{error}"}
     end
@@ -129,14 +129,14 @@ defmodule Swarm.Git.Repo do
   end
 
   defp switch_branch(path, branch, linux_user) do
-    case cmd_as_user(linux_user, "git", ["switch", "-C", branch], cd: path) do
+    case ucmd(linux_user, "git", ["switch", "-C", branch], cd: path) do
       {output, 0} -> {:ok, output}
       {error, _} -> {:error, "Failed to switch to branch #{branch}: #{error}"}
     end
   end
 
   defp get_default_branch(path, linux_user) do
-    case cmd_as_user(linux_user, "git", ["symbolic-ref", "refs/remotes/origin/HEAD"], cd: path) do
+    case ucmd(linux_user, "git", ["symbolic-ref", "refs/remotes/origin/HEAD"], cd: path) do
       {output, 0} ->
         # Output format: "refs/remotes/origin/main"
         default_branch =
@@ -149,7 +149,7 @@ defmodule Swarm.Git.Repo do
 
       {_error, _} ->
         # Fall back to checking common default branches
-        case cmd_as_user(linux_user, "git", ["branch", "-r"], cd: path) do
+        case ucmd(linux_user, "git", ["branch", "-r"], cd: path) do
           {output, 0} ->
             cond do
               String.contains?(output, "origin/main") -> {:ok, "main"}
@@ -204,7 +204,7 @@ defmodule Swarm.Git.Repo do
   end
 
   # Helper function to run git commands as a specific linux user
-  defp cmd_as_user(linux_user, command, args, opts \\ []) do
+  defp ucmd(linux_user, command, args, opts \\ []) do
     System.cmd(
       "sudo",
       ["-u", linux_user] ++ [command] ++ args,
@@ -216,7 +216,7 @@ defmodule Swarm.Git.Repo do
     if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
       Logger.warning("Repository already exists at #{path}, deleting and re-cloning")
 
-      case cmd_as_user(linux_user, "rm", ["-rf", path]) do
+      case ucmd(linux_user, "rm", ["-rf", path]) do
         {_, 0} ->
           Logger.debug("Successfully deleted existing repository at #{path}")
           clone_repository(auth_url, path, linux_user)
@@ -232,7 +232,7 @@ defmodule Swarm.Git.Repo do
   end
 
   defp clone_repository(auth_url, path, linux_user) do
-    case cmd_as_user(linux_user, "git", [
+    case ucmd(linux_user, "git", [
            "clone",
            "--filter=blob:none",
            "--quiet",
@@ -253,14 +253,14 @@ defmodule Swarm.Git.Repo do
     github_app_id = Application.get_env(:swarm, :github_client_id)
 
     # Add repository to Git safe directories to prevent dubious ownership warnings
-    cmd_as_user(linux_user, "git", ["config", "--global", "--add", "safe.directory", path])
+    ucmd(linux_user, "git", ["config", "--global", "--add", "safe.directory", path])
 
     # Set git user name as swarm[bot]
-    cmd_as_user(linux_user, "git", ["config", "user.name", "swarm[bot]"], cd: path)
+    ucmd(linux_user, "git", ["config", "user.name", "swarm[bot]"], cd: path)
 
     # Set git user email as {app_id}+swarm[bot]@users.noreply.github.com
     email = "#{github_app_id}+swarm[bot]@users.noreply.github.com"
-    cmd_as_user(linux_user, "git", ["config", "user.email", email], cd: path)
+    ucmd(linux_user, "git", ["config", "user.email", email], cd: path)
 
     Logger.debug("Configured git user for Swarm GitHub App: swarm[bot] <#{email}>")
   end

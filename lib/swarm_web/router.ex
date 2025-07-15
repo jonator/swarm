@@ -32,6 +32,7 @@ defmodule SwarmWeb.Router do
   scope "/api", SwarmWeb do
     pipe_through [:api, :auth]
 
+    # Primary login + sign up method
     post "/auth/github", SessionController, :github
 
     # Auth

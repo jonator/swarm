@@ -35,8 +35,8 @@ defmodule Swarm.Ingress.GitHubHandler do
            {:ok, agent_attrs} <- build_agent_attributes(event, user, repository, organization) do
         {:ok, agent_attrs}
       else
-        {:error, reason} = error ->
-          Logger.warning("GitHub event processing failed: #{reason}")
+        {:unauthorized, reason} = error ->
+          Logger.warning("GitHub event unauthorized: #{reason}")
           error
       end
     else

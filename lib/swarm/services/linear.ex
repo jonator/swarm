@@ -404,6 +404,8 @@ defmodule Swarm.Services.Linear do
            query(access_token, """
             viewer {
               id
+              email
+              displayName
             }
            """),
          {:ok, fresh_access_token} <-
@@ -414,6 +416,15 @@ defmodule Swarm.Services.Linear do
              linear_workspace_external_id: viewer["id"],
              type: :access
            }) do
+      {:ok, _} =
+        Accounts.create_identity(
+          user,
+          :linear,
+          viewer["id"],
+          viewer["email"],
+          viewer["displayName"]
+        )
+
       {:ok, user, fresh_access_token}
     else
       {:ok, %Req.Response{status: 401}} ->

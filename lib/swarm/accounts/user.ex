@@ -6,14 +6,19 @@ defmodule Swarm.Accounts.User do
   alias Swarm.Organizations.Organization
   alias Swarm.Accounts.UserOrganization
   alias Swarm.Accounts.Token
+  alias Swarm.Accounts.Identity
 
   schema "users" do
+    # These are GitHub centric fields.
+    # We leave these here for convenience since this app is GitHub centric.
     field :email, :string
     field :username, :string
-    field :role, Ecto.Enum, values: [:admin, :user], default: :user
     field :avatar_url, :string
+
+    field :role, Ecto.Enum, values: [:admin, :user], default: :user
     many_to_many :organizations, Organization, join_through: UserOrganization
     has_many :tokens, Token
+    has_many :identities, Identity
 
     timestamps()
   end

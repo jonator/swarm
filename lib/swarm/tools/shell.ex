@@ -98,7 +98,7 @@ defmodule Swarm.Tools.Shell do
       ~r{https://github\.com/(?<org>[^/]+)/(?<repo>[^/]+)/pull/(?<pull_request_number>\d+)}
 
     case Regex.run(pr_url_regex, output, capture: :all_names) do
-      [_, org, pull_request_number, repo] ->
+      [org, pull_request_number, repo] ->
         repository = Swarm.Repo.preload(agent, :repository).repository
 
         if repository.owner == org and repository.name == repo do

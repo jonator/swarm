@@ -24,6 +24,7 @@ defmodule SwarmWeb.AgentJSON do
     %{
       id: agent.id,
       name: agent.name,
+      description: agent.description,
       context: agent.context,
       status: agent.status,
       source: agent.source,

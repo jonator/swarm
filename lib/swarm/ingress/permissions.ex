@@ -10,7 +10,7 @@ defmodule Swarm.Ingress.Permissions do
   require Logger
 
   alias Swarm.Accounts
-  alias Swarm.Accounts.User
+  alias Swarm.Accounts.{User, Identity}
   alias Swarm.Repositories
   alias Swarm.Repositories.Repository
   alias Swarm.Ingress.Event
@@ -65,12 +65,38 @@ defmodule Swarm.Ingress.Permissions do
     end
   end
 
-  def find_user(%Event{source: :linear, context: context}) do
-    actor = get_in(context, [:actor, "email"])
+  def find_user(%Event{source: :linear, external_ids: external_ids}) do
+    actor_email = Map.get(external_ids, "linear_actor_email")
+    actor_id = Map.get(external_ids, "linear_actor_id")
 
-    case actor do
-      nil -> {:unauthorized, "No actor email found in Linear event"}
-      email -> find_user_by_email(email)
+    case actor_email do
+      nil ->
+        case Accounts.get_identity(:linear, actor_id) do
+          nil ->
+            {:unauthorized, "No Linear actor email in event, identity not found: #{actor_id}"}
+
+          %Identity{} = identity ->
+            user = Swarm.Repo.preload(identity, :user).user
+
+            {:ok, user}
+        end
+
+      email ->
+        case Accounts.get_user_by_email(email) do
+          nil ->
+            case Accounts.get_identity(:linear, actor_id) do
+              nil ->
+                {:unauthorized, "No Linear user found with email: #{email}, or ID: #{actor_id}"}
+
+              %Identity{} = identity ->
+                user = Swarm.Repo.preload(identity, :user).user
+
+                {:ok, user}
+            end
+
+          %User{} = user ->
+            {:ok, user}
+        end
     end
   end
 
@@ -90,66 +116,11 @@ defmodule Swarm.Ingress.Permissions do
   @doc """
   Validates that a user has access to the repository mentioned in the event.
   """
-  def validate_repository_access(%User{} = user, %Event{} = event) do
-    case event do
-      %Event{source: :linear, type: type, external_ids: external_ids} ->
-        find_linear_event_repository(user, type, external_ids)
 
-      %Event{source: :github, repository_external_id: repo_id} when not is_nil(repo_id) ->
-        case Repositories.get_user_repository(user, repo_id) do
-          nil ->
-            {:unauthorized, "User does not have access to repository: #{repo_id}"}
-
-          %Repository{organization: nil} ->
-            {:unauthorized, "Repository does not have an organization"}
-
-          repository ->
-            repository = Swarm.Repo.preload(repository, :organization)
-
-            {:ok, repository, repository.organization}
-        end
-
-      %Event{repository_external_id: repo_id} when not is_nil(repo_id) ->
-        case Repositories.get_user_repository(user, repo_id) do
-          nil ->
-            {:unauthorized, "User does not have access to repository: #{repo_id}"}
-
-          repository ->
-            repository = Swarm.Repo.preload(repository, :organization)
-
-            {:ok, repository, repository.organization}
-        end
-
-      %Event{repository_external_id: nil} ->
-        # No repository specified, access granted
-        {:ok, nil, nil}
-    end
-  end
-
-  # Helper functions for finding users by external identifiers
-
-  defp find_user_by_github_username(username) do
-    # For now, we assume GitHub username matches our internal username
-    # This could be enhanced to use a mapping table if needed
-    case Accounts.get_user_by_username(username) do
-      nil -> {:unauthorized, "No user found with GitHub username: #{username}"}
-      %User{} = user -> {:ok, user}
-    end
-  end
-
-  defp find_user_by_email(email) do
-    case Accounts.get_user_by_email(email) do
-      nil -> {:unauthorized, "No user found with email: #{email}"}
-      %User{} = user -> {:ok, user}
-    end
-  end
-
-  defp find_user_by_slack_id(_slack_user_id) do
-    # TODO: Implement Slack user ID to internal user mapping
-    {:unauthorized, "Slack user mapping not yet implemented"}
-  end
-
-  defp find_linear_event_repository(user, type, external_ids) do
+  def validate_repository_access(
+        %User{} = user,
+        %Event{source: :linear, type: type, external_ids: external_ids} = _event
+      ) do
     case external_ids["linear_team_id"] do
       nil ->
         if type == "documentMention" && external_ids["linear_project_id"] do
@@ -165,6 +136,57 @@ defmodule Swarm.Ingress.Permissions do
       team_id ->
         find_repository_by_team_id(user, team_id)
     end
+  end
+
+  def validate_repository_access(
+        %User{} = user,
+        %Event{source: :github, repository_external_id: repo_id} = _event
+      )
+      when not is_nil(repo_id) do
+    case Repositories.get_user_repository(user, repo_id) do
+      nil ->
+        {:unauthorized, "User does not have access to repository: #{repo_id}"}
+
+      %Repository{organization: nil} ->
+        {:unauthorized, "Repository does not have an organization"}
+
+      repository ->
+        repository = Swarm.Repo.preload(repository, :organization)
+        {:ok, repository, repository.organization}
+    end
+  end
+
+  def validate_repository_access(%User{} = user, %Event{repository_external_id: repo_id} = _event)
+      when not is_nil(repo_id) do
+    case Repositories.get_user_repository(user, repo_id) do
+      nil ->
+        {:unauthorized, "User does not have access to repository: #{repo_id}"}
+
+      repository ->
+        repository = Swarm.Repo.preload(repository, :organization)
+        {:ok, repository, repository.organization}
+    end
+  end
+
+  def validate_repository_access(%User{} = _user, %Event{repository_external_id: nil} = _event) do
+    # No repository specified, access granted
+    {:ok, nil, nil}
+  end
+
+  # Helper functions for finding users by external identifiers
+
+  defp find_user_by_github_username(username) do
+    # For now, we assume GitHub username matches our internal username
+    # This could be enhanced to use a mapping table if needed
+    case Accounts.get_user_by_username(username) do
+      nil -> {:unauthorized, "No user found with GitHub username: #{username}"}
+      %User{} = user -> {:ok, user}
+    end
+  end
+
+  defp find_user_by_slack_id(_slack_user_id) do
+    # TODO: Implement Slack user ID to internal user mapping
+    {:unauthorized, "Slack user mapping not yet implemented"}
   end
 
   defp find_repository_by_team_id(user, team_id) do

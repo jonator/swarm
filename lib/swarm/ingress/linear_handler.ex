@@ -13,6 +13,7 @@ defmodule Swarm.Ingress.LinearHandler do
 
   alias Swarm.Ingress.Event
   alias Swarm.Ingress.Permissions
+  alias Swarm.Egress.LinearDispatch
   alias Swarm.Services.Linear
 
   @doc """
@@ -33,6 +34,10 @@ defmodule Swarm.Ingress.LinearHandler do
     if relevant_event?(event) do
       with {:ok, user, repository, _organization} <- Permissions.validate_user_access(event) do
         build_agent_attributes(event, user, repository)
+      else
+        {:unauthorized, reason} ->
+          Logger.debug("Unauthorized user generated event: #{reason}")
+          reply_to_unauthorized_user(event)
       end
     else
       {:ok, :ignored}
@@ -379,5 +384,30 @@ defmodule Swarm.Ingress.LinearHandler do
       _ ->
         datetime_string
     end
+  end
+
+  # Reply prompting to create Swarm AI account
+  defp reply_to_unauthorized_user(%Event{external_ids: external_ids} = event) do
+    frontend_origin = Application.get_env(:swarm, :frontend_origin)
+
+    reply =
+      case external_ids do
+        %{"linear_actor_name" => actor_name} ->
+          first_name = String.split(actor_name, " ") |> Enum.at(0, "there")
+
+          "Hey #{first_name}! 👋\n\nYou don't yet have an account on Swarm AI. Visit #{frontend_origin}/login to sign up."
+
+        %{"linear_actor_email" => actor_email} ->
+          "Hey #{actor_email}! 👋\n\nYou don't yet have an account on Swarm AI. Visit #{frontend_origin}/login to sign up."
+
+        _ ->
+          "Hey there! 👋\n\nYou don't yet have an account on Swarm AI. Visit #{frontend_origin}/login to sign up."
+      end
+
+    LinearDispatch.reply(
+      event,
+      nil,
+      reply
+    )
   end
 end
