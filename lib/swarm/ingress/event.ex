@@ -18,6 +18,7 @@ defmodule Swarm.Ingress.Event do
     field :external_ids, map(), default: %{}
     field :context, map(), default: %{}
     field :timestamp, DateTime.t(), default: DateTime.utc_now()
+    field :message, String.t(), default: nil
   end
 
   @doc """
