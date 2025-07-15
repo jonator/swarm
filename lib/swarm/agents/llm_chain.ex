@@ -1,9 +1,28 @@
 defmodule Swarm.Agents.LLMChain do
   @moduledoc """
-  Common LLM chain setup utilities for Swarm agents.
+  Advanced LLM chain management for Swarm agents.
 
-  This module provides shared functionality for setting up LangChain LLM chains
-  with consistent streaming handlers and configuration across different agent types.
+  This module provides a robust and flexible implementation for setting up 
+  Language Model (LLM) chains with:
+  - Consistent streaming handlers
+  - Configurable model parameters
+  - Advanced error handling
+  - Comprehensive message broadcasting
+
+  ## Key Features
+  - Dynamic model selection
+  - Fallback model support
+  - Streaming message updates
+  - Detailed logging
+  - Flexible configuration
+
+  ## Example Usage
+  ```elixir
+  {:ok, result} = LLMChain.create(agent: agent)
+  |> LLMChain.add_messages(initial_messages)
+  |> LLMChain.add_tools(available_tools)
+  |> LLMChain.run_until_finished()
+  ```
   """
 
   require Logger
@@ -15,25 +34,43 @@ defmodule Swarm.Agents.LLMChain do
   alias Swarm.Agents.Message
   alias Phoenix.PubSub
 
+  @type model_config :: %{
+          model: String.t(),
+          max_tokens: non_neg_integer(),
+          temperature: float(),
+          stream: boolean()
+        }
+
+  @type chain_options :: [
+          {:model, String.t()}
+          | {:max_tokens, non_neg_integer()}
+          | {:temperature, float()}
+          | {:custom_context, map()}
+          | {:verbose, boolean()}
+          | {:agent, Agent.t()}
+        ]
+
   @doc """
-  Creates a new LLM chain with common configuration.
+  Creates a new LLM chain with advanced configuration and error handling.
+
+  ## Parameters
+  - `opts`: Keyword list of configuration options
 
   ## Options
+  - `:model` - LLM model identifier (default: "claude-3-5-haiku-latest")
+  - `:max_tokens` - Maximum token limit (default: 8192)
+  - `:temperature` - Creativity/randomness setting (default: 0.5)
+  - `:custom_context` - Additional context for the chain (default: %{})
+  - `:verbose` - Enable detailed logging (default: debug mode)
+  - `:agent` - Associated Swarm agent
 
-  - `:model` - The model to use (default: "claude-sonnet-4-20250514")
-  - `:max_tokens` - Maximum tokens for the model (default: 8192)
-  - `:temperature` - Temperature for the model (default: 0.5)
-  - `:custom_context` - Custom context to pass to the chain
-  - `:verbose` - Whether to enable verbose logging (default: `Logger.level() == :debug`)
-  - `:agent` - The agent instance for broadcasting messages
+  ## Returns
+  A configured `LLMChain` struct ready for message processing
 
   ## Examples
-
       iex> chain = LLMChain.create(agent: agent, max_tokens: 64000, temperature: 0.7)
-      iex> chain = LLMChain.add_messages(chain, messages)
-      iex> chain = LLMChain.add_tools(chain, tools)
-      iex> {:ok, result, _} = LLMChain.run_until_tool_used(chain, "finished")
   """
+  @spec create(chain_options()) :: LLMChain.t()
   def create(opts \\ []) do
     model = Keyword.get(opts, :model, "claude-3-5-haiku-latest")
     max_tokens = Keyword.get(opts, :max_tokens, 8192)
@@ -62,11 +99,20 @@ defmodule Swarm.Agents.LLMChain do
   end
 
   @doc """
-  Runs the LLM chain until the specified tool is used.
+  Executes the LLM chain until a specified tool is used.
 
-  This is a convenience function that wraps `LLMChain.run_until_tool_used/2`
-  with consistent error handling.
+  ## Parameters
+  - `chain`: The LLMChain to execute
+  - `tool_name`: Name of the tool signaling completion (default: "finished")
+
+  ## Returns
+  `{:ok, result}` with the final message content or `{:error, reason}`
+
+  ## Fallback Strategy
+  If the primary model fails, automatically switches to a backup model
+  to ensure task completion.
   """
+  @spec run_until_finished(LLMChain.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
   def run_until_finished(chain, tool_name \\ "finished") do
     fallback_model =
       ChatOpenAI.new!(%{
@@ -83,14 +129,22 @@ defmodule Swarm.Agents.LLMChain do
         {:ok, updated_chain.last_message.content}
 
       {:error, _chain, reason} ->
-        Logger.error("LLM chain failed: #{inspect(reason)}")
-        {:error, "LLM chain failed: #{inspect(reason)}"}
+        error_msg = "LLM chain failed: #{inspect(reason)}"
+        Logger.error(error_msg)
+        {:error, error_msg}
     end
   end
 
   @doc """
-  Creates a finished tool that can be used to signal completion.
+  Creates a tool to signal task completion.
+
+  ## Parameters
+  - `description`: Custom description for the finished tool
+
+  ## Returns
+  A LangChain function tool representing task completion
   """
+  @spec create_finished_tool(String.t()) :: LangChain.Function.t()
   def create_finished_tool(description \\ "Indicates that the implementation is complete") do
     LangChain.Function.new!(%{
       name: "finished",
@@ -103,11 +157,11 @@ defmodule Swarm.Agents.LLMChain do
   end
 
   # Private function to create the streaming handler
+  @spec create_streaming_handler(Agent.t()) :: map()
   defp create_streaming_handler(%Agent{id: agent_id}) do
     %{
       on_llm_new_delta: fn _model, deltas ->
         Enum.each(List.wrap(deltas), fn delta ->
-          # Extract the actual content from the ContentPart struct
           content = extract_content(delta)
 
           if content != "" do
@@ -120,12 +174,10 @@ defmodule Swarm.Agents.LLMChain do
         end)
       end,
       on_message_processed: fn _chain, %LangChain.Message{} = message ->
-        # Convert LangChain.Message to attrs using the Message module function
         message_attrs = Message.attrs_from_langchain_message(message)
         message_index = Swarm.Agents.get_next_message_index(agent_id)
         message_attrs = Map.put(message_attrs, :index, message_index)
 
-        # Extract the content for broadcasting (keeping the same structure for frontend)
         message_map = %{
           content: message_attrs.content.raw_content,
           index: message_index,
@@ -137,7 +189,6 @@ defmodule Swarm.Agents.LLMChain do
           metadata: message_attrs.content.metadata
         }
 
-        # Apply deep extraction to ensure no structs remain in the message map
         clean_message_map = deep_extract_structs(message_map)
 
         PubSub.broadcast(Swarm.PubSub, "agent:#{agent_id}", {"message", clean_message_map})
@@ -149,14 +200,15 @@ defmodule Swarm.Agents.LLMChain do
   end
 
   # Helper function to extract content from delta
+  @spec extract_content(map() | any()) :: String.t()
   defp extract_content(%{content: %{content: text}}) when is_binary(text), do: text
   defp extract_content(%{content: text}) when is_binary(text), do: text
   defp extract_content(_), do: ""
 
   # Deep extraction function to ensure no structs remain anywhere in the data
+  @spec deep_extract_structs(any()) :: any()
   defp deep_extract_structs(value) when is_map(value) do
     if Map.has_key?(value, :__struct__) do
-      # Convert struct to map and recursively extract
       value
       |> Map.from_struct()
       |> Enum.map(fn {key, val} -> {key, deep_extract_structs(val)} end)
