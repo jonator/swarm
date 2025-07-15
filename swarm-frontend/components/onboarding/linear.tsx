@@ -63,6 +63,7 @@ export const InstallLinear = ({
   if (isLoading || !organization) {
     return (
       <div>
+              </div>
         <div className='flex items-center w-full justify-center gap-2 mb-4 text-lg font-medium animate-in fade-in'>
           <Image
             alt='linear'
@@ -73,13 +74,16 @@ export const InstallLinear = ({
           />
           <span>Linear Connected</span>
         </div>
+              </div>
         <SkeletonCard bodyContent />
       </div>
+              </div>
     )
   }
 
   return (
     <div>
+              </div>
       <div className='flex items-center w-full justify-center gap-2 mb-4 text-lg font-medium animate-in fade-in'>
         <Image
           alt='linear'
@@ -90,6 +94,7 @@ export const InstallLinear = ({
         />
         <span>Linear Connected</span>
       </div>
+              </div>
       <LinkLinearOrganization
         organization={organization}
         repositories={repositories}
@@ -101,6 +106,7 @@ export const InstallLinear = ({
         }}
       />
     </div>
+              </div>
   )
 }
 
@@ -204,6 +210,7 @@ const ConnectLinear = ({
             Skip
           </Button>
         </div>
+              </div>
       </CardContent>
     </Card>
   )
@@ -256,6 +263,7 @@ const LinkLinearOrganization = ({
           {repositories.length > 0 && (
             <div className='space-y-3'>
               <div className='text-sm font-medium'>Repository</div>
+              </div>
               <div className='p-3 bg-muted rounded-md border'>
                 <div className='flex items-center text-sm'>
                   <span className='text-muted-foreground'>
@@ -265,7 +273,10 @@ const LinkLinearOrganization = ({
                   <span className='font-medium'>{repositories[0].name}</span>
                 </div>
               </div>
+              </div>
+              </div>
             </div>
+              </div>
           )}
 
           {/* Team Selection */}
@@ -273,6 +284,7 @@ const LinkLinearOrganization = ({
             <div className='space-y-3'>
               <div className='text-sm font-medium'>
                 Teams ({organization.teams.nodes.length})
+              </div>
               </div>
               {organization.teams.nodes.map((team) => (
                 <div key={team.id} className='flex items-center space-x-2'>
@@ -290,17 +302,21 @@ const LinkLinearOrganization = ({
                     {team.name}
                   </Label>
                 </div>
+              </div>
               ))}
               <div className='text-xs text-muted-foreground'>
                 {selectedTeams.length > 0
                   ? `${selectedTeams.length} team${selectedTeams.length !== 1 ? 's' : ''} selected`
                   : 'Select at least one team to continue'}
               </div>
+              </div>
             </div>
+              </div>
           ) : (
             <div className='text-sm text-muted-foreground'>
               No teams found in your Linear workspace
             </div>
+              </div>
           )}
 
           <div className='space-y-2'>
@@ -315,7 +331,9 @@ const LinkLinearOrganization = ({
                 : 'Select at least one team'}
             </Button>
           </div>
+              </div>
         </div>
+              </div>
       </CardContent>
     </Card>
   )
