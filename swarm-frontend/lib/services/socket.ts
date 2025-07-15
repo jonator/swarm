@@ -57,6 +57,7 @@ class SocketManager {
     })
 
     this.socket.onError((error) => {
+      if (JSON.stringify(error) === '{}') return
       console.error('Phoenix socket error:', error)
     })
 
