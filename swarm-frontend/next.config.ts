@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
       hmrRefreshes: true,
     },
   },
+  experimental: {
+    browserDebugInfoInTerminal: true,
+  },
 }
 
 export default nextConfig
