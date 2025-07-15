@@ -1,5 +1,6 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query'
 import { headers } from 'next/headers'
+import { Header } from '@/app/(dashboard)/header'
 import { AgentsList } from '@/components/agents/list'
 import Navbar from '@/components/navbar'
 import { getQueryClient } from '@/config/tanstack-query'
@@ -47,12 +48,10 @@ export default async function OwnerAgentsPage({
       />
 
       <main className='dashboard-container'>
-        <div className='flex items-center justify-between'>
-          <h1 className='text-2xl font-bold'>Agents</h1>
-          <p className='text-muted-foreground'>
-            All agents across repositories for {owner}
-          </p>
-        </div>
+        <Header
+          title='Agents'
+          description={`All agents across repositories for ${owner}`}
+        />
 
         <AgentsList
           organization_name={owner}

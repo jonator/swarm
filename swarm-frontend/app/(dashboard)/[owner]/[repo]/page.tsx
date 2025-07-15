@@ -1,3 +1,4 @@
+import { Header } from '@/app/(dashboard)/header'
 import Navbar from '@/components/navbar'
 import { getUser } from '@/lib/services/users'
 
@@ -21,12 +22,7 @@ export default async function RepoPage({
       />
 
       <main className='dashboard-container'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold'>{repo}</h1>
-            <p className='text-muted-foreground'>Repository in {owner}</p>
-          </div>
-        </div>
+        <Header title={repo} description={`Repository in ${owner}`} />
 
         {/* Content will be implemented later */}
       </main>

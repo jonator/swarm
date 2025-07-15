@@ -1,3 +1,4 @@
+import { Header } from '@/app/(dashboard)/header'
 import Navbar from '@/components/navbar'
 import { getUser } from '@/lib/services/users'
 
@@ -21,12 +22,7 @@ export default async function OwnerSettingsPage({
       />
 
       <main className='dashboard-container'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold'>Settings</h1>
-            <p className='text-muted-foreground'>Manage settings for {owner}</p>
-          </div>
-        </div>
+        <Header title='Settings' description={`Settings for ${owner}`} />
 
         {/* Content will be implemented later */}
       </main>

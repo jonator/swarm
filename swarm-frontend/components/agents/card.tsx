@@ -25,7 +25,7 @@ type AgentCardHeaderProps = {
 
 function AgentCardHeader({ agent }: AgentCardHeaderProps) {
   return (
-    <CardHeader className='flex flex-row items-center gap-4 pb-2'>
+    <CardHeader className='flex flex-row items-center gap-3 pb-2'>
       <StatusBadge status={agent.status} />
       <CardTitle className='flex-1 truncate text-lg font-bold'>
         {agent.name}
@@ -86,7 +86,7 @@ export function AgentCard({
       ) : (
         <AgentCardHeader agent={agent} />
       )}
-      <CardContent className='flex flex-col gap-2 pt-0'>
+      <CardContent className='flex flex-col gap-3 pt-0'>
         {agent.description && (
           <CardDescription
             className='text-sm text-foreground'

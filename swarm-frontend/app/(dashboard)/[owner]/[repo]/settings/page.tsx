@@ -1,3 +1,4 @@
+import { Header } from '@/app/(dashboard)/header'
 import Navbar from '@/components/navbar'
 import { getUser } from '@/lib/services/users'
 
@@ -25,14 +26,7 @@ export default async function RepoSettingsPage({
       />
 
       <main className='dashboard-container'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h1 className='text-2xl font-bold'>Repository Settings</h1>
-            <p className='text-muted-foreground'>
-              Manage settings for {owner}/{repo}
-            </p>
-          </div>
-        </div>
+        <Header title='Settings' description={`Settings for ${repo}`} />
 
         {/* Content will be implemented later */}
       </main>
