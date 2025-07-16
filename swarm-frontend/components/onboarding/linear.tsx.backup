@@ -274,25 +274,23 @@ const LinkLinearOrganization = ({
               <div className='text-sm font-medium'>
                 Teams ({organization.teams.nodes.length})
               </div>
-              <div className='max-h-48 overflow-y-auto space-y-2 pr-2'>
-                {organization.teams.nodes.map((team) => (
-                  <div key={team.id} className='flex items-center space-x-2'>
-                    <Checkbox
-                      id={team.id}
-                      checked={selectedTeams.includes(team.id)}
-                      onCheckedChange={(checked) =>
-                        handleTeamToggle(team.id, !!checked)
-                      }
-                    />
-                    <Label
-                      htmlFor={team.id}
-                      className='text-sm cursor-pointer flex-1'
-                    >
-                      {team.name}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+              {organization.teams.nodes.map((team) => (
+                <div key={team.id} className='flex items-center space-x-2'>
+                  <Checkbox
+                    id={team.id}
+                    checked={selectedTeams.includes(team.id)}
+                    onCheckedChange={(checked) =>
+                      handleTeamToggle(team.id, !!checked)
+                    }
+                  />
+                  <Label
+                    htmlFor={team.id}
+                    className='text-sm cursor-pointer flex-1'
+                  >
+                    {team.name}
+                  </Label>
+                </div>
+              ))}
               <div className='text-xs text-muted-foreground'>
                 {selectedTeams.length > 0
                   ? `${selectedTeams.length} team${selectedTeams.length !== 1 ? 's' : ''} selected`
