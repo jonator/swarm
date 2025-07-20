@@ -55,10 +55,9 @@ RUN apt-get update -y && apt-get install -y \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
 
 # Create swarm-agents group for user management
-RUN groupadd swarm-agents
-
-# Configure sudo to work without password in container
-RUN echo 'root ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
+# This group is used to manage permissions for all Swarm AI agent users
+# Using GID 1001 for consistency across deployments
+RUN groupadd --gid 1001 swarm-agents
 
 # Install gh
 RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
@@ -71,20 +70,56 @@ RUN (type -p wget >/dev/null || (apt update && apt install wget -y)) \
     && apt update \
     && apt install gh -y
 
-# Install asdf
-RUN git clone https://github.com/asdf-vm/asdf.git ~/.asdf --branch v0.14.1
+# Create shared asdf data directory accessible by swarm-agents group
+RUN mkdir -p /opt/asdf && \
+    chgrp -R swarm-agents /opt/asdf && \
+    chmod -R g+rw /opt/asdf
 
-# Add asdf to PATH and shell initialization
-RUN echo '. $HOME/.asdf/asdf.sh' >> ~/.bashrc
-RUN echo '. $HOME/.asdf/completions/asdf.bash' >> ~/.bashrc
+# Install asdf to shared location
+RUN git clone https://github.com/asdf-vm/asdf.git /opt/asdf/.asdf --branch v0.14.1
 
-# Set HOME and ASDF_DIR for asdf
+# Set custom asdf data directory and paths
+ENV ASDF_DATA_DIR=/opt/asdf
+ENV ASDF_DIR=/opt/asdf/.asdf
 ENV HOME=/root
-ENV ASDF_DIR=/root/.asdf
-ENV PATH="/root/.asdf/bin:/root/.asdf/shims:$PATH"
+ENV PATH="/opt/asdf/.asdf/bin:/opt/asdf/shims:$PATH"
+
+# Add asdf to PATH and shell initialization for all users
+RUN echo 'export ASDF_DATA_DIR="/opt/asdf"' >> ~/.bashrc && \
+    echo 'export ASDF_DIR="/opt/asdf/.asdf"' >> ~/.bashrc && \
+    echo 'export PATH="/opt/asdf/.asdf/bin:/opt/asdf/shims:$PATH"' >> ~/.bashrc && \
+    echo '. /opt/asdf/.asdf/asdf.sh' >> ~/.bashrc && \
+    echo '. /opt/asdf/.asdf/completions/asdf.bash' >> ~/.bashrc && \
+    # Add system-wide asdf configuration
+    echo 'export ASDF_DATA_DIR="/opt/asdf"' >> /etc/bash.bashrc && \
+    echo 'export ASDF_DIR="/opt/asdf/.asdf"' >> /etc/bash.bashrc && \
+    echo 'export PATH="/opt/asdf/.asdf/bin:/opt/asdf/shims:$PATH"' >> /etc/bash.bashrc && \
+    echo '. /opt/asdf/.asdf/asdf.sh' >> /etc/bash.bashrc && \
+    echo '. /opt/asdf/.asdf/completions/asdf.bash' >> /etc/bash.bashrc && \
+    # Also add to skeleton for new users
+    echo 'export ASDF_DATA_DIR="/opt/asdf"' >> /etc/skel/.bashrc && \
+    echo 'export ASDF_DIR="/opt/asdf/.asdf"' >> /etc/skel/.bashrc && \
+    echo 'export PATH="/opt/asdf/.asdf/bin:/opt/asdf/shims:$PATH"' >> /etc/skel/.bashrc && \
+    echo '. /opt/asdf/.asdf/asdf.sh' >> /etc/skel/.bashrc && \
+    echo '. /opt/asdf/.asdf/completions/asdf.bash' >> /etc/skel/.bashrc && \
+    # Create system-wide profile script for asdf
+    echo '#!/bin/bash' > /etc/profile.d/asdf.sh && \
+    echo 'export ASDF_DATA_DIR="/opt/asdf"' >> /etc/profile.d/asdf.sh && \
+    echo 'export ASDF_DIR="/opt/asdf/.asdf"' >> /etc/profile.d/asdf.sh && \
+    echo 'export PATH="/opt/asdf/.asdf/bin:/opt/asdf/shims:$PATH"' >> /etc/profile.d/asdf.sh && \
+    echo '. /opt/asdf/.asdf/asdf.sh 2>/dev/null || true' >> /etc/profile.d/asdf.sh && \
+    chmod +x /etc/profile.d/asdf.sh && \
+    # Create wrapper script for asdf with environment variables
+    echo '#!/bin/bash' > /usr/local/bin/asdf && \
+    echo 'export ASDF_DATA_DIR="/opt/asdf"' >> /usr/local/bin/asdf && \
+    echo 'export ASDF_DIR="/opt/asdf/.asdf"' >> /usr/local/bin/asdf && \
+    echo 'export PATH="/opt/asdf/.asdf/bin:/opt/asdf/shims:$PATH"' >> /usr/local/bin/asdf && \
+    echo '. /opt/asdf/.asdf/asdf.sh' >> /usr/local/bin/asdf && \
+    echo 'exec /opt/asdf/.asdf/bin/asdf "$@"' >> /usr/local/bin/asdf && \
+    chmod +x /usr/local/bin/asdf
 
 # Install asdf plugins
-RUN . /root/.asdf/asdf.sh && \
+RUN . /opt/asdf/.asdf/asdf.sh && \
     asdf plugin add nodejs https://github.com/asdf-vm/asdf-nodejs.git && \
     asdf plugin add python https://github.com/asdf-community/asdf-python.git && \
     asdf plugin add golang https://github.com/asdf-community/asdf-golang.git && \
@@ -94,7 +129,7 @@ RUN . /root/.asdf/asdf.sh && \
     asdf plugin add rust https://github.com/asdf-community/asdf-rust.git
 
 # Install latest versions of tools
-RUN . /root/.asdf/asdf.sh && \
+RUN . /opt/asdf/.asdf/asdf.sh && \
     asdf install nodejs latest && \
     asdf install python latest && \
     asdf install golang latest && \
@@ -102,16 +137,6 @@ RUN . /root/.asdf/asdf.sh && \
     asdf install bun latest && \
     asdf install deno latest && \
     asdf install rust latest
-
-# Set global versions
-RUN . /root/.asdf/asdf.sh && \
-    asdf global nodejs latest && \
-    asdf global python latest && \
-    asdf global golang latest && \
-    asdf global ruby latest && \
-    asdf global bun latest && \
-    asdf global deno latest && \
-    asdf global rust latest
 
 # Prepare app directory
 WORKDIR /app
@@ -142,5 +167,5 @@ EXPOSE 4369
 #   --network host \
 #   swarmdev:latest
 # to debug with repl
-# CMD ["iex", "--sname", "swarmdev", "--cookie", "test", "-S", "mix"]
-CMD ["elixir", "--sname", "swarmdev", "--cookie", "test", "-S", "mix", "phx.server"]
+CMD ["iex", "--sname", "swarmdev", "--cookie", "test", "-S", "mix"]
+# CMD ["elixir", "--sname", "swarmdev", "--cookie", "test", "-S", "mix", "phx.server"]

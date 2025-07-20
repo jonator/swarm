@@ -159,6 +159,26 @@ Swarm is built on a robust, scalable architecture designed to support intelligen
 - **Message Passing System**: Enables real-time agent communication
 - **Knowledge Base**: Centralized storage for swarm learning and context sharing
 
+### Network Security for Agents
+
+Swarm agents run in isolated Docker containers with network restrictions to prevent access to internal infrastructure:
+
+#### Security Measures
+- **External-Only Access**: Agents can only access external internet, not internal Fly.io networks
+- **Blocked Networks**: 
+  - RFC 1918 private networks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16)
+  - Link-local addresses (169.254.0.0/16) including Fly.io metadata service
+- **Allowed Access**: Public internet APIs (GitHub, Linear, Anthropic, etc.)
+
+#### Implementation
+Network restrictions are applied at container startup via iptables rules in `/usr/local/bin/apply-network-security.sh`. These rules ensure agents cannot access:
+- Internal Fly.io services
+- Other applications in the same organization  
+- Private network infrastructure
+- Fly.io metadata endpoints
+
+This provides defense-in-depth security while maintaining necessary external API access for agent functionality.
+
 ### Swarm Architecture Components
 
 The swarm system consists of several key architectural components:

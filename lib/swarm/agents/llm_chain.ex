@@ -35,7 +35,8 @@ defmodule Swarm.Agents.LLMChain do
       iex> {:ok, result, _} = LLMChain.run_until_tool_used(chain, "finished")
   """
   def create(opts \\ []) do
-    model = Keyword.get(opts, :model, "claude-3-5-haiku-latest")
+    # model = Keyword.get(opts, :model, "claude-3-5-haiku-latest")
+    model = Keyword.get(opts, :model, "claude-sonnet-4-20250514")
     max_tokens = Keyword.get(opts, :max_tokens, 8192)
     temperature = Keyword.get(opts, :temperature, 0.5)
     custom_context = Keyword.get(opts, :custom_context, %{})

@@ -5,8 +5,6 @@ defmodule Swarm.Git.Repo do
   alias Swarm.Agents.Agent
   alias Swarm.Services.GitHub
 
-  @base_dir Path.join(System.tmp_dir(), Atom.to_string(__MODULE__))
-
   typedstruct enforce: true do
     field :url, String.t(), enforce: true
     field :branch, String.t(), enforce: true
@@ -32,9 +30,9 @@ defmodule Swarm.Git.Repo do
     with {:ok, github_client} <- GitHub.new(organization),
          auth_url <-
            "https://x-access-token:#{github_client.client.auth.access_token}@github.com/#{repository.owner}/#{repository.name}.git",
-         path <- make_path(auth_url, slug),
          {:ok, linux_user} <- ensure_linux_user(organization),
-         {:ok, _} <- create_repo_directory(auth_url, path, linux_user),
+         path <- make_path(auth_url, slug, linux_user),
+         {:ok, _} <- clone_repository(auth_url, path, linux_user),
          {:ok, default_branch} <- get_default_branch(path, linux_user),
          {:ok, _} <- switch_branch(path, branch, linux_user) do
       {:ok,
@@ -165,7 +163,7 @@ defmodule Swarm.Git.Repo do
     end
   end
 
-  defp make_path(url, slug) do
+  defp make_path(url, slug, linux_user) do
     path =
       url
       |> String.replace(~r/\.git$/, "")
@@ -173,7 +171,7 @@ defmodule Swarm.Git.Repo do
       |> Enum.take(-2)
       |> Enum.join("/")
 
-    Path.join([@base_dir, slug, path])
+    Path.join(["/home", linux_user, "repos", slug, path])
   end
 
   # Helper functions for Agent-based repo opening
@@ -189,45 +187,28 @@ defmodule Swarm.Git.Repo do
       {_, _} ->
         Logger.debug("Creating Linux user #{username}")
 
-        case System.cmd("sudo", ["useradd", "-G", "swarm-agents", "-m", username],
-               stderr_to_stdout: true
-             ) do
+        # Create user with home directory - asdf is shared system-wide via /opt/asdf
+        case System.cmd("sudo", ["useradd", "--create-home", username], stderr_to_stdout: true) do
           {_, 0} ->
             Logger.debug("Successfully created Linux user #{username}")
-            {:ok, username}
+
+            # Add user to swarm-agents group using gpasswd (preferred method)
+            case System.cmd("sudo", ["gpasswd", "-a", username, "swarm-agents"],
+                   stderr_to_stdout: true
+                 ) do
+              {_, 0} ->
+                Logger.debug("Successfully added user #{username} to swarm-agents group")
+                {:ok, username}
+
+              {error, _} ->
+                Logger.error("Failed to add user #{username} to swarm-agents group: #{error}")
+                {:error, "Failed to add user to group: #{error}"}
+            end
 
           {error, _} ->
             Logger.error("Failed to create Linux user #{username}: #{error}")
             {:error, "Failed to create Linux user: #{error}"}
         end
-    end
-  end
-
-  # Helper function to run git commands as a specific linux user
-  defp ucmd(linux_user, command, args, opts \\ []) do
-    System.cmd(
-      "sudo",
-      ["-u", linux_user] ++ [command] ++ args,
-      Keyword.merge([stderr_to_stdout: true], opts)
-    )
-  end
-
-  defp create_repo_directory(auth_url, path, linux_user) do
-    if File.exists?(path) and File.exists?(Path.join(path, ".git")) do
-      Logger.warning("Repository already exists at #{path}, deleting and re-cloning")
-
-      case ucmd(linux_user, "rm", ["-rf", path]) do
-        {_, 0} ->
-          Logger.debug("Successfully deleted existing repository at #{path}")
-          clone_repository(auth_url, path, linux_user)
-
-        {error, _} ->
-          Logger.error("Failed to delete existing repository at #{path}: #{error}")
-          {:error, "Failed to delete existing repository: #{error}"}
-      end
-    else
-      Logger.debug("Cloning repository as user #{linux_user}")
-      clone_repository(auth_url, path, linux_user)
     end
   end
 
@@ -252,9 +233,6 @@ defmodule Swarm.Git.Repo do
   defp configure_git_user(path, linux_user) do
     github_app_id = Application.get_env(:swarm, :github_client_id)
 
-    # Add repository to Git safe directories to prevent dubious ownership warnings
-    ucmd(linux_user, "git", ["config", "--global", "--add", "safe.directory", path])
-
     # Set git user name as swarm[bot]
     ucmd(linux_user, "git", ["config", "user.name", "swarm[bot]"], cd: path)
 
@@ -263,5 +241,14 @@ defmodule Swarm.Git.Repo do
     ucmd(linux_user, "git", ["config", "user.email", email], cd: path)
 
     Logger.debug("Configured git user for Swarm GitHub App: swarm[bot] <#{email}>")
+  end
+
+  # Helper function to run git commands as a specific linux user
+  defp ucmd(linux_user, command, args, opts \\ []) do
+    System.cmd(
+      "sudo",
+      ["-u", linux_user] ++ [command] ++ args,
+      Keyword.merge([stderr_to_stdout: true], opts)
+    )
   end
 end
