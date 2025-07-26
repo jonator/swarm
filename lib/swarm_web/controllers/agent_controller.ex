@@ -12,7 +12,12 @@ defmodule SwarmWeb.AgentController do
   end
 
   def show(conn, %{"id" => id}, user) do
-    agent = Agents.get_agent(user, id)
-    render(conn, :show, agent: agent)
+    case Agents.get_agent(user, id) do
+      nil ->
+        send_resp(conn, :not_found, "Not found")
+
+      agent ->
+        render(conn, :show, agent: agent)
+    end
   end
 end

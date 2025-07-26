@@ -54,4 +54,32 @@ defmodule SwarmWeb.AgentControllerTest do
       assert returned_agent["repository_id"] == repository.id
     end
   end
+
+  describe "show" do
+    test "returns agent when it exists and belongs to the user", %{
+      conn: conn,
+      user: user,
+      repository: repository
+    } do
+      agent = agent_fixture(%{user: user, repository_id: repository.id})
+      conn = get(conn, ~p"/api/agents/#{agent.id}")
+
+      assert returned_agent = json_response(conn, 200)["agent"]
+      assert returned_agent["id"] == agent.id
+      assert returned_agent["name"] == agent.name
+      assert returned_agent["context"] == agent.context
+      assert returned_agent["status"] == "pending"
+      assert returned_agent["source"] == "manual"
+      assert returned_agent["type"] == "researcher"
+      assert returned_agent["user_id"] == user.id
+      assert returned_agent["repository_id"] == repository.id
+    end
+
+    test "returns 404 when agent is not found", %{conn: conn} do
+      non_existent_id = Ecto.UUID.generate()
+      conn = get(conn, ~p"/api/agents/#{non_existent_id}")
+
+      assert response(conn, 404) == "Not found"
+    end
+  end
 end
