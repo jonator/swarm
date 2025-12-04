@@ -2,6 +2,8 @@
 
 Swarm is an AI-powered development automation platform that transforms how teams handle code implementation and project management. By integrating with popular tools like Linear, GitHub, and Slack, Swarm automatically receives development tasks and uses intelligent agents to implement code changes, run tests, and create pull requests.
 
+Dig through the architecture on DeepWiki: https://deepwiki.com/jonator/swarm
+
 ## What is Swarm?
 
 Swarm is a sophisticated system that bridges the gap between project management and code implementation. When you mention `@swarm` in Linear issues, GitHub issues, or Slack threads, the system automatically:
