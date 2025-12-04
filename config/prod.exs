@@ -21,3 +21,38 @@ config :swarm, frontend_origin: "https://getswarm.dev"
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
+
+# Add to config/prod.exs
+# # GITHUB_WEBHOOK_SECRET: ...
+
+# config :instructor,
+#   openai: [
+#     api_key:
+#       ""
+#   ]
+
+# config :instructor,
+#   anthropic: [
+#     api_key:
+#       ""
+#   ]
+
+# config :langchain,
+#   openai_key:
+#     ""
+
+# config :langchain,
+#        :anthropic_key,
+#        ""
+
+# config :swarm, :github_client_id, ""
+# config :swarm, :github_client_secret, ""
+
+# config :swarm, :linear_client_id, ""
+# config :swarm, :linear_client_secret, ""
+# config :swarm, :linear_webhook_secret, ""
+# config :swarm, :linear_redirect_uri, "https://getswarm.dev/auth/linear/callback"
+
+# config :swarm,
+#        :linear_app_token,
+#        ""
