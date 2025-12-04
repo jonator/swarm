@@ -100,3 +100,64 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Add to config/dev.secret.exs
+#
+# config :instructor,
+#   openai: [
+#     api_key:
+#       "",
+#     http_options: [retry: :transient]
+#   ]
+
+# # polaris dev
+# # config :instructor,
+# #   anthropic: [
+# #     api_key:
+# #       "",
+# #     http_options: [retry: :transient]
+# #   ]
+# config :instructor,
+#   anthropic: [
+#     api_key:
+#       "",
+#     http_options: [retry: :transient]
+#   ]
+
+# config :langchain,
+#   openai_key:
+#     ""
+
+# # polaris dev
+# # config :langchain,
+# #        :anthropic_key,
+# #        ""
+# config :langchain,
+#        :anthropic_key,
+#        ""
+
+# # Webhook URL callback
+# # https://smee.io/ZbGn4kOyoveRrXFk
+
+# # Github
+# # GITHUB_WEBHOOK_SECRET: ...
+
+# config :swarm, :github_client_id, ""
+# config :swarm, :github_client_secret, ""
+# config :swarm, :github_privkey_path, "swarm-ai-dev.2025-05-08.private-key.pem"
+
+# # Linear
+
+# config :swarm, :linear_client_id, ""
+# config :swarm, :linear_client_secret, ""
+# config :swarm, :linear_webhook_secret, ""
+# config :swarm, :linear_redirect_uri, "http://localhost:3000/auth/linear/callback"
+
+# config :swarm,
+#        :linear_app_token,
+#        ""
+
+# config :swarm, SwarmWeb.Auth.Guardian,
+#   secret_key: ""
+
+# config :joken, default_signer: %{"pem" => File.read!("swarm-ai-dev.2025-05-08.private-key.pem")}

@@ -286,11 +286,9 @@ When contributing to swarm functionality:
 docker run -d \
   --name postgres \
   -p 5432:5432 \
-  -v "$PWD/postgres-config.conf":/etc/postgresql/postgresql.conf \
   -v app_postgres_data:/var/lib/postgresql/data \
   -e POSTGRES_PASSWORD=postgres \
-  postgres:16-alpine \
-  -c 'config_file=/etc/postgresql/postgresql.conf'
+  postgres:16-alpine
 ```
 
 ## Learn more
